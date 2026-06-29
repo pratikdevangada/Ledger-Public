@@ -159,6 +159,44 @@
   .full .expand{color:var(--ink);background:var(--accent-soft)}
   .full canvas{max-height:340px}
 
+  /* editable name chip */
+  .namechip{cursor:pointer;font-weight:600;color:var(--ink);border:1px solid var(--line);background:var(--surface-2);padding:5px 12px;border-radius:8px;font-size:13px;transition:.15s}
+  .namechip:hover{border-color:var(--line-2)}
+
+  /* recent: grouped hierarchy */
+  .tree{display:flex;flex-direction:column}
+  .tree details{border-top:1px solid var(--line)}
+  .tree>details:first-child{border-top:none}
+  .tree summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:11px;padding:12px 6px;user-select:none}
+  .tree summary::-webkit-details-marker{display:none}
+  .tree .tw{flex:none;color:var(--ink-faint);font-size:10px;transition:transform .15s;width:10px;text-align:center}
+  .tree details[open]>summary .tw{transform:rotate(90deg)}
+  .tree .tlab{flex:1;display:flex;align-items:center;gap:9px;min-width:0;overflow:hidden}
+  .tree .tlab .tname{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .tree .tamt{flex:none;font-variant-numeric:tabular-nums;font-weight:600}
+  .tree .tcount{color:var(--ink-faint);font-size:11px;font-weight:500}
+  .tree .lvl-day>summary{font-size:15px;font-weight:600}
+  .tree .lvl-cat{margin-left:24px}
+  .tree .lvl-cat>summary{font-size:13.5px}
+  .tree .leaf{display:flex;align-items:center;gap:11px;padding:9px 6px 9px 48px;font-size:13px;color:var(--ink-soft);border-top:1px solid var(--line)}
+  .tree .leaf .tamt{color:var(--ink)}
+  .tree .leaf .tname{flex:1;display:flex;align-items:center;gap:8px}
+
+  /* add screen: recently-added panel */
+  .addrecent{max-height:240px;overflow:auto;border:1px solid var(--line);border-radius:12px;background:#0d0d0f}
+  .addrecent table{width:100%;border-collapse:collapse}
+  .addrecent td{padding:9px 14px;border-top:1px solid var(--line);font-size:13px;vertical-align:middle}
+  .addrecent tr:first-child td{border-top:none}
+  .addrecent .am{text-align:right;font-variant-numeric:tabular-nums;font-weight:600;white-space:nowrap}
+  .addrecent .dt{color:var(--ink-faint);white-space:nowrap}
+  .addrecent .ct{color:var(--ink-soft)}
+
+  /* comparison deltas */
+  .cmp .delta{flex:none;font-size:11px;font-weight:600;padding:3px 9px;border-radius:20px;white-space:nowrap;margin-left:4px}
+  .cmp .up{background:rgba(220,107,115,.16);color:#F2A2AE}
+  .cmp .down{background:rgba(95,176,140,.16);color:#8BD3B0}
+  .cmp .flat{background:var(--surface-2);color:var(--ink-faint)}
+
   /* modal */
   .modal{position:fixed;inset:0;z-index:120;display:grid;place-items:center;padding:24px;background:rgba(6,6,7,.66);backdrop-filter:blur(6px);animation:appin .2s ease both}
   .modal-card{width:100%;max-width:360px;background:var(--surface);border:1px solid var(--line-2);border-radius:16px;box-shadow:0 30px 80px -20px rgba(0,0,0,.8);padding:22px}
@@ -226,7 +264,7 @@
       <button class="tab active" data-screen="dash">Dashboard</button>
       <button class="tab" data-screen="add">Add expenses</button>
     </div>
-    <div class="who"><span id="whoEmail"></span><button class="ghost" id="signout">Sign out</button></div>
+    <div class="who"><span id="whoName" class="namechip" title="Click to edit your name"></span><button class="ghost" id="signout">Sign out</button></div>
   </header>
 
   <div id="screen-dash" class="wrap">
@@ -294,6 +332,10 @@
         </div>
         <canvas id="cWho"></canvas>
       </section>
+      <section class="card full">
+        <h2 class="ctitle">Up &amp; down vs previous period <span class="soft">— where spending rose or fell</span></h2>
+        <div id="compare"></div>
+      </section>
       <section class="card sumcard full">
         <h2 class="ctitle">Summary for planning <span class="soft">— paste into Claude</span></h2>
         <textarea id="summary" readonly></textarea>
@@ -301,11 +343,20 @@
       </section>
     </div>
 
-    <section class="card" style="margin-top:18px"><h2 class="ctitle">Recent expenses</h2><div id="recent"></div></section>
+    <section class="card" style="margin-top:18px">
+      <div class="chead"><h2 class="ctitle">Recent expenses</h2>
+        <div class="ctools"><div class="miniseg" id="recentSeg"><button data-m="grouped" class="on">Grouped</button><button data-m="list">List</button></div></div>
+      </div>
+      <div id="recent"></div>
+    </section>
   </div>
 
   <div id="screen-add" class="wrap hide">
     <div id="addBanner"></div>
+    <section class="card" style="margin-bottom:16px">
+      <div class="chead"><h2 class="ctitle">Recently added <span class="soft">— last 20, newest first</span></h2></div>
+      <div id="addRecent" class="addrecent"></div>
+    </section>
     <section class="card">
       <h2 class="ctitle">Add expenses <span class="soft">— fill as many rows as you like, then submit all at once</span></h2>
       <div class="tablescroll">
@@ -377,7 +428,8 @@ const colorOf=id=>CATCOLOR[id]||"#A8ADB8";
 const subName=id=>{const s=SUBS.find(x=>x.id===id);return s?s.name:null;};
 const subColor=id=>SUBSHADE[id]||"#A8ADB8";
 
-document.querySelectorAll(".tab").forEach(b=>b.onclick=()=>{document.querySelectorAll(".tab").forEach(x=>x.classList.remove("active"));b.classList.add("active");const s=b.dataset.screen;$("screen-dash").classList.toggle("hide",s!=="dash");$("screen-add").classList.toggle("hide",s!=="add");});
+document.querySelectorAll(".tab").forEach(b=>b.onclick=()=>{document.querySelectorAll(".tab").forEach(x=>x.classList.remove("active"));b.classList.add("active");const s=b.dataset.screen;$("screen-dash").classList.toggle("hide",s!=="dash");$("screen-add").classList.toggle("hide",s!=="add");if(s==="add")renderAddRecent();});
+$("recentSeg").addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;RECENT_MODE=b.dataset.m;[...$("recentSeg").children].forEach(x=>x.classList.toggle("on",x===b));if(LASTF)renderRecent(LASTF);});
 
 /* ---- custom dropdown component (matches dark theme) ---- */
 let OPENSEL=null;
@@ -411,7 +463,7 @@ const rangeLabel=()=>({this_month:"this month",last_month:"last month",last_30:"
 function filtered(){const[from,to]=rangeDates();const cat=$("fCat").value,sub=$("fSub").value;return EXP.filter(e=>e.spent_on>=from&&e.spent_on<=to&&(!cat||e.category_id===cat)&&(!sub||e.subcategory_id===sub));}
 let LASTF=[],LASTR=["",""];
 const CT={trend:'area',cat:'doughnut',dow:'bar',who:'doughnut'};
-function applyFilters(){const[from,to]=rangeDates();LASTR=[from,to];const F=filtered();LASTF=F;renderHero(F,from,to);renderStats(F,from,to);renderTrend(F,from,to);renderCat(F);renderSub(F);renderDow(F);renderWho(F);renderSummary(F,from,to);renderRecent(F);}
+function applyFilters(){const[from,to]=rangeDates();LASTR=[from,to];const F=filtered();LASTF=F;renderHero(F,from,to);renderStats(F,from,to);renderTrend(F,from,to);renderCat(F);renderSub(F);renderDow(F);renderWho(F);renderSummary(F,from,to);renderCompare(F,from,to);renderRecent(F);}
 function rerender(key){const[from,to]=LASTR,F=LASTF;if(key==='trend')renderTrend(F,from,to);else if(key==='cat')renderCat(F);else if(key==='dow')renderDow(F);else if(key==='who')renderWho(F);}
 document.addEventListener('click',ev=>{
   const seg=ev.target.closest('.miniseg button');
@@ -456,27 +508,71 @@ function renderCat(F){kill("cCat");const m={};F.forEach(e=>m[e.category_id]=(m[e
 function renderSub(F){const m={};F.forEach(e=>{if(!e.subcategory_id)return;m[e.subcategory_id]=(m[e.subcategory_id]||0)+Number(e.amount);});const arr=Object.entries(m).filter(x=>subName(x[0])).sort((a,b)=>b[1]-a[1]).slice(0,10);const max=arr.length?arr[0][1]:1;$("cSub").innerHTML=arr.length?arr.map(([id,v])=>`<div class="barrow"><div class="lab"><span class="dot" style="background:${subColor(id)}"></span>${esc(subName(id))}</div><div class="track"><div class="fill" style="width:${Math.max(2,v/max*100)}%;background:${subColor(id)}"></div></div><div class="val num">${money(v)}</div></div>`).join(""):`<div class="empty">No sub-category spend in this period.</div>`;}
 function renderDow(F){kill("cDow");const names=["Mon","Tue","Wed","Thu","Fri","Sat","Sun"],tot=[0,0,0,0,0,0,0];F.forEach(e=>{tot[(new Date(e.spent_on).getDay()+6)%7]+=Number(e.amount);});const max=Math.max(...tot,1);const t=CT.dow;let ds,type;if(t==='line'){type='line';const ctx=$("cDow").getContext("2d");const grad=ctx.createLinearGradient(0,0,0,240);grad.addColorStop(0,"rgba(237,235,227,.25)");grad.addColorStop(1,"rgba(237,235,227,0)");ds={data:tot,borderColor:"#EDEBE3",backgroundColor:grad,fill:true,tension:.35,pointRadius:3,pointBackgroundColor:"#EDEBE3",borderWidth:2};}else{type='bar';ds={data:tot,backgroundColor:tot.map(v=>v===max?"#EDEBE3":"rgba(237,235,227,.26)"),borderRadius:5,maxBarThickness:34};}CHARTS.cDow=new Chart($("cDow"),{type,data:{labels:names,datasets:[ds]},options:{plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>` ${money2(c.raw)}`}}},scales:{x:{grid:{display:false},border:{display:false},ticks:{font:GFONT}},y:{grid:{color:GRID},border:{display:false},ticks:{font:GFONT,maxTicksLimit:5,callback:v=>money(v)}}}}});}
 function renderWho(F){kill("cWho");const m={};F.forEach(e=>{const k=e.paid_by||"Unspecified";m[k]=(m[k]||0)+Number(e.amount);});const arr=Object.entries(m).sort((a,b)=>b[1]-a[1]);if(!arr.length)return;const total=arr.reduce((t,a)=>t+a[1],0);const cols=["#5E96C4","#CE8E5C","#9579C0","#5FB08C","#C56F77"];const t=CT.who;if(t==='bar'){CHARTS.cWho=new Chart($("cWho"),{type:'bar',data:{labels:arr.map(a=>a[0]),datasets:[{data:arr.map(a=>a[1]),backgroundColor:arr.map((_,i)=>cols[i%cols.length]),borderRadius:4,maxBarThickness:46}]},options:{plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>` ${money2(c.raw)}`}}},scales:{x:{grid:{display:false},border:{display:false},ticks:{font:GFONT}},y:{grid:{color:GRID},border:{display:false},ticks:{font:GFONT,callback:v=>money(v)}}}}});return;}const plugins=t==='doughnut'?[centerText(money(total),"total")]:[];CHARTS.cWho=new Chart($("cWho"),{type:t,data:{labels:arr.map(a=>a[0]),datasets:[{data:arr.map(a=>a[1]),backgroundColor:arr.map((_,i)=>cols[i%cols.length]),borderColor:SEG,borderWidth:3,hoverOffset:5}]},options:{cutout:t==='doughnut'?"68%":0,plugins:{legend:{position:"right",labels:{font:GFONT,boxWidth:9,boxHeight:9,padding:9,usePointStyle:true,pointStyle:"circle"}},tooltip:{callbacks:{label:c=>` ${c.label}: ${money2(c.raw)}`}}}},plugins});}
-function renderRecent(F){const rows=F.slice(0,30);if(!rows.length){$("recent").innerHTML=`<div class="empty">No expenses in this period.</div>`;return;}const body=rows.map(r=>{const sn=subName(r.subcategory_id);return`<tr><td class="muted num">${new Date(r.spent_on).toLocaleDateString(LOCALE,{day:"2-digit",month:"short"})}</td><td><span class="chip" style="background:${colorOf(r.category_id)}">${esc(nameOf(r.category_id))}</span>${sn?`<span class="subtag"><span class="dot" style="background:${subColor(r.subcategory_id)}"></span>${esc(sn)}</span>`:""}</td><td class="muted">${esc(r.note||"")}</td><td class="muted">${esc(r.paid_by||"")}</td><td class="amt">${money2(r.amount)}</td><td style="text-align:right"><button class="del" onclick="delExpense('${r.id}')" title="Delete">✕</button></td></tr>`;}).join("");$("recent").innerHTML=`<table class="recent"><thead><tr><th>Date</th><th>Category</th><th>Note</th><th>Paid by</th><th style="text-align:right">Amount</th><th></th></tr></thead><tbody>${body}</tbody></table>`;}
-async function delExpense(id){if(!confirm("Delete this expense?"))return;const{error}=await sb.from("expenses").delete().eq("id",id);if(error){alert(error.message);return;}await loadExpenses();applyFilters();}
+let RECENT_MODE="grouped";
+function renderRecentList(F){const rows=F.slice(0,40);const body=rows.map(r=>{const sn=subName(r.subcategory_id);return`<tr><td class="muted num">${new Date(r.spent_on).toLocaleDateString(LOCALE,{day:"2-digit",month:"short"})}</td><td><span class="chip" style="background:${colorOf(r.category_id)}">${esc(nameOf(r.category_id))}</span>${sn?`<span class="subtag"><span class="dot" style="background:${subColor(r.subcategory_id)}"></span>${esc(sn)}</span>`:""}</td><td class="muted">${esc(r.note||"")}</td><td class="muted">${esc(r.paid_by||"")}</td><td class="amt">${money2(r.amount)}</td><td style="text-align:right"><button class="del" onclick="delExpense('${r.id}')" title="Delete">✕</button></td></tr>`;}).join("");$("recent").innerHTML=`<table class="recent"><thead><tr><th>Date</th><th>Category</th><th>Note</th><th>Paid by</th><th style="text-align:right">Amount</th><th></th></tr></thead><tbody>${body}</tbody></table>`;}
+function renderRecentGrouped(F){
+  const byDay={};F.forEach(e=>{(byDay[e.spent_on]=byDay[e.spent_on]||[]).push(e);});
+  const allDays=Object.keys(byDay).sort((a,b)=>b.localeCompare(a));const days=allDays.slice(0,60);
+  const sum=l=>l.reduce((s,e)=>s+e.amount,0);
+  const html=days.map((d,di)=>{
+    const items=byDay[d];const dayTotal=sum(items);
+    const byCat={};items.forEach(e=>{(byCat[e.category_id]=byCat[e.category_id]||[]).push(e);});
+    const cats=Object.keys(byCat).sort((a,b)=>sum(byCat[b])-sum(byCat[a])).map(cid=>{
+      const list=byCat[cid];const bySub={};list.forEach(e=>{const k=e.subcategory_id||"__none__";(bySub[k]=bySub[k]||[]).push(e);});
+      const leaves=Object.keys(bySub).sort((a,b)=>sum(bySub[b])-sum(bySub[a])).map(sk=>{
+        const l2=bySub[sk];const label=sk==="__none__"?`<span class="muted">(no sub-category)</span>`:`<span class="dot" style="background:${subColor(sk)}"></span>${esc(subName(sk))}`;
+        return `<div class="leaf"><span class="tname">${label}${l2.length>1?` <span class="tcount">×${l2.length}</span>`:""}</span><span class="tamt">${money2(sum(l2))}</span></div>`;
+      }).join("");
+      return `<details class="lvl-cat"><summary><span class="tw">▸</span><span class="tlab"><span class="chip" style="background:${colorOf(cid)}">${esc(nameOf(cid))}</span></span><span class="tamt">${money2(sum(list))}</span></summary>${leaves}</details>`;
+    }).join("");
+    const dlabel=new Date(d).toLocaleDateString(LOCALE,{weekday:"short",day:"2-digit",month:"short"});
+    return `<details class="lvl-day"${di===0?" open":""}><summary><span class="tw">▸</span><span class="tlab"><span class="tname">${dlabel}</span><span class="tcount">${items.length} item${items.length>1?"s":""}</span></span><span class="tamt">${money2(dayTotal)}</span></summary>${cats}</details>`;
+  }).join("");
+  const cap=allDays.length>60?`<div class="empty" style="padding:14px 10px">Showing the most recent 60 days.</div>`:"";
+  $("recent").innerHTML=`<div class="tree">${html}</div>${cap}`;
+}
+function renderRecent(F){if(!F.length){$("recent").innerHTML=`<div class="empty">No expenses in this period.</div>`;return;}RECENT_MODE==="list"?renderRecentList(F):renderRecentGrouped(F);}
+function renderAddRecent(){const host=$("addRecent");if(!host)return;const rows=EXP.slice(0,20);if(!rows.length){host.innerHTML=`<div class="empty" style="padding:22px">Nothing added yet — your last 20 entries will show here.</div>`;return;}host.innerHTML=`<table>${rows.map(r=>{const sn=subName(r.subcategory_id);return`<tr><td class="dt">${new Date(r.spent_on).toLocaleDateString(LOCALE,{day:"2-digit",month:"short"})}</td><td class="ct">${esc(nameOf(r.category_id))}${sn?` · ${esc(sn)}`:""}</td><td class="ct">${esc(r.paid_by||"")}</td><td class="am">${money2(r.amount)}</td></tr>`;}).join("")}</table>`;}
+function renderCompare(F,from,to){const host=$("compare");if(!host)return;
+  if(!from||!to){host.innerHTML=`<div class="empty">Pick a specific period (not “All time”) to compare it with the one before.</div>`;return;}
+  const d0=new Date(from),d1=new Date(to);const span=Math.round((d1-d0)/864e5)+1;
+  const pFrom=new Date(d0.getTime()-span*864e5),pTo=new Date(d0.getTime()-864e5);
+  const ps=pFrom.toISOString().slice(0,10),pe=pTo.toISOString().slice(0,10);
+  const prev=EXP.filter(e=>e.spent_on>=ps&&e.spent_on<=pe);
+  const cur={},pre={};F.forEach(e=>cur[e.category_id]=(cur[e.category_id]||0)+e.amount);prev.forEach(e=>pre[e.category_id]=(pre[e.category_id]||0)+e.amount);
+  const ids=[...new Set([...Object.keys(cur),...Object.keys(pre)])].sort((a,b)=>(cur[b]||0)-(cur[a]||0)).slice(0,10);
+  if(!ids.length){host.innerHTML=`<div class="empty">No spending in this period.</div>`;return;}
+  const max=Math.max(...ids.map(id=>cur[id]||0),1);
+  const curTot=F.reduce((s,e)=>s+e.amount,0),preTot=prev.reduce((s,e)=>s+e.amount,0);
+  const rows=ids.map(id=>{const c=cur[id]||0,p=pre[id]||0,diff=c-p;const pct=p>0?Math.round(diff/p*100):(c>0?null:0);const cls=p===0&&c>0?"up":(Math.abs(diff)<1?"flat":(diff>0?"up":"down"));const txt=p===0&&c>0?"new":(p>0?(diff>0?"↑ ":(diff<0?"↓ ":"– "))+Math.abs(pct)+"%":"–");return`<div class="barrow cmp"><span class="lab"><span class="chip" style="background:${colorOf(id)}">${esc(nameOf(id))}</span></span><span class="track"><span class="fill" style="width:${(c/max*100).toFixed(1)}%;background:${colorOf(id)}"></span></span><span class="val">${money2(c)}</span><span class="delta ${cls}">${txt}</span></div>`;}).join("");
+  const totPct=preTot>0?Math.round((curTot-preTot)/preTot*100):null;
+  host.innerHTML=`<div style="margin-bottom:15px;font-size:12.5px;color:var(--ink-faint)">vs previous ${span} days (${new Date(ps).toLocaleDateString(LOCALE,{day:"2-digit",month:"short"})} – ${new Date(pe).toLocaleDateString(LOCALE,{day:"2-digit",month:"short"})}) · this period ${money2(curTot)}${totPct!==null?` <b style="color:${curTot>=preTot?'#F2A2AE':'#8BD3B0'}">(${totPct>=0?"+":""}${totPct}%)</b>`:""}</div>${rows}`;
+}
+async function delExpense(id){if(!confirm("Delete this expense?"))return;const{error}=await sb.from("expenses").delete().eq("id",id);if(error){alert(error.message);return;}await loadExpenses();renderAddRecent();applyFilters();}
 function renderSummary(F,from,to){const total=sum(F),n=F.length,byCat={};F.forEach(e=>byCat[e.category_id]=(byCat[e.category_id]||0)+Number(e.amount));const cats=Object.entries(byCat).sort((a,b)=>b[1]-a[1]);const bySub={};F.forEach(e=>{if(e.subcategory_id)bySub[e.subcategory_id]=(bySub[e.subcategory_id]||0)+Number(e.amount);});const subs=Object.entries(bySub).sort((a,b)=>b[1]-a[1]).slice(0,5);const big=[...F].sort((a,b)=>b.amount-a.amount)[0];const fmt=d=>new Date(d).toLocaleDateString(LOCALE,{day:"numeric",month:"short",year:"numeric"});let t=`Here is my household spending. Please review it and give me practical money-planning advice.\n\nPeriod: ${fmt(from)} to ${fmt(to)}\nTotal spent: ${money2(total)} across ${n} transactions\n`;if(cats.length){t+=`\nSpending by category:\n`;cats.forEach(([id,v])=>t+=`- ${nameOf(id)}: ${money2(v)} (${Math.round(v/total*100)}%)\n`);}if(subs.length){t+=`\nTop sub-categories:\n`;subs.forEach(([id,v])=>t+=`- ${subName(id)}: ${money2(v)}\n`);}if(big)t+=`\nLargest single expense: ${money2(big.amount)} on ${nameOf(big.category_id)}${subName(big.subcategory_id)?" › "+subName(big.subcategory_id):""} (${fmt(big.spent_on)})\n`;t+=`\nQuestions: Where am I overspending? What is a sensible monthly budget per category? Any quick wins to cut costs?`;$("summary").value=t;}
 $("copyBtn").onclick=async()=>{try{await navigator.clipboard.writeText($("summary").value);$("copyBtn").textContent="Copied ✓";setTimeout(()=>$("copyBtn").textContent="Copy summary",1500);}catch{$("summary").select();document.execCommand("copy");}};
 $("exportBtn").onclick=()=>{const[from,to]=rangeDates();const F=filtered();const rows=F.map(e=>({Date:e.spent_on,Amount:Number(e.amount),Category:nameOf(e.category_id),"Sub-category":subName(e.subcategory_id)||"","Paid by":e.paid_by||"",Note:e.note||""}));const ws=XLSX.utils.json_to_sheet(rows.length?rows:[{Date:"",Amount:"",Category:""}]);const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,"Expenses");XLSX.writeFile(wb,`expenses_${from}_to_${to}.xlsx`);};
 $("templateBtn").onclick=()=>{const ws=XLSX.utils.json_to_sheet([{Date:todayStr(),Amount:250,Category:"Food & Dining","Sub-category":"Swiggy","Paid by":"Me",Note:"dinner"}]);const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,"Template");XLSX.writeFile(wb,"expense_template.xlsx");};
 const rowCatOpts=()=>CATS.map(c=>({value:c.id,label:c.name}));
 const rowSubOpts=catId=>[{value:"",label:"— none —"}].concat(SUBS.filter(s=>s.category_id===catId).map(s=>({value:s.id,label:s.name})));
-function addRow(d){d=d||{};const tr=document.createElement("tr");tr.dataset.row="1";tr.innerHTML=`<td><input class="rdate" type="date" value="${d.date||todayStr()}"></td><td><input class="ramt w-amt" type="number" min="0" step="0.01" placeholder="0.00" value="${d.amount||""}"></td><td class="cell-cat"></td><td class="cell-sub"></td><td><input class="rpaid w-paid" type="text" value="${esc(d.paid_by||window._me||"")}"></td><td><input class="rnote" type="text" placeholder="optional"></td><td><button class="rdel">✕</button></td>`;$("rows").appendChild(tr);const catSel=document.createElement("div"),subSel=document.createElement("div");tr.querySelector(".cell-cat").appendChild(catSel);tr.querySelector(".cell-sub").appendChild(subSel);buildSelect(catSel,{options:rowCatOpts(),value:d.category_id||undefined,placeholder:"Category…",addLabel:"Add category…",onAdd:()=>openAddModal("cat",{catSel,subSel}),onChange:v=>{subSel.setOptions(rowSubOpts(v));subSel.value="";}});buildSelect(subSel,{options:rowSubOpts(d.category_id||""),value:d.subcategory_id||"",placeholder:"—",addLabel:"Add sub-category…",onAdd:()=>{const cid=catSel.value;if(!cid){banner("Pick a category first.");return;}openAddModal("sub",{catSel,subSel,cid});}});tr._cat=catSel;tr._sub=subSel;tr.querySelector(".rdel").onclick=()=>tr.remove();}
+function numFilter(el){el.addEventListener("input",()=>{let v=el.value.replace(/[^0-9.]/g,"");const i=v.indexOf(".");if(i>=0)v=v.slice(0,i+1)+v.slice(i+1).replace(/\./g,"");el.value=v;});}
+function addRow(d){d=d||{};const tr=document.createElement("tr");tr.dataset.row="1";tr.innerHTML=`<td><input class="rdate" type="date" value="${d.date||todayStr()}"></td><td><input class="ramt w-amt" type="text" inputmode="decimal" autocomplete="off" placeholder="0.00" value="${d.amount||""}"></td><td class="cell-cat"></td><td class="cell-sub"></td><td><input class="rpaid w-paid" type="text" value="${esc(d.paid_by||window._me||"")}"></td><td><input class="rnote" type="text" placeholder="optional"></td><td><button class="rdel">✕</button></td>`;$("rows").appendChild(tr);numFilter(tr.querySelector(".ramt"));const catSel=document.createElement("div"),subSel=document.createElement("div");tr.querySelector(".cell-cat").appendChild(catSel);tr.querySelector(".cell-sub").appendChild(subSel);buildSelect(catSel,{options:rowCatOpts(),value:d.category_id||undefined,placeholder:"Category…",addLabel:"Add category…",onAdd:()=>openAddModal("cat",{catSel,subSel}),onChange:v=>{subSel.setOptions(rowSubOpts(v));subSel.value="";}});buildSelect(subSel,{options:rowSubOpts(d.category_id||""),value:d.subcategory_id||"",placeholder:"—",addLabel:"Add sub-category…",onAdd:()=>{const cid=catSel.value;if(!cid){banner("Pick a category first.");return;}openAddModal("sub",{catSel,subSel,cid});}});tr._cat=catSel;tr._sub=subSel;tr.querySelector(".rdel").onclick=()=>tr.remove();}
 $("addRowBtn").onclick=()=>addRow();
 function banner(t,ok){$("addBanner").innerHTML=`<div class="banner ${ok?'ok':'err'}">${esc(t)}</div>`;if(ok)setTimeout(()=>$("addBanner").innerHTML="",4000);}
-$("submitBtn").onclick=async()=>{const rows=[...$("rows").querySelectorAll("[data-row]")];const payload=[];let bad=0;rows.forEach(tr=>{const amt=parseFloat(tr.querySelector(".ramt").value),cat=tr._cat.value;if(!amt&&!cat)return;if(!amt||amt<=0||!cat){bad++;return;}payload.push({amount:amt,category_id:cat,subcategory_id:tr._sub.value||null,spent_on:tr.querySelector(".rdate").value||todayStr(),paid_by:tr.querySelector(".rpaid").value.trim()||null,note:tr.querySelector(".rnote").value.trim()||null});});if(!payload.length){banner(bad?"Some rows are missing amount or category.":"Fill at least one row.");return;}$("submitBtn").disabled=true;$("submitBtn").textContent="Saving…";const{error}=await sb.from("expenses").insert(payload);$("submitBtn").disabled=false;$("submitBtn").textContent="Submit all";if(error){banner(error.message);return;}banner(`Added ${payload.length} expense${payload.length>1?"s":""}${bad?` · ${bad} incomplete skipped`:""}.`,true);$("rows").innerHTML="";addRow();addRow();addRow();await loadExpenses();applyFilters();};
+$("submitBtn").onclick=async()=>{const rows=[...$("rows").querySelectorAll("[data-row]")];const payload=[];let bad=0;rows.forEach(tr=>{const amt=parseFloat(tr.querySelector(".ramt").value),cat=tr._cat.value;if(!amt&&!cat)return;if(!amt||amt<=0||!cat){bad++;return;}payload.push({amount:amt,category_id:cat,subcategory_id:tr._sub.value||null,spent_on:tr.querySelector(".rdate").value||todayStr(),paid_by:tr.querySelector(".rpaid").value.trim()||null,note:tr.querySelector(".rnote").value.trim()||null});});if(!payload.length){banner(bad?"Some rows are missing amount or category.":"Fill at least one row.");return;}$("submitBtn").disabled=true;$("submitBtn").textContent="Saving…";const{error}=await sb.from("expenses").insert(payload);$("submitBtn").disabled=false;$("submitBtn").textContent="Submit all";if(error){banner(error.message);return;}banner(`Added ${payload.length} expense${payload.length>1?"s":""}${bad?` · ${bad} incomplete skipped`:""}.`,true);$("rows").innerHTML="";addRow();addRow();addRow();await loadExpenses();renderAddRecent();applyFilters();};
 function refreshAllRowSelects(){[...document.querySelectorAll("#rows [data-row]")].forEach(tr=>{tr._cat.setOptions(rowCatOpts());tr._sub.setOptions(rowSubOpts(tr._cat.value));});}
 let MODAL=null;
-function openAddModal(type,ctx){MODAL=Object.assign({type},ctx);$("modalTitle").textContent=type==='cat'?'New category':'New sub-category';$("modalInput").value="";$("modalInput").placeholder=type==='cat'?'e.g. Subscriptions':'e.g. Hotstar';$("modal").classList.remove("hide");setTimeout(()=>$("modalInput").focus(),30);}
-function closeModal(){$("modal").classList.add("hide");MODAL=null;}
+let PROF_OK=true;
+function openAddModal(type,ctx){MODAL=Object.assign({type},ctx);$("modalTitle").textContent=type==='cat'?'New category':'New sub-category';$("modalInput").value="";$("modalInput").placeholder=type==='cat'?'e.g. Subscriptions':'e.g. Hotstar';$("modalCancel").style.display="";$("modal").classList.remove("hide");setTimeout(()=>$("modalInput").focus(),30);}
+function openNameModal(force){MODAL={type:'name',force:!!force};$("modalTitle").textContent="Your name";$("modalInput").placeholder="e.g. Pratik";$("modalInput").value=force?"":(window._me||"");$("modalCancel").style.display=force?"none":"";$("modal").classList.remove("hide");setTimeout(()=>{$("modalInput").focus();$("modalInput").select();},30);}
+$("whoName").onclick=()=>{if(!PROF_OK){banner("Run add_profiles.sql in Supabase once to enable usernames.");return;}openNameModal(false);};
+function closeModal(){$("modal").classList.add("hide");$("modalCancel").style.display="";MODAL=null;}
 $("modalCancel").onclick=closeModal;
 $("modal").addEventListener("click",e=>{if(e.target.id==="modal")closeModal();});
 $("modalInput").addEventListener("keydown",e=>{if(e.key==="Enter")$("modalAdd").click();if(e.key==="Escape")closeModal();});
 $("modalAdd").onclick=async()=>{const name=$("modalInput").value.trim();if(!name||!MODAL)return;$("modalAdd").disabled=true;
   try{
+    if(MODAL.type==='name'){const old=window._me;const{error}=await sb.from("profiles").upsert({id:window._uid,name,updated_at:new Date().toISOString()});if(error)throw error;window._me=name;$("whoName").textContent=name;document.querySelectorAll("#rows .rpaid").forEach(i=>{if(!i.value||i.value===old)i.value=name;});banner(`Name set to “${name}”.`,true);closeModal();$("modalAdd").disabled=false;return;}
     if(MODAL.type==='cat'){let c=CATS.find(c=>c.name.toLowerCase()===name.toLowerCase());if(!c){const sort=(CATS.reduce((m,x)=>Math.max(m,x.sort||0),0))+10;const{data,error}=await sb.from("categories").insert({name,color:PREMIUM[CATS.length%PREMIUM.length],sort}).select().single();if(error)throw error;c=data;CATS.push(c);computeColors();buildFilterCats();}refreshAllRowSelects();MODAL.catSel.value=c.id;MODAL.subSel.setOptions(rowSubOpts(c.id));MODAL.subSel.value="";banner(`Category “${c.name}” added — selected on this row.`,true);}
     else{const cid=MODAL.cid;let s=SUBS.find(s=>s.category_id===cid&&s.name.toLowerCase()===name.toLowerCase());if(!s){const{data,error}=await sb.from("subcategories").insert({name,category_id:cid}).select().single();if(error)throw error;s=data;SUBS.push(s);computeColors();buildFilterSubs();}MODAL.subSel.setOptions(rowSubOpts(cid));MODAL.subSel.value=s.id;banner(`Sub-category “${s.name}” added — selected on this row.`,true);}
     closeModal();
@@ -510,7 +606,11 @@ $("authBtn").onclick=async()=>{if(!sb){gateMsg("Add your Supabase URL and key to
 ["email","password"].forEach(id=>$(id).addEventListener("keydown",e=>{if(e.key==="Enter")$("authBtn").click();}));
 $("signout").onclick=()=>sb&&sb.auth.signOut();
 function showGate(){$("app").classList.add("hide");$("gate").classList.remove("hide");}
-async function showApp(session){$("gate").classList.add("hide");$("app").classList.remove("hide");$("whoEmail").textContent=session.user.email;window._me=session.user.email.split("@")[0];await loadMeta();await loadExpenses();initFilters();$("rows").innerHTML="";addRow();addRow();addRow();applyFilters();}
+async function showApp(session){$("gate").classList.add("hide");$("app").classList.remove("hide");window._uid=session.user.id;await loadMeta();await loadExpenses();
+  let nm="";PROF_OK=true;try{const{data,error}=await sb.from("profiles").select("name").eq("id",session.user.id).maybeSingle();if(error)PROF_OK=false;else nm=(data&&data.name)?data.name:"";}catch(e){PROF_OK=false;}
+  window._me=nm||session.user.email.split("@")[0];$("whoName").textContent=window._me;$("whoName").title=session.user.email+" — click to edit your name";
+  initFilters();$("rows").innerHTML="";addRow();addRow();addRow();renderAddRecent();applyFilters();
+  if(PROF_OK&&!nm)openNameModal(true);}
 
 /* ---------- startup ---------- */
 const CFG_OK=SUPABASE_URL&&SUPABASE_ANON_KEY&&!/PASTE_/.test(SUPABASE_URL)&&!/PASTE_/.test(SUPABASE_ANON_KEY);
