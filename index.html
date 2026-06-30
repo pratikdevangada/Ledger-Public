@@ -739,17 +739,21 @@ $("authBtn").onclick=async()=>{if(!sb){gateMsg("Add your Supabase URL and key to
 ["email","password"].forEach(id=>$(id).addEventListener("keydown",e=>{if(e.key==="Enter")$("authBtn").click();}));
 $("signout").onclick=()=>sb&&sb.auth.signOut();
 function showGate(){$("app").classList.add("hide");$("gate").classList.remove("hide");}
-async function showApp(session){$("gate").classList.add("hide");$("app").classList.remove("hide");window._uid=session.user.id;await loadMeta();await loadExpenses();await loadBudgets();
+function fatalLoad(msg){if($("loadErr"))return;document.body.insertAdjacentHTML("beforeend",`<div id="loadErr" style="position:fixed;inset:0;z-index:500;display:grid;place-items:center;padding:24px;background:rgba(8,8,9,.92);backdrop-filter:blur(5px)"><div style="max-width:430px;text-align:center;padding:30px;border:1px solid var(--line);border-radius:16px;background:var(--surface)"><div style="font-weight:600;font-size:18px;margin-bottom:9px">Couldn't load your data</div><div style="color:var(--ink-soft);font-size:14px;line-height:1.55;margin-bottom:20px">${esc(msg||"")}</div><button class="primary" onclick="location.reload()">Reload</button></div></div>`);}
+async function showApp(session){if(window._appReady)return;$("gate").classList.add("hide");$("app").classList.remove("hide");window._uid=session.user.id;
+  try{await loadMeta();await loadExpenses();await loadBudgets();}
+  catch(e){fatalLoad("Couldn't reach the database. Check your connection and try again. If this keeps happening, your free Supabase project may have paused — open your Supabase dashboard and resume it. ("+(e&&e.message||e)+")");return;}
   let nm="";PROF_OK=true;try{const{data,error}=await sb.from("profiles").select("name").eq("id",session.user.id).maybeSingle();if(error)PROF_OK=false;else nm=(data&&data.name)?data.name:"";}catch(e){PROF_OK=false;}
   window._me=nm||session.user.email.split("@")[0];$("whoName").textContent=window._me;$("whoName").title=session.user.email+" — click to edit your name";
-  initFilters();$("rows").innerHTML="";addRow();addRow();addRow();renderAddRecent();applyFilters();
+  try{initFilters();$("rows").innerHTML="";addRow();addRow();addRow();renderAddRecent();applyFilters();}catch(e){fatalLoad("Something went wrong while drawing the dashboard. ("+(e&&e.message||e)+")");return;}
+  window._appReady=true;const _le=$("loadErr");if(_le)_le.remove();
   if(PROF_OK&&!nm)openNameModal(true);}
 
 /* ---------- startup ---------- */
 const CFG_OK=SUPABASE_URL&&SUPABASE_ANON_KEY&&!/PASTE_/.test(SUPABASE_URL)&&!/PASTE_/.test(SUPABASE_ANON_KEY);
 window.addEventListener("error",ev=>{if(!$("app")||$("app").classList.contains("hide")){const m=ev.message&&ev.message!=="Script error."?ev.message:"A library failed to load. Check your connection/ad-blocker and the Supabase URL/key.";gateMsg("Error: "+m,"err");}});
 if(!CFG_OK){showGate();gateMsg("Setup needed: paste your Supabase Project URL and anon public key into the four CONFIG lines near the top of this file, then reload. (Supabase → Project Settings → API.)","info");$("authBtn").disabled=true;}
-else{try{sb=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);}catch(e){showGate();gateMsg("Couldn't start: "+e.message,"err");}if(sb){sb.auth.onAuthStateChange((_e,s)=>s?showApp(s):showGate());sb.auth.getSession().then(({data})=>{data.session?showApp(data.session):showGate();}).catch(e=>{showGate();gateMsg("Couldn't reach Supabase: "+e.message,"err");});}}
+else{try{sb=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);}catch(e){showGate();gateMsg("Couldn't start: "+e.message,"err");}if(sb){sb.auth.onAuthStateChange((_e,s)=>{if(s){if(!window._appReady)showApp(s);}else{window._appReady=false;showGate();}});sb.auth.getSession().then(({data})=>{data.session?showApp(data.session):showGate();}).catch(e=>{showGate();gateMsg("Couldn't reach Supabase: "+e.message,"err");});}}
 </script>
 </body>
 </html>
