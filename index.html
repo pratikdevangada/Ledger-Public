@@ -712,7 +712,7 @@ const subName=id=>{const s=SUBS.find(x=>x.id===id);return s?s.name:null;};
 const subColor=id=>SUBSHADE[id]||"#A8ADB8";
 
 function goScreen(s){$("screen-dash").classList.toggle("hide",s!=="dash");$("screen-add").classList.toggle("hide",s!=="add");$("screen-budgets").classList.toggle("hide",s!=="budgets");document.querySelectorAll(".tab").forEach(x=>x.classList.toggle("active",x.dataset.screen===s));document.querySelectorAll(".navitem").forEach(x=>x.classList.toggle("active",x.dataset.screen===s));if(s==="add")renderAddRecent();if(s==="budgets")renderBudgets();window.scrollTo({top:0,behavior:"instant"});}
-document.querySelectorAll(".tab,.navitem").forEach(b=>b.onclick=()=>goScreen(b.dataset.screen));
+document.addEventListener("click",ev=>{const b=ev.target.closest(".tab,.navitem");if(b&&b.dataset&&b.dataset.screen)goScreen(b.dataset.screen);});
 $("recentSeg").addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;RECENT_MODE=b.dataset.m;[...$("recentSeg").children].forEach(x=>x.classList.toggle("on",x===b));if(LASTF)renderRecent(LASTF);});
 numFilter($("budgetTotalInput"));$("budgetTotalInput").addEventListener("keydown",e=>{if(e.key==="Enter")$("budgetTotalInput").blur();});$("budgetTotalInput").addEventListener("input",()=>{if($("screen-budgets")&&!$("screen-budgets").classList.contains("hide"))updateBudgetAlloc();});
 $("budModeSeg").addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;BUDGET_MODE=b.dataset.m;[...$("budModeSeg").children].forEach(x=>x.classList.toggle("on",x===b));renderBudgets();});
