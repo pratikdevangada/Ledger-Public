@@ -243,11 +243,15 @@
   .exp-list{display:flex;flex-direction:column;gap:14px}
   .exp-card{position:relative;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:18px 18px 19px;transition:border-color .15s}
   .exp-card:hover{border-color:var(--line-2)}
-  .exp-del{position:absolute;top:11px;right:11px;background:none;border:none;color:var(--ink-faint);font-size:13px;width:28px;height:28px;border-radius:8px;transition:.15s;z-index:1}
+  .exp-del{position:absolute;top:10px;right:10px;background:none;border:none;color:var(--ink-faint);font-size:12px;width:26px;height:26px;border-radius:8px;transition:.15s;z-index:1;display:grid;place-items:center}
+  .exp-list .exp-card:only-child .exp-del{display:none}
+  .exp-list .exp-card:not(:only-child){padding-top:40px}
+  .exp-list .exp-card:not(:only-child) .exp-del{background:var(--surface-2);border:1px solid var(--line)}
+  .exp-del:hover{color:var(--red);background:rgba(220,107,115,.12)}
   .exp-del:hover{color:var(--red);background:rgba(220,107,115,.12)}
   .exp-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:15px 16px}
   .exp-grid .f{display:flex;flex-direction:column;gap:7px;min-width:0}
-  .exp-grid label{font-size:10px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-faint)}
+  .exp-grid label{font-size:10px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--ink-faint)}
   .exp-grid label .opt{margin-left:6px;letter-spacing:.03em;text-transform:none;font-weight:500;opacity:.7}
   .exp-card input{width:100%;height:42px;padding:0 13px;border:1px solid var(--line);border-radius:10px;background:var(--field);color:var(--ink);font-size:15px;font-family:var(--sans)}
   .exp-card input::placeholder{color:var(--ink-faint)}
@@ -399,7 +403,7 @@
     .exp-grid{grid-template-columns:1fr 1fr;gap:11px 12px}
     .exp-grid .f-note{grid-column:1/-1}
     .exp-card .csel-btn{height:46px}
-    .exp-card label{font-size:10.5px;margin-bottom:5px}
+    .exp-card label{font-size:10px;margin-bottom:6px}
     .exp-card .ramt{font-weight:600}
     .exp-card input,.exp-card .csel-btn{scroll-margin-top:84px}
     .row-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px}#addRowBtn{grid-column:1/-1}#submitBtn{grid-column:1/-1}
