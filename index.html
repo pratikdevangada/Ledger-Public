@@ -18,20 +18,21 @@
     --r:16px;--shadow:inset 0 1px 0 rgba(255,255,255,.05),0 24px 60px -30px rgba(0,0,0,.8);
     --serif:"Inter",system-ui,-apple-system,sans-serif;
     --sans:"Inter",system-ui,-apple-system,sans-serif;
-    --focus:rgba(245,242,236,.4);--grain-op:.04;--tab-ink:#0A0A0B;--well:#0d0d0f;color-scheme:dark;
+    --focus:rgba(245,242,236,.4);--grain-op:.04;--tab-ink:#0A0A0B;--well:#0d0d0f;--topbar-bg:rgba(10,10,11,.72);color-scheme:dark;
     --chart-grid:rgba(245,242,236,.06);--chart-tick:#86847E;--chart-seg:#141416;--chart-ink:#EDEBE3;
     --chart-tip-bg:#1B1B1D;--chart-tip-border:rgba(245,242,236,.14);--chart-tip-title:#F4F2EC;--chart-tip-body:#C9C6BE;
   }
   :root[data-theme="light"]{
-    --bg:#F6F5F1;--surface:#FFFFFF;--surface-2:#F1EFE9;--field:#F3F1EB;
-    --ink:#1C1B18;--ink-soft:#54524A;--ink-faint:#7E7B70;
-    --line:rgba(28,27,24,.10);--line-2:rgba(28,27,24,.20);
-    --accent:#1C1B18;--accent-soft:rgba(28,27,24,.05);
-    --red:#C24E57;--pos:#3E9472;
-    --shadow:0 1px 0 rgba(0,0,0,.02),0 18px 44px -28px rgba(0,0,0,.22);
-    --focus:rgba(28,27,24,.42);--grain-op:.016;--tab-ink:#FFFFFF;--well:#EFEBE2;color-scheme:light;
-    --chart-grid:rgba(28,27,24,.09);--chart-tick:#8A887F;--chart-seg:#FFFFFF;--chart-ink:#2B2926;
-    --chart-tip-bg:#FFFFFF;--chart-tip-border:rgba(28,27,24,.16);--chart-tip-title:#1C1B18;--chart-tip-body:#5F5D55;
+    --bg:#F1F0EA;--surface:#FFFFFF;--surface-2:#EAE8E1;--field:#F0EEE7;
+    --ink:#1A1815;--ink-soft:#565149;--ink-faint:#827D71;
+    --line:rgba(26,23,18,.12);--line-2:rgba(26,23,18,.22);
+    --accent:#1A1815;--accent-soft:rgba(26,23,18,.055);
+    --red:#BC4650;--pos:#3B8E6C;
+    --shadow:0 1px 2px rgba(20,17,12,.04),0 22px 48px -30px rgba(20,17,12,.30);
+    --focus:rgba(26,23,18,.42);--grain-op:.012;--tab-ink:#FFFFFF;--well:#ECE8DF;color-scheme:light;
+    --topbar-bg:rgba(244,243,238,.82);
+    --chart-grid:rgba(26,23,18,.10);--chart-tick:#89857A;--chart-seg:#FFFFFF;--chart-ink:#2A2822;
+    --chart-tip-bg:#FFFFFF;--chart-tip-border:rgba(26,23,18,.16);--chart-tip-title:#1A1815;--chart-tip-body:#565149;
   }
   :root[data-theme="light"] .mark{background:linear-gradient(160deg,#3b3a3f,#1c1b18);box-shadow:0 2px 9px rgba(0,0,0,.16)}
   :root[data-theme="light"] .primary{box-shadow:0 4px 16px -6px rgba(0,0,0,.28)}
@@ -52,7 +53,7 @@
   .pvbar b{color:var(--ink-soft);font-weight:600}
 
   .topbar{display:flex;align-items:center;justify-content:space-between;padding:15px 26px;border-bottom:1px solid var(--line);
-    background:rgba(10,10,11,.72);backdrop-filter:blur(16px) saturate(1.2);-webkit-backdrop-filter:blur(16px) saturate(1.2);position:sticky;top:0;z-index:30}
+    background:var(--topbar-bg);backdrop-filter:blur(16px) saturate(1.2);-webkit-backdrop-filter:blur(16px) saturate(1.2);position:sticky;top:0;z-index:30}
   .brand{display:flex;align-items:center;gap:12px}
   .mark{width:30px;height:30px;border-radius:8px;background:linear-gradient(160deg,#FFFFFF,#C9C9CE);position:relative;flex:none;box-shadow:0 2px 10px rgba(255,255,255,.12)}
   .mark::before,.mark::after{content:"";position:absolute;left:7px;right:7px;height:2.5px;border-radius:2px;background:var(--bg)}
@@ -192,8 +193,8 @@
   .chead{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:16px}
   .chead .ctitle{margin:0}
   .ctools{display:flex;align-items:center;gap:8px;flex:none}
-  .miniseg{display:flex;background:var(--surface-2);border:1px solid var(--line);border-radius:9px;padding:2px}
-  .miniseg button{background:none;border:none;color:var(--ink-soft);font-size:11.5px;font-weight:500;padding:5px 11px;border-radius:7px;transition:.15s}
+  .miniseg{display:flex;align-items:center;height:42px;box-sizing:border-box;background:var(--surface-2);border:1px solid var(--line);border-radius:9px;padding:3px}
+  .miniseg button{background:none;border:none;color:var(--ink-soft);font-size:11.5px;font-weight:500;padding:0 12px;height:100%;display:flex;align-items:center;border-radius:7px;transition:.15s}
   .miniseg button.on{background:var(--ink);color:var(--tab-ink);font-weight:600}
   .expand{background:var(--surface-2);border:1px solid var(--line);color:var(--ink-soft);width:30px;height:30px;border-radius:8px;font-size:13px;line-height:1;display:grid;place-items:center;transition:.15s}
   .expand:hover{border-color:var(--line-2);color:var(--ink)}
@@ -246,7 +247,6 @@
   .exp-del:hover{color:var(--red);background:rgba(220,107,115,.12)}
   .exp-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:15px 16px}
   .exp-grid .f{display:flex;flex-direction:column;gap:7px;min-width:0}
-  .exp-grid .f-note{grid-column:1/-1}
   .exp-grid label{font-size:10px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-faint)}
   .exp-grid label .opt{margin-left:6px;letter-spacing:.03em;text-transform:none;font-weight:500;opacity:.7}
   .exp-card input{width:100%;height:42px;padding:0 13px;border:1px solid var(--line);border-radius:10px;background:var(--field);color:var(--ink);font-size:15px;font-family:var(--sans)}
@@ -258,14 +258,14 @@
   .amt-wrap input{padding-left:27px;font-size:16px;font-weight:600;font-variant-numeric:tabular-nums}
 
   /* budgets */
-  .budrow{display:grid;grid-template-columns:1fr auto;gap:5px 14px;padding:15px 4px;border-top:1px solid var(--line)}
+  .budrow{display:flex;flex-direction:column;gap:9px;padding:16px 4px;border-top:1px solid var(--line)}
   .budrow:first-child{border-top:none}
-  .budrow .top{display:flex;align-items:center;justify-content:space-between;gap:12px}
-  .budrow .nums{font-size:13px;color:var(--ink-soft);white-space:nowrap;font-variant-numeric:tabular-nums}
+  .budrow .top{display:flex;align-items:center;justify-content:space-between;gap:10px}.budrow .top .chip{flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .budrow .nums{font-size:13.5px;color:var(--ink-soft);font-variant-numeric:tabular-nums}.budrow .nums b{color:var(--ink);font-weight:600}.budrow .nums .sep{color:var(--ink-faint);margin:0 3px}
   .budrow .nums b{color:var(--ink);font-weight:600}
   .budtrack{grid-column:1/-1;height:8px;border-radius:6px;background:var(--field);overflow:hidden;position:relative}
   .budfill{height:100%;border-radius:6px;transition:width .5s cubic-bezier(.4,0,.1,1)}
-  .budrow .pill{font-size:11px;font-weight:600;padding:3px 9px;border-radius:20px;white-space:nowrap}
+  .budrow .pill{flex:none;font-size:11px;font-weight:600;padding:3px 10px;border-radius:20px;white-space:nowrap}
   .pill.ok{background:rgba(95,176,140,.16);color:#8BD3B0}
   .pill.warn{background:rgba(201,176,90,.18);color:#D8C57A}
   .pill.over{background:rgba(220,107,115,.16);color:#F2A2AE}
@@ -381,14 +381,13 @@
     .composition{margin:20px 0 14px}
     /* ---- module tabs ---- */
     .modwrap{margin-top:16px}
-    .modbar{border-radius:13px;overflow:hidden}
     .modtab{padding:0 6px;min-height:50px;font-size:13px;display:flex;align-items:center;justify-content:center}
     .modpanel{padding:14px 12px 16px}
     .charts{gap:14px;margin-top:0}
     .cwrap,.charts .full .cwrap{height:250px}
     .expand{display:none}
-    .miniseg{padding:3px}
-    .miniseg button{padding:0 13px;min-height:34px;font-size:12.5px;display:flex;align-items:center}
+    .miniseg{height:46px;padding:3px}
+    .miniseg button{padding:0 13px;height:100%;font-size:12.5px;display:flex;align-items:center}
     /* ---- comparison / recent ---- */
     .cmp .lab{width:auto;flex:1 1 auto;min-width:0}
     .cmp .track{display:none}
@@ -399,7 +398,7 @@
     .exp-card{padding:15px 15px 17px}
     .exp-grid{grid-template-columns:1fr;gap:12px}
     .exp-card .csel-btn{height:46px}
-    .row-actions{gap:10px}.row-actions>button{flex:1 1 auto}.row-actions .spring{margin-left:0}
+    .row-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px}#addRowBtn{grid-column:1/-1}#submitBtn{grid-column:1/-1}
     /* ---- budgets ---- */
     .budsplit{gap:12px}.budsplit input{width:100%}
     .budsplit .splitctl,.budsplit .splitctl .inp{width:100%}
@@ -424,9 +423,21 @@
   }
 
   /* ===== added features ===== */
-  .allexp-scroll{max-height:62vh;overflow:auto;border:1px solid var(--line);border-radius:11px}
-  .allexp-scroll table.recent{min-width:520px}
-  .allexp-scroll thead th{position:sticky;top:0;background:var(--surface);z-index:1}
+  .allexp-scroll{max-height:62vh;overflow-y:auto;overflow-x:hidden;border:1px solid var(--line);border-radius:11px}
+  .ael{width:100%;border-collapse:collapse;table-layout:fixed;font-size:14px}
+  .ael thead th{position:sticky;top:0;background:var(--surface);z-index:1;text-align:left;color:var(--ink-faint);font-weight:600;font-size:10.5px;text-transform:uppercase;letter-spacing:.04em;padding:11px 6px}
+  .ael th.r{text-align:right;padding-right:14px}
+  .ael td{padding:13px 6px;border-top:1px solid var(--line);vertical-align:middle}
+  .ael tbody tr{cursor:pointer}
+  .ael tbody tr:hover td{background:var(--accent-soft)}
+  .ael .ael-d{width:56px;white-space:nowrap;color:var(--ink-soft);font-size:12.5px;font-variant-numeric:tabular-nums;padding-left:6px}
+  .ael .ael-it{overflow:hidden}
+  .ael .ael-cat{display:block;color:var(--ink);font-weight:500;font-size:13.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .ael .ael-sub{display:block;color:var(--ink-faint);font-size:12px;margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .ael .ael-a{width:112px;padding-right:14px;vertical-align:middle}
+  .ael .ael-amt{display:block;text-align:right;font-weight:600;font-size:14.5px;font-variant-numeric:tabular-nums;white-space:nowrap}
+  .ael .ael-pm{display:flex;align-items:center;justify-content:flex-end;gap:4px;margin-top:3px;color:var(--ink-faint);font-size:10.5px;font-weight:600;text-transform:uppercase;letter-spacing:.03em}
+  .ael .ael-pm svg{opacity:.85;flex:none}
   .quickadd{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:0 0 16px}
   .qa-lbl{font-size:12px;color:var(--ink-faint);font-weight:600;margin-right:2px}
   .qa-chip{display:inline-flex;align-items:center;gap:7px;background:var(--field);border:1px solid var(--line);color:var(--ink);border-radius:20px;padding:0 13px;height:36px;font-size:13px;font-weight:500;cursor:pointer;transition:.15s}
@@ -820,10 +831,11 @@ function renderRecentGrouped(F){
   $("recent").innerHTML=`<div class="tree">${html}</div>${cap}`;
 }
 function renderRecent(F){let G=F;if(RECENT_Q){const q=RECENT_Q.toLowerCase();G=F.filter(r=>[nameOf(r.category_id),subName(r.subcategory_id),r.note,r.paid_by,r.method,String(r.amount)].filter(Boolean).join(" ").toLowerCase().includes(q));}if(!G.length){$("recent").innerHTML=`<div class="empty">${RECENT_Q?"No matches for “"+esc(RECENT_Q)+"”.":"No expenses in this period."}</div>`;return;}RECENT_MODE==="list"?renderRecentList(G):renderRecentGrouped(G);}
-function renderQuickAdd(){const host=$("quickAdd");if(!host)return;const cutoff=Date.now()-60*864e5;const cnt={};EXP.forEach(e=>{if(!e.category_id)return;const t=new Date(e.spent_on).getTime();if(isNaN(t)||t<cutoff)return;const k=e.category_id+"|"+(e.subcategory_id||"");cnt[k]=(cnt[k]||0)+1;});let top=Object.entries(cnt).sort((a,b)=>b[1]-a[1]).slice(0,7).map(([k])=>k.split("|"));if(!top.length)top=CATS.slice(0,7).map(c=>[c.id,""]);if(!top.length){host.innerHTML="";return;}host.innerHTML=`<span class="qa-lbl">Quick add</span>`+top.map(([c,s])=>`<button type="button" class="qa-chip" data-c="${c}" data-s="${s}"><span class="dot" style="background:${s?subColor(s):colorOf(c)}"></span>${esc(s?subName(s):nameOf(c))}</button>`).join("");host.querySelectorAll(".qa-chip").forEach(b=>b.onclick=()=>{addRow({category_id:b.dataset.c,subcategory_id:b.dataset.s||""});const cards=$("rows").querySelectorAll(".exp-card");const last=cards[cards.length-1];if(last){const amt=last.querySelector(".ramt");if(amt){amt.focus();last.scrollIntoView({behavior:"smooth",block:"center"});}}});}
+function renderQuickAdd(){const host=$("quickAdd");if(!host)return;const cutoff=Date.now()-60*864e5;const cnt={};EXP.forEach(e=>{if(!e.category_id)return;const t=new Date(e.spent_on).getTime();if(isNaN(t)||t<cutoff)return;const k=e.category_id+"|"+(e.subcategory_id||"");cnt[k]=(cnt[k]||0)+1;});let top=Object.entries(cnt).sort((a,b)=>b[1]-a[1]).slice(0,7).map(([k])=>k.split("|"));if(!top.length)top=CATS.slice(0,7).map(c=>[c.id,""]);if(!top.length){host.innerHTML="";return;}host.innerHTML=`<span class="qa-lbl">Quick add</span>`+top.map(([c,s])=>`<button type="button" class="qa-chip" data-c="${c}" data-s="${s}"><span class="dot" style="background:${s?subColor(s):colorOf(c)}"></span>${esc(s?subName(s):nameOf(c))}</button>`).join("");host.querySelectorAll(".qa-chip").forEach(b=>b.onclick=()=>{const c=b.dataset.c,s=b.dataset.s||"";const rows=[...$("rows").querySelectorAll(".exp-card")];const empty=rows.find(r=>{const a=r.querySelector(".ramt");const cv=r._cat&&r._cat.value;return (!a||!a.value.trim())&&!cv;});let target;if(empty){target=empty;empty._cat.value=c;if(empty._sub){empty._sub.setOptions(rowSubOpts(c));empty._sub.value=s;}}else{addRow({category_id:c,subcategory_id:s});target=$("rows").lastElementChild;}if(target){const amt=target.querySelector(".ramt");if(amt){amt.focus();target.scrollIntoView({behavior:"smooth",block:"center"});}}});}
 function renderAddRecent(){renderQuickAdd();renderAllExpenses();}
 let ALL_Q="";
-function renderAllExpenses(){const host=$("allExp");if(!host)return;let list=EXP;if(ALL_Q){const q=ALL_Q.toLowerCase();list=EXP.filter(r=>[nameOf(r.category_id),subName(r.subcategory_id),r.note,r.paid_by,r.method,String(r.amount)].filter(Boolean).join(" ").toLowerCase().includes(q));}if(!list.length){host.innerHTML=`<div class="empty" style="padding:22px">${ALL_Q?"No matches.":"No expenses yet — add one above."}</div>`;return;}const cap=list.slice(0,300);const body=cap.map(r=>{const sn=subName(r.subcategory_id);return`<tr class="rec-row" onclick="openEditModal('${r.id}')" style="cursor:pointer"><td class="muted num">${new Date(r.spent_on).toLocaleDateString(LOCALE,{day:"2-digit",month:"short"})}</td><td><span class="chip" style="background:${colorOf(r.category_id)}">${esc(nameOf(r.category_id))}</span>${sn?`<span class="subtag"><span class="dot" style="background:${subColor(r.subcategory_id)}"></span>${esc(sn)}</span>`:""}</td><td class="muted">${esc(r.paid_by||"")}${r.method?` · <span class="muted2">${esc(r.method)}</span>`:""}</td><td class="amt">${money2(r.amount)}</td><td style="text-align:right"><button class="del" onclick="event.stopPropagation();delExpense('${r.id}')" title="Delete">✕</button></td></tr>`;}).join("");host.innerHTML=`<div class="allexp-scroll"><table class="recent"><thead><tr><th>Date</th><th>Category</th><th>Paid by</th><th style="text-align:right">Amount</th><th></th></tr></thead><tbody>${body}</tbody></table></div>${list.length>300?`<div class="empty" style="padding:12px">Showing 300 most recent of ${list.length}. Use search for older.</div>`:""}`;}
+function methodIcon(m){const a='width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"';const k=(m||"").toLowerCase();let p;if(k==="card")p='<rect x="2.5" y="5" width="19" height="14" rx="2.5"/><path d="M2.5 10h19"/>';else if(k==="cash")p='<rect x="2.5" y="6" width="19" height="12" rx="2"/><circle cx="12" cy="12" r="2.6"/>';else if(k==="upi")p='<rect x="7" y="2.5" width="10" height="19" rx="2.2"/><path d="M10.5 18.5h3"/>';else if(k.indexOf("bank")>-1)p='<path d="M3 9.5 12 4l9 5.5"/><path d="M5 10.5V19M19 10.5V19M9.5 10.5V19M14.5 10.5V19M3.5 19h17"/>';else p='<circle cx="12" cy="12" r="8"/>';return `<svg ${a}>${p}</svg>`;}
+function renderAllExpenses(){const host=$("allExp");if(!host)return;let list=EXP.slice();if(ALL_Q){const q=ALL_Q.toLowerCase();list=list.filter(r=>[nameOf(r.category_id),subName(r.subcategory_id),r.note,r.paid_by,r.method,String(r.amount)].filter(Boolean).join(" ").toLowerCase().includes(q));}if(!list.length){host.innerHTML=`<div class="empty" style="padding:22px">${ALL_Q?"No matches.":"No expenses yet — add one above."}</div>`;return;}list.sort((a,b)=>a.spent_on<b.spent_on?-1:a.spent_on>b.spent_on?1:0);const more=list.length>300;const shown=more?list.slice(list.length-300):list;const body=shown.map((r,i)=>{const sn=subName(r.subcategory_id);return`<tr onclick="openEditModal('${r.id}')"><td class="ael-d">${new Date(r.spent_on).toLocaleDateString(LOCALE,{day:"2-digit",month:"short"})}</td><td class="ael-it"><span class="ael-cat">${esc(nameOf(r.category_id))}</span>${sn?`<span class="ael-sub">${esc(sn)}</span>`:""}</td><td class="ael-a"><span class="ael-amt">${money2(r.amount)}</span>${r.method?`<span class="ael-pm">${methodIcon(r.method)}${esc(r.method)}</span>`:""}</td></tr>`;}).join("");host.innerHTML=`<div class="allexp-scroll"><table class="ael"><thead><tr><th>Date</th><th>Item</th><th class="r">Amount</th></tr></thead><tbody>${body}</tbody></table></div>${more?`<div class="empty" style="padding:12px">Showing the latest 300 of ${list.length}. Use search for older.</div>`:""}`;}
 function renderCompare(F,from,to){const host=$("compare");if(!host)return;
   if(!from||!to){host.innerHTML=`<div class="empty">Pick a specific period (not “All time”) to compare it with the one before.</div>`;return;}
   const d0=new Date(from),d1=new Date(to);const span=Math.round((d1-d0)/864e5)+1;
@@ -867,7 +879,7 @@ $("templateBtn").onclick=()=>{const ws=XLSX.utils.json_to_sheet([{Date:todayStr(
 const rowCatOpts=()=>CATS.map(c=>({value:c.id,label:c.name}));
 const rowSubOpts=catId=>[{value:"",label:"— none —"}].concat(SUBS.filter(s=>s.category_id===catId).map(s=>({value:s.id,label:s.name})));
 function numFilter(el){el.addEventListener("input",()=>{let v=el.value.replace(/[^0-9.]/g,"");const i=v.indexOf(".");if(i>=0)v=v.slice(0,i+1)+v.slice(i+1).replace(/\./g,"");el.value=v;});}
-function addRow(d){d=d||{};const tr=document.createElement("div");tr.className="exp-card";tr.dataset.row="1";tr.innerHTML=`<button class="exp-del rdel" title="Remove">✕</button><div class="exp-grid"><div class="f f-amt"><label>Amount</label><div class="amt-wrap"><span class="cur">₹</span><input class="ramt" type="text" inputmode="decimal" autocomplete="off" placeholder="0.00" value="${d.amount||""}"></div></div><div class="f"><label>Date</label><input class="rdate" type="date" value="${d.date||todayStr()}"></div><div class="f"><label>Paid by</label><div class="cell-paid"></div></div><div class="f"><label>Method</label><div class="cell-method"></div></div><div class="f"><label>Category</label><div class="cell-cat"></div></div><div class="f"><label>Sub-category</label><div class="cell-sub"></div></div><div class="f f-note"><label>Note <span class="opt">optional</span></label><input class="rnote" type="text" placeholder="e.g. weekend groceries"></div></div>`;$("rows").appendChild(tr);numFilter(tr.querySelector(".ramt"));const catSel=document.createElement("div"),subSel=document.createElement("div"),paidSel=document.createElement("div");tr.querySelector(".cell-cat").appendChild(catSel);tr.querySelector(".cell-sub").appendChild(subSel);tr.querySelector(".cell-paid").appendChild(paidSel);buildSelect(paidSel,{options:paidOpts(d.paid_by),value:d.paid_by||window._me||(USERS[0]||""),placeholder:"Paid by"});tr._paid=paidSel;const methodSel=document.createElement("div");tr.querySelector(".cell-method").appendChild(methodSel);buildSelect(methodSel,{options:METHODS.map(m=>({value:m,label:m})),value:d.method||"UPI",placeholder:"Method"});tr._method=methodSel;buildSelect(catSel,{options:rowCatOpts(),value:d.category_id||undefined,placeholder:"Category…",addLabel:"Add category…",onAdd:()=>openAddModal("cat",{catSel,subSel}),onChange:v=>{subSel.setOptions(rowSubOpts(v));subSel.value="";}});buildSelect(subSel,{options:rowSubOpts(d.category_id||""),value:d.subcategory_id||"",placeholder:"—",addLabel:"Add sub-category…",onAdd:()=>{const cid=catSel.value;if(!cid){banner("Pick a category first.");return;}openAddModal("sub",{catSel,subSel,cid});}});tr._cat=catSel;tr._sub=subSel;tr.querySelector(".rdel").onclick=()=>tr.remove();}
+function addRow(d){d=d||{};const tr=document.createElement("div");tr.className="exp-card";tr.dataset.row="1";tr.innerHTML=`<button class="exp-del rdel" title="Remove">✕</button><div class="exp-grid"><div class="f f-amt"><label>Amount</label><div class="amt-wrap"><span class="cur">₹</span><input class="ramt" type="text" inputmode="decimal" autocomplete="off" placeholder="0.00" value="${d.amount||""}"></div></div><div class="f"><label>Date</label><input class="rdate" type="date" value="${d.date||todayStr()}"></div><div class="f"><label>Paid by</label><div class="cell-paid"></div></div><div class="f"><label>Method</label><div class="cell-method"></div></div><div class="f"><label>Category</label><div class="cell-cat"></div></div><div class="f"><label>Sub-category</label><div class="cell-sub"></div></div><div class="f f-note"><label>Note <span class="opt">optional</span></label><input class="rnote" type="text" placeholder="e.g. weekend groceries"></div></div>`;$("rows").appendChild(tr);numFilter(tr.querySelector(".ramt"));const catSel=document.createElement("div"),subSel=document.createElement("div"),paidSel=document.createElement("div");tr.querySelector(".cell-cat").appendChild(catSel);tr.querySelector(".cell-sub").appendChild(subSel);tr.querySelector(".cell-paid").appendChild(paidSel);buildSelect(paidSel,{options:paidOpts(d.paid_by),value:d.paid_by||window._me||(USERS[0]||""),placeholder:"Paid by"});tr._paid=paidSel;const methodSel=document.createElement("div");tr.querySelector(".cell-method").appendChild(methodSel);buildSelect(methodSel,{options:METHODS.map(m=>({value:m,label:m})),value:d.method||"UPI",placeholder:"Method"});tr._method=methodSel;tr._cat=catSel;tr._sub=subSel;buildSelect(catSel,{options:rowCatOpts(),value:d.category_id||undefined,placeholder:"Category…",addLabel:"Add category…",onAdd:()=>openAddModal("cat",{catSel,subSel}),onChange:v=>{subSel.setOptions(rowSubOpts(v));subSel.value="";}});buildSelect(subSel,{options:rowSubOpts(d.category_id||""),value:d.subcategory_id||"",placeholder:"—",addLabel:"Add sub-category…",onAdd:()=>{const cid=catSel.value;if(!cid){banner("Pick a category first.");return;}openAddModal("sub",{catSel,subSel,cid});}});tr._cat=catSel;tr._sub=subSel;tr.querySelector(".rdel").onclick=()=>tr.remove();}
 $("addRowBtn").onclick=()=>addRow();
 let BUD={};
 async function loadBudgets(){try{const{data}=await sb.from("budgets").select("*");BUD={};(data||[]).forEach(b=>BUD[b.category_id]=Number(b.monthly)||0);}catch(e){BUD={};}}
@@ -917,7 +929,7 @@ function renderBudgetVsActual(){const host=$("budgetVsActual");if(!host)return;c
   const totBud=ids.reduce((s,id)=>s+BUD[id],0),totAct=ids.reduce((s,id)=>s+(act[id]||0),0);
   const opct=totBud>0?totAct/totBud*100:0,ocol=opct>100?"#DC6B73":(opct>=85?"#C9B05A":"#5FB08C");
   const head=`<div class="budtotals" style="border-bottom:none;padding:2px 4px 16px"><div class="bt"><span class="k">Budget</span><span class="v">${money(totBud)}</span></div><div class="bt"><span class="k">Spent</span><span class="v">${money(totAct)}</span></div><div class="bt"><span class="k">${totAct>totBud?"Over by":"Left"}</span><span class="v" style="color:${ocol}">${money(Math.abs(totBud-totAct))}</span></div></div>`;
-  const rows=ids.map(id=>{const b=BUD[id],a=act[id]||0,pct=b>0?a/b*100:0;const cls=pct>100?"over":(pct>=85?"warn":"ok");const col=cls==="over"?"#DC6B73":(cls==="warn"?"#C9B05A":"#5FB08C");const pill=pct>100?`over ${money2(a-b)}`:`${money2(b-a)} left`;return`<div class="budrow"><div class="top"><span class="tlab"><span class="chip" style="background:${colorOf(id)}">${esc(nameOf(id))}</span></span><span class="nums"><b>${money2(a)}</b> / ${money2(b)} <span class="pill ${cls}">${pill}</span></span></div><div class="budtrack"><div class="budfill" style="width:${Math.min(100,pct).toFixed(1)}%;background:${col}"></div></div><div class="budhint">${Math.round(pct)}% used · ${_dleft}d left${(cls!=="over"&&pct>_ppct+8)?` · <span class="ahead">running ahead</span>`:""}</div></div>`;}).join("");
+  const rows=ids.map(id=>{const b=BUD[id],a=act[id]||0,pct=b>0?a/b*100:0;const cls=pct>100?"over":(pct>=85?"warn":"ok");const col=cls==="over"?"#DC6B73":(cls==="warn"?"#C9B05A":"#5FB08C");const pill=pct>100?`over ${money2(a-b)}`:`${money2(b-a)} left`;return`<div class="budrow"><div class="top"><span class="chip" style="background:${colorOf(id)}">${esc(nameOf(id))}</span><span class="pill ${cls}">${pill}</span></div><div class="nums"><b>${money2(a)}</b> <span class="sep">/</span> ${money2(b)}</div><div class="budtrack"><div class="budfill" style="width:${Math.min(100,pct).toFixed(1)}%;background:${col}"></div></div><div class="budhint">${Math.round(pct)}% used · ${_dleft}d left${(cls!=="over"&&pct>_ppct+8)?` · <span class="ahead">running ahead</span>`:""}</div></div>`;}).join("");
   const unb=Object.keys(act).filter(id=>!(BUD[id]>0)).reduce((s,id)=>s+act[id],0);
   const note=unb>0?`<div class="soft" style="font-size:12px;color:var(--ink-faint);margin-top:14px">+ ${money2(unb)} spent this month in categories with no budget.</div>`:"";
   host.innerHTML=head+`<div class="budnote">${_dleft} day${_dleft!==1?"s":""} left in ${mb.label}</div>`+rows+note;}
