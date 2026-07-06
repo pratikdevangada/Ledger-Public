@@ -4,7 +4,7 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <script>try{var _t=localStorage.getItem('ledger-theme')||'dark';document.documentElement.setAttribute('data-theme',_t);}catch(e){document.documentElement.setAttribute('data-theme','dark');}</script>
-<title>DevangadaKharcha</title>
+<title>DevangadaKharcha — Preview</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -331,7 +331,7 @@
   .csel-add::before{content:"＋";width:12px}
 
   /* login gate */
-  .gate{min-height:100vh;display:grid;place-items:center;padding:24px}
+  .gate{min-height:100vh;min-height:100dvh;max-height:100dvh;overflow:auto;display:grid;place-items:center;padding:24px}
   .gate .card{width:100%;max-width:400px}
   .gate h1{font-size:21px;display:flex;align-items:center;gap:11px;margin:0 0 6px;font-weight:600}
   .gate .sub{color:var(--ink-soft);font-size:14px;margin:0 0 22px}
@@ -353,7 +353,7 @@
   @media(max-width:760px){
     /* ---- app frame ---- */
     .wrap{padding:16px 14px 104px}
-    .topbar{position:sticky;top:0;z-index:70;flex-wrap:nowrap;gap:9px;padding:11px 14px;background:var(--bg);border-bottom:1px solid var(--line)}
+    .topbar{position:sticky;top:0;z-index:70;flex-wrap:nowrap;gap:9px;padding:9px 14px;background:var(--bg);border-bottom:1px solid var(--line)}
     .brand{flex:1 1 auto;min-width:0}
     .brand .name{font-size:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
     .mark{width:26px;height:26px}
@@ -395,9 +395,13 @@
     #recent{overflow-x:auto}
     table.recent{min-width:520px}
     /* ---- add-expense: one field per row ---- */
-    .exp-card{padding:15px 15px 17px}
-    .exp-grid{grid-template-columns:1fr;gap:12px}
+    .exp-card{padding:14px 14px 16px}
+    .exp-grid{grid-template-columns:1fr 1fr;gap:11px 12px}
+    .exp-grid .f-note{grid-column:1/-1}
     .exp-card .csel-btn{height:46px}
+    .exp-card label{font-size:10.5px;margin-bottom:5px}
+    .exp-card .ramt{font-weight:600}
+    .exp-card input,.exp-card .csel-btn{scroll-margin-top:84px}
     .row-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px}#addRowBtn{grid-column:1/-1}#submitBtn{grid-column:1/-1}
     /* ---- budgets ---- */
     .budsplit{gap:12px}.budsplit input{width:100%}
@@ -438,6 +442,7 @@
   .ael .ael-amt{display:block;text-align:right;font-weight:600;font-size:14.5px;font-variant-numeric:tabular-nums;white-space:nowrap}
   .ael .ael-pm{display:flex;align-items:center;justify-content:flex-end;gap:4px;margin-top:3px;color:var(--ink-faint);font-size:10.5px;font-weight:600;text-transform:uppercase;letter-spacing:.03em}
   .ael .ael-pm svg{opacity:.85;flex:none}
+  .ael .ael-pm .ini{display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;border-radius:50%;background:var(--accent-soft);color:var(--ink-soft);font-size:9px;font-weight:700;flex:none;letter-spacing:0}
   .quickadd{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:0 0 16px}
   .qa-lbl{font-size:12px;color:var(--ink-faint);font-weight:600;margin-right:2px}
   .qa-chip{display:inline-flex;align-items:center;gap:7px;background:var(--field);border:1px solid var(--line);color:var(--ink);border-radius:20px;padding:0 13px;height:36px;font-size:13px;font-weight:500;cursor:pointer;transition:.15s}
@@ -474,7 +479,7 @@
 <div class="grain"></div>
 
 
-<div id="gate" class="gate">
+<div id="gate" class="gate hide">
   <div class="card">
     <h1><span class="mark"></span> DevangadaKharcha</h1>
     <p class="sub" id="gateSub">Sign in to your shared expenses.</p>
@@ -486,7 +491,7 @@
   </div>
 </div>
 
-<div id="app" class="hide">
+<div id="app">
   <header class="topbar">
     <div class="brand"><span class="mark"></span><span class="name">Devangada<em>Kharcha</em></span></div>
     <div class="seg">
@@ -634,6 +639,11 @@
       <div id="budgetList"></div>
     </section>
   </div>
+  <nav class="botnav" id="botnav">
+  <button class="navitem active" data-screen="dash"><span class="navib"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.6 12 3.5l9 7.1"/><path d="M5.2 9.4V20h13.6V9.4"/></svg></span><span>Home</span></button>
+  <button class="navitem" data-screen="add"><span class="navib"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5.5v13M5.5 12h13"/></svg></span><span>Add</span></button>
+  <button class="navitem" data-screen="budgets"><span class="navib"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="18" height="13" rx="2.6"/><path d="M3 10.2h18"/><circle cx="16.6" cy="14" r="1.15" fill="currentColor" stroke="none"/></svg></span><span>Budget</span></button>
+</nav>
 </div>
 
 <div id="modal" class="modal hide">
@@ -835,7 +845,7 @@ function renderQuickAdd(){const host=$("quickAdd");if(!host)return;const cutoff=
 function renderAddRecent(){renderQuickAdd();renderAllExpenses();}
 let ALL_Q="";
 function methodIcon(m){const a='width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"';const k=(m||"").toLowerCase();let p;if(k==="card")p='<rect x="2.5" y="5" width="19" height="14" rx="2.5"/><path d="M2.5 10h19"/>';else if(k==="cash")p='<rect x="2.5" y="6" width="19" height="12" rx="2"/><circle cx="12" cy="12" r="2.6"/>';else if(k==="upi")p='<rect x="7" y="2.5" width="10" height="19" rx="2.2"/><path d="M10.5 18.5h3"/>';else if(k.indexOf("bank")>-1)p='<path d="M3 9.5 12 4l9 5.5"/><path d="M5 10.5V19M19 10.5V19M9.5 10.5V19M14.5 10.5V19M3.5 19h17"/>';else p='<circle cx="12" cy="12" r="8"/>';return `<svg ${a}>${p}</svg>`;}
-function renderAllExpenses(){const host=$("allExp");if(!host)return;let list=EXP.slice();if(ALL_Q){const q=ALL_Q.toLowerCase();list=list.filter(r=>[nameOf(r.category_id),subName(r.subcategory_id),r.note,r.paid_by,r.method,String(r.amount)].filter(Boolean).join(" ").toLowerCase().includes(q));}if(!list.length){host.innerHTML=`<div class="empty" style="padding:22px">${ALL_Q?"No matches.":"No expenses yet — add one above."}</div>`;return;}list.sort((a,b)=>a.spent_on<b.spent_on?-1:a.spent_on>b.spent_on?1:0);const more=list.length>300;const shown=more?list.slice(list.length-300):list;const body=shown.map((r,i)=>{const sn=subName(r.subcategory_id);return`<tr onclick="openEditModal('${r.id}')"><td class="ael-d">${new Date(r.spent_on).toLocaleDateString(LOCALE,{day:"2-digit",month:"short"})}</td><td class="ael-it"><span class="ael-cat">${esc(nameOf(r.category_id))}</span>${sn?`<span class="ael-sub">${esc(sn)}</span>`:""}</td><td class="ael-a"><span class="ael-amt">${money2(r.amount)}</span>${r.method?`<span class="ael-pm">${methodIcon(r.method)}${esc(r.method)}</span>`:""}</td></tr>`;}).join("");host.innerHTML=`<div class="allexp-scroll"><table class="ael"><thead><tr><th>Date</th><th>Item</th><th class="r">Amount</th></tr></thead><tbody>${body}</tbody></table></div>${more?`<div class="empty" style="padding:12px">Showing the latest 300 of ${list.length}. Use search for older.</div>`:""}`;}
+function renderAllExpenses(){const host=$("allExp");if(!host)return;let list=EXP.slice();if(ALL_Q){const q=ALL_Q.toLowerCase();list=list.filter(r=>[nameOf(r.category_id),subName(r.subcategory_id),r.note,r.paid_by,r.method,String(r.amount)].filter(Boolean).join(" ").toLowerCase().includes(q));}if(!list.length){host.innerHTML=`<div class="empty" style="padding:22px">${ALL_Q?"No matches.":"No expenses yet — add one above."}</div>`;return;}list.sort((a,b)=>a.spent_on<b.spent_on?-1:a.spent_on>b.spent_on?1:0);const more=list.length>300;const shown=more?list.slice(list.length-300):list;const body=shown.map((r,i)=>{const sn=subName(r.subcategory_id);return`<tr onclick="openEditModal('${r.id}')"><td class="ael-d">${new Date(r.spent_on).toLocaleDateString(LOCALE,{day:"2-digit",month:"short"})}</td><td class="ael-it"><span class="ael-cat">${esc(nameOf(r.category_id))}</span>${sn?`<span class="ael-sub">${esc(sn)}</span>`:""}</td><td class="ael-a"><span class="ael-amt">${money2(r.amount)}</span>${(r.paid_by||r.method)?`<span class="ael-pm">${r.paid_by?`<span class="ini" title="${esc(r.paid_by)}">${esc(r.paid_by.trim().charAt(0).toUpperCase())}</span>`:""}${r.method?`${methodIcon(r.method)}${esc(r.method)}`:""}</span>`:""}</td></tr>`;}).join("");host.innerHTML=`<div class="allexp-scroll"><table class="ael"><thead><tr><th>Date</th><th>Item</th><th class="r">Amount</th></tr></thead><tbody>${body}</tbody></table></div>${more?`<div class="empty" style="padding:12px">Showing the latest 300 of ${list.length}. Use search for older.</div>`:""}`;}
 function renderCompare(F,from,to){const host=$("compare");if(!host)return;
   if(!from||!to){host.innerHTML=`<div class="empty">Pick a specific period (not “All time”) to compare it with the one before.</div>`;return;}
   const d0=new Date(from),d1=new Date(to);const span=Math.round((d1-d0)/864e5)+1;
@@ -1010,15 +1020,38 @@ async function showApp(session){if(window._appReady)return;$("gate").classList.a
   if(PROF_OK&&!nm)openNameModal(true);}
 
 /* ---------- startup ---------- */
-const CFG_OK=SUPABASE_URL&&SUPABASE_ANON_KEY&&!/PASTE_/.test(SUPABASE_URL)&&!/PASTE_/.test(SUPABASE_ANON_KEY);
-window.addEventListener("error",ev=>{if(!$("app")||$("app").classList.contains("hide")){const m=ev.message&&ev.message!=="Script error."?ev.message:"A library failed to load. Check your connection/ad-blocker and the Supabase URL/key.";gateMsg("Error: "+m,"err");}});
-if(!CFG_OK){showGate();gateMsg("Setup needed: paste your Supabase Project URL and anon public key into the four CONFIG lines near the top of this file, then reload. (Supabase → Project Settings → API.)","info");$("authBtn").disabled=true;}
-else{try{sb=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);}catch(e){showGate();gateMsg("Couldn't start: "+e.message,"err");}if(sb){sb.auth.onAuthStateChange((_e,s)=>{if(s){if(!window._appReady)showApp(s);}else{window._appReady=false;showGate();}});sb.auth.getSession().then(({data})=>{data.session?showApp(data.session):showGate();}).catch(e=>{showGate();gateMsg("Couldn't reach Supabase: "+e.message,"err");});}}
+/* ===== PREVIEW MODE: in-memory sample data, no login ===== */
+const DB={categories:[],subcategories:[],expenses:[],budgets:[],profiles:[],recurring:[]};
+let _idc=1;const uid=()=>"id"+(_idc++);
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
+function mq(table){let op="select",ret=false,single=false,maybe=false,payload=null,flt=[],ord=null;
+  const match=r=>flt.every(([k,v])=>r[k]===v);
+  function exec(){const T=DB[table];try{
+    if(op==="select"){let d=T.filter(match);if(ord){d=d.slice().sort((a,b)=>{const x=a[ord.col],y=b[ord.col];return (x<y?-1:x>y?1:0)*(ord.asc?1:-1);});}if(maybe||single)return{data:d[0]||null,error:null};return{data:d.slice(),error:null};}
+    if(op==="insert"){const arr=Array.isArray(payload)?payload:[payload];const ins=arr.map(o=>{const row=Object.assign({},o);if(table!=="budgets"&&table!=="profiles"&&!row.id)row.id=uid();T.push(row);return row;});return ret?{data:single?ins[0]:ins,error:null}:{data:null,error:null};}
+    if(op==="upsert"){const key=table==="profiles"?"id":(table==="budgets"?"category_id":"id");const k=payload[key];const idx=T.findIndex(r=>r[key]===k);if(idx>=0)Object.assign(T[idx],payload);else T.push(Object.assign({},payload));return{data:null,error:null};}
+    if(op==="delete"){for(let n=T.length-1;n>=0;n--)if(match(T[n]))T.splice(n,1);return{data:null,error:null};}
+    if(op==="update"){T.forEach((r,i)=>{if(match(r))Object.assign(T[i],payload);});return{data:null,error:null};}
+    return{data:null,error:null};
+  }catch(e){return{data:null,error:{message:e.message}};}}
+  const b={select(){if(op!=="select")ret=true;return b;},insert(p){op="insert";payload=p;return b;},upsert(p){op="upsert";payload=p;return b;},update(p){op="update";payload=p;return b;},delete(){op="delete";return b;},eq(k,v){flt.push([k,v]);return b;},order(c,o){if(!ord)ord={col:c,asc:!o||o.ascending!==false};return b;},limit(){return b;},single(){single=true;ret=true;return b;},maybeSingle(){maybe=true;ret=true;return b;},then(res){res(exec());}};
+  return b;}
+sb={from:mq,auth:{signOut(){location.reload();},onAuthStateChange(){},getSession(){return Promise.resolve({data:{session:null}});},signInWithPassword(){return Promise.resolve({error:null});},signUp(){return Promise.resolve({error:null});}}};
+function seedSample(){
+  const cats=[["Food & Dining",["Swiggy","Zomato","Dine-in","Cafe","Street food"]],["Groceries & Quick Commerce",["Blinkit","Zepto","Swiggy Instamart","DMart","Vegetables & Fruits","Dairy / Milk (Amul)"]],["Housing",["Rent / Home EMI","Society / Maintenance","Domestic help"]],["Utilities & Bills",["Electricity (Torrent Power)","Piped Gas","Broadband / Wi-Fi","Mobile recharge"]],["Transport & Fuel",["Petrol","Uber","Ola","Rapido","Metro"]],["Health & Medical",["Doctor","Medicines","Gym / Fitness"]],["Personal Care & Grooming",["Salon","Skincare","Toiletries"]],["Shopping (Apparel & Lifestyle)",["Amazon","Flipkart","Myntra","Footwear"]],["Entertainment & Subscriptions",["Movies","OTT (Netflix/Prime)","Spotify"]],["Education & Learning",["Online courses","Books"]],["Gifts, Festivals & Donations",["Gifts","Festivals","Donation"]],["Other",["Cash / ATM","Miscellaneous"]]];
+  cats.forEach((c,i)=>{const id=uid();DB.categories.push({id,name:c[0],color:null,sort:(i+1)*10});c[1].forEach(sn=>DB.subcategories.push({id:uid(),category_id:id,name:sn}));});
+  const base=[350,600,18000,1200,700,800,500,1500,500,900,1500,600],wt=[10,10,2,5,8,4,3,4,4,1,2,2];
+  const pool=[];DB.categories.forEach((c,i)=>{for(let w=0;w<wt[i];w++)pool.push(i);});
+  const rng=mulberry32(11),today=new Date(),payers=["You","Jivika"];
+  for(let n=0;n<120;n++){const ci=pool[Math.floor(rng()*pool.length)];const cat=DB.categories[ci];const subs=DB.subcategories.filter(s=>s.category_id===cat.id);const sub=(subs.length&&rng()>.15)?subs[Math.floor(rng()*subs.length)]:null;const dt=new Date(today.getTime()-Math.floor(rng()*70)*864e5);const amt=Math.max(20,Math.round(base[ci]*(0.4+rng()*1.4)/10)*10);DB.expenses.push({id:uid(),spent_on:ymd(dt),amount:amt,category_id:cat.id,subcategory_id:sub?sub.id:null,paid_by:payers[Math.floor(rng()*2)],method:["UPI","UPI","Card","Cash","UPI"][Math.floor(rng()*5)],note:""});}
+  const setB=(nm,a)=>{const c=DB.categories.find(c=>c.name===nm);if(c)DB.budgets.push({category_id:c.id,monthly:a});};
+  setB("Food & Dining",8000);setB("Groceries & Quick Commerce",12000);setB("Utilities & Bills",5000);
+  (function(){const _h=DB.categories.find(c=>c.name==="Housing"),_rs=_h?DB.subcategories.find(s=>s.category_id===_h.id&&/Rent/.test(s.name)):null;if(_h)DB.recurring.push({id:uid(),amount:18000,category_id:_h.id,subcategory_id:_rs?_rs.id:null,paid_by:"You",method:"UPI",note:"Rent",day_of_month:1,active:true,last_added:null});const _e=DB.categories.find(c=>c.name==="Entertainment & Subscriptions"),_o=_e?DB.subcategories.find(s=>s.category_id===_e.id&&/OTT/.test(s.name)):null;if(_e)DB.recurring.push({id:uid(),amount:649,category_id:_e.id,subcategory_id:_o?_o.id:null,paid_by:"You",method:"Card",note:"Netflix",day_of_month:5,active:true,last_added:null});})();
+  DB.profiles.push({id:"me-uid",name:"You"});DB.profiles.push({id:"jivika-uid",name:"Jivika"});
+}
+window.addEventListener("error",ev=>{console.error(ev.message);});
+seedSample();
+showApp({user:{id:"me-uid",email:"you@household.app"}});
 </script>
-<nav class="botnav" id="botnav">
-  <button class="navitem active" data-screen="dash"><span class="navib"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.6 12 3.5l9 7.1"/><path d="M5.2 9.4V20h13.6V9.4"/></svg></span><span>Home</span></button>
-  <button class="navitem" data-screen="add"><span class="navib"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5.5v13M5.5 12h13"/></svg></span><span>Add</span></button>
-  <button class="navitem" data-screen="budgets"><span class="navib"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="18" height="13" rx="2.6"/><path d="M3 10.2h18"/><circle cx="16.6" cy="14" r="1.15" fill="currentColor" stroke="none"/></svg></span><span>Budget</span></button>
-</nav>
 </body>
 </html>
