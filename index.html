@@ -4,7 +4,7 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <script>try{var _t=localStorage.getItem('ledger-theme')||'dark';document.documentElement.setAttribute('data-theme',_t);}catch(e){document.documentElement.setAttribute('data-theme','dark');}</script>
-<title>DevangadaKharcha — Preview</title>
+<title>DevangadaKharcha</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -479,7 +479,7 @@
 <div class="grain"></div>
 
 
-<div id="gate" class="gate hide">
+<div id="gate" class="gate">
   <div class="card">
     <h1><span class="mark"></span> DevangadaKharcha</h1>
     <p class="sub" id="gateSub">Sign in to your shared expenses.</p>
@@ -491,7 +491,7 @@
   </div>
 </div>
 
-<div id="app">
+<div id="app" class="hide">
   <header class="topbar">
     <div class="brand"><span class="mark"></span><span class="name">Devangada<em>Kharcha</em></span></div>
     <div class="seg">
@@ -1020,38 +1020,10 @@ async function showApp(session){if(window._appReady)return;$("gate").classList.a
   if(PROF_OK&&!nm)openNameModal(true);}
 
 /* ---------- startup ---------- */
-/* ===== PREVIEW MODE: in-memory sample data, no login ===== */
-const DB={categories:[],subcategories:[],expenses:[],budgets:[],profiles:[],recurring:[]};
-let _idc=1;const uid=()=>"id"+(_idc++);
-function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
-function mq(table){let op="select",ret=false,single=false,maybe=false,payload=null,flt=[],ord=null;
-  const match=r=>flt.every(([k,v])=>r[k]===v);
-  function exec(){const T=DB[table];try{
-    if(op==="select"){let d=T.filter(match);if(ord){d=d.slice().sort((a,b)=>{const x=a[ord.col],y=b[ord.col];return (x<y?-1:x>y?1:0)*(ord.asc?1:-1);});}if(maybe||single)return{data:d[0]||null,error:null};return{data:d.slice(),error:null};}
-    if(op==="insert"){const arr=Array.isArray(payload)?payload:[payload];const ins=arr.map(o=>{const row=Object.assign({},o);if(table!=="budgets"&&table!=="profiles"&&!row.id)row.id=uid();T.push(row);return row;});return ret?{data:single?ins[0]:ins,error:null}:{data:null,error:null};}
-    if(op==="upsert"){const key=table==="profiles"?"id":(table==="budgets"?"category_id":"id");const k=payload[key];const idx=T.findIndex(r=>r[key]===k);if(idx>=0)Object.assign(T[idx],payload);else T.push(Object.assign({},payload));return{data:null,error:null};}
-    if(op==="delete"){for(let n=T.length-1;n>=0;n--)if(match(T[n]))T.splice(n,1);return{data:null,error:null};}
-    if(op==="update"){T.forEach((r,i)=>{if(match(r))Object.assign(T[i],payload);});return{data:null,error:null};}
-    return{data:null,error:null};
-  }catch(e){return{data:null,error:{message:e.message}};}}
-  const b={select(){if(op!=="select")ret=true;return b;},insert(p){op="insert";payload=p;return b;},upsert(p){op="upsert";payload=p;return b;},update(p){op="update";payload=p;return b;},delete(){op="delete";return b;},eq(k,v){flt.push([k,v]);return b;},order(c,o){if(!ord)ord={col:c,asc:!o||o.ascending!==false};return b;},limit(){return b;},single(){single=true;ret=true;return b;},maybeSingle(){maybe=true;ret=true;return b;},then(res){res(exec());}};
-  return b;}
-sb={from:mq,auth:{signOut(){location.reload();},onAuthStateChange(){},getSession(){return Promise.resolve({data:{session:null}});},signInWithPassword(){return Promise.resolve({error:null});},signUp(){return Promise.resolve({error:null});}}};
-function seedSample(){
-  const cats=[["Food & Dining",["Swiggy","Zomato","Dine-in","Cafe","Street food"]],["Groceries & Quick Commerce",["Blinkit","Zepto","Swiggy Instamart","DMart","Vegetables & Fruits","Dairy / Milk (Amul)"]],["Housing",["Rent / Home EMI","Society / Maintenance","Domestic help"]],["Utilities & Bills",["Electricity (Torrent Power)","Piped Gas","Broadband / Wi-Fi","Mobile recharge"]],["Transport & Fuel",["Petrol","Uber","Ola","Rapido","Metro"]],["Health & Medical",["Doctor","Medicines","Gym / Fitness"]],["Personal Care & Grooming",["Salon","Skincare","Toiletries"]],["Shopping (Apparel & Lifestyle)",["Amazon","Flipkart","Myntra","Footwear"]],["Entertainment & Subscriptions",["Movies","OTT (Netflix/Prime)","Spotify"]],["Education & Learning",["Online courses","Books"]],["Gifts, Festivals & Donations",["Gifts","Festivals","Donation"]],["Other",["Cash / ATM","Miscellaneous"]]];
-  cats.forEach((c,i)=>{const id=uid();DB.categories.push({id,name:c[0],color:null,sort:(i+1)*10});c[1].forEach(sn=>DB.subcategories.push({id:uid(),category_id:id,name:sn}));});
-  const base=[350,600,18000,1200,700,800,500,1500,500,900,1500,600],wt=[10,10,2,5,8,4,3,4,4,1,2,2];
-  const pool=[];DB.categories.forEach((c,i)=>{for(let w=0;w<wt[i];w++)pool.push(i);});
-  const rng=mulberry32(11),today=new Date(),payers=["You","Jivika"];
-  for(let n=0;n<120;n++){const ci=pool[Math.floor(rng()*pool.length)];const cat=DB.categories[ci];const subs=DB.subcategories.filter(s=>s.category_id===cat.id);const sub=(subs.length&&rng()>.15)?subs[Math.floor(rng()*subs.length)]:null;const dt=new Date(today.getTime()-Math.floor(rng()*70)*864e5);const amt=Math.max(20,Math.round(base[ci]*(0.4+rng()*1.4)/10)*10);DB.expenses.push({id:uid(),spent_on:ymd(dt),amount:amt,category_id:cat.id,subcategory_id:sub?sub.id:null,paid_by:payers[Math.floor(rng()*2)],method:["UPI","UPI","Card","Cash","UPI"][Math.floor(rng()*5)],note:""});}
-  const setB=(nm,a)=>{const c=DB.categories.find(c=>c.name===nm);if(c)DB.budgets.push({category_id:c.id,monthly:a});};
-  setB("Food & Dining",8000);setB("Groceries & Quick Commerce",12000);setB("Utilities & Bills",5000);
-  (function(){const _h=DB.categories.find(c=>c.name==="Housing"),_rs=_h?DB.subcategories.find(s=>s.category_id===_h.id&&/Rent/.test(s.name)):null;if(_h)DB.recurring.push({id:uid(),amount:18000,category_id:_h.id,subcategory_id:_rs?_rs.id:null,paid_by:"You",method:"UPI",note:"Rent",day_of_month:1,active:true,last_added:null});const _e=DB.categories.find(c=>c.name==="Entertainment & Subscriptions"),_o=_e?DB.subcategories.find(s=>s.category_id===_e.id&&/OTT/.test(s.name)):null;if(_e)DB.recurring.push({id:uid(),amount:649,category_id:_e.id,subcategory_id:_o?_o.id:null,paid_by:"You",method:"Card",note:"Netflix",day_of_month:5,active:true,last_added:null});})();
-  DB.profiles.push({id:"me-uid",name:"You"});DB.profiles.push({id:"jivika-uid",name:"Jivika"});
-}
-window.addEventListener("error",ev=>{console.error(ev.message);});
-seedSample();
-showApp({user:{id:"me-uid",email:"you@household.app"}});
+const CFG_OK=SUPABASE_URL&&SUPABASE_ANON_KEY&&!/PASTE_/.test(SUPABASE_URL)&&!/PASTE_/.test(SUPABASE_ANON_KEY);
+window.addEventListener("error",ev=>{if(!$("app")||$("app").classList.contains("hide")){const m=ev.message&&ev.message!=="Script error."?ev.message:"A library failed to load. Check your connection/ad-blocker and the Supabase URL/key.";gateMsg("Error: "+m,"err");}});
+if(!CFG_OK){showGate();gateMsg("Setup needed: paste your Supabase Project URL and anon public key into the four CONFIG lines near the top of this file, then reload. (Supabase → Project Settings → API.)","info");$("authBtn").disabled=true;}
+else{try{sb=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);}catch(e){showGate();gateMsg("Couldn't start: "+e.message,"err");}if(sb){sb.auth.onAuthStateChange((_e,s)=>{if(s){if(!window._appReady)showApp(s);}else{window._appReady=false;showGate();}});sb.auth.getSession().then(({data})=>{data.session?showApp(data.session):showGate();}).catch(e=>{showGate();gateMsg("Couldn't reach Supabase: "+e.message,"err");});}}
 </script>
 </body>
 </html>
