@@ -60,7 +60,7 @@
   .pvbar b{color:var(--ink-soft);font-weight:600}
 
   .topbar{display:flex;align-items:center;justify-content:space-between;padding:15px 26px;border-bottom:1px solid var(--line);
-    background:var(--topbar-bg);backdrop-filter:blur(16px) saturate(1.2);-webkit-backdrop-filter:blur(16px) saturate(1.2);position:sticky;top:0;z-index:30}
+    background:var(--topbar-bg);backdrop-filter:blur(16px) saturate(1.2);-webkit-backdrop-filter:blur(16px) saturate(1.2)}
   .brand{display:flex;align-items:center;gap:12px}
   .mark{width:30px;height:30px;border-radius:8px;background:linear-gradient(160deg,#FFFFFF,#C9C9CE);position:relative;flex:none;box-shadow:0 2px 10px rgba(255,255,255,.12)}
   .mark::before,.mark::after{content:"";position:absolute;left:7px;right:7px;height:2.5px;border-radius:2px;background:var(--bg)}
@@ -370,7 +370,7 @@
   @media(max-width:760px){
     /* ---- app frame ---- */
     .wrap{padding:16px 14px 104px}
-    .topbar{position:sticky;top:0;z-index:70;flex-wrap:nowrap;gap:9px;padding:calc(9px + env(safe-area-inset-top,0px)) 14px 9px;background:var(--bg);border-bottom:1px solid var(--line)}
+    .topbar{flex-wrap:nowrap;gap:9px;padding:calc(9px + env(safe-area-inset-top,0px)) 14px 9px;background:var(--bg);border-bottom:1px solid var(--line)}
     .brand{flex:1 1 auto;min-width:0}
     .brand .name{font-size:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
     .mark{width:26px;height:26px}
@@ -512,8 +512,9 @@
   .screen-anim{animation:screenSlide .40s cubic-bezier(.22,.9,.3,1)}
   @keyframes screenSlide{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:none}}
 
+  .topstick{position:sticky;top:0;z-index:70}
   .syncbar{display:none}
-  .syncbar.off,.syncbar.sync{display:flex;align-items:center;justify-content:center;gap:7px;font-size:12px;font-weight:600;padding:6px 14px;border-bottom:1px solid var(--line)}
+  .syncbar.off,.syncbar.sync{display:flex;align-items:center;justify-content:center;gap:7px;font-size:12px;font-weight:600;padding:6px 14px;border-bottom:1px solid var(--line);cursor:pointer}
   .syncbar.off{background:rgba(201,176,90,.15);color:#A9822E}
   .syncbar.sync{background:var(--accent-soft);color:var(--ink-soft)}
   .syncbar .sdot{width:7px;height:7px;border-radius:50%;background:currentColor;flex:none}
@@ -522,6 +523,13 @@
   .ael tbody tr.pending{background:rgba(201,176,90,.07)}
   .ael tbody tr.pending .ael-d::after{content:" \2191";color:#C9A227;font-weight:700}
   tr.rec-row.pending td{background:rgba(201,176,90,.07)}
+
+  .syncmenu{position:fixed;inset:0;z-index:130;display:grid;place-items:center;padding:24px;background:rgba(6,6,7,.5);backdrop-filter:blur(4px);animation:appin .2s ease both}
+  .syncmenu.hide{display:none}
+  .syncmenu-card{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:20px;width:100%;max-width:320px;display:flex;flex-direction:column;gap:10px;box-shadow:var(--shadow)}
+  .syncmenu-title{font-weight:600;font-size:16px}
+  .syncmenu-sub{font-size:13px;color:var(--ink-soft);margin-bottom:4px;line-height:1.5}
+  .syncmenu .primary,.syncmenu .del-btn,.syncmenu .ghost{width:100%;height:46px}
 </style>
 </head>
 <body>
@@ -541,6 +549,7 @@
 </div>
 
 <div id="app" class="hide">
+  <div class="topstick">
   <header class="topbar">
     <div class="brand"><span class="mark"></span><span class="name">Devangada<em>Kharcha</em></span></div>
     <div class="seg">
@@ -551,6 +560,7 @@
     <div class="who"><span id="whoName" class="namechip" title="Click to edit your name"></span><button class="iconbtn" id="themeBtn" title="Toggle theme" aria-label="Toggle theme"></button><button class="ghost" id="signout">Sign out</button></div>
   </header>
   <div id="syncbar" class="syncbar"></div>
+  </div>
 
   <div id="screen-dash" class="wrap">
     <div class="filters">
@@ -690,6 +700,7 @@
     </section>
   </div>
   <div id="toast" class="toast"></div>
+  <div id="syncmenu" class="syncmenu hide"><div class="syncmenu-card"><div class="syncmenu-title">Unsynced changes</div><div class="syncmenu-sub" id="syncmenuSub"></div><button class="primary" id="syncNow">Sync now</button><button class="del-btn" id="syncDiscard">Discard unsynced</button><button class="ghost" id="syncClose">Cancel</button></div></div>
   <nav class="botnav" id="botnav">
   <button class="navitem active" data-screen="dash"><span class="navib"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.6 12 3.5l9 7.1"/><path d="M5.2 9.4V20h13.6V9.4"/></svg></span><span>Home</span></button>
   <button class="navitem" data-screen="add"><span class="navib"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5.5v13M5.5 12h13"/></svg></span><span>Add</span></button>
@@ -758,7 +769,7 @@ function hexA(hex,a){hex=hex.replace('#','');return`rgba(${parseInt(hex.slice(0,
 
 let CATS=[],SUBS=[],EXP=[],CHARTS={},CATCOLOR={},SUBSHADE={};
 function computeColors(){CATCOLOR={};SUBSHADE={};CATS.forEach((c,idx)=>{const base=PREMIUM[idx%PREMIUM.length];CATCOLOR[c.id]=base;const subs=SUBS.filter(s=>s.category_id===c.id).slice().sort((a,b)=>a.name.localeCompare(b.name));subs.forEach((s,i)=>SUBSHADE[s.id]=shadeOf(base,i,subs.length));});}
-async function loadMeta(){const [c,s]=await Promise.all([sb.from("categories").select("*").order("sort").order("name"),sb.from("subcategories").select("*").order("name")]);CATS=c.data||[];SUBS=s.data||[];computeColors();}
+async function loadMeta(){try{const [c,s]=await Promise.all([sb.from("categories").select("*").order("sort").order("name"),sb.from("subcategories").select("*").order("name")]);if(c.error)throw c.error;if(s.error)throw s.error;CATS=c.data||[];SUBS=s.data||[];try{localStorage.setItem("kharcha-meta",JSON.stringify({c:CATS,s:SUBS}));}catch(_){}}catch(e){var m=null;try{m=JSON.parse(localStorage.getItem("kharcha-meta")||"null");}catch(_){}if(m){CATS=m.c||[];SUBS=m.s||[];}else{throw e;}}computeColors();}
 /* ---- offline queue & sync ---- */
 const Q_KEY="kharcha-queue",CACHE_KEY="kharcha-cache";let _syncing=false;
 function loadQueue(){try{return JSON.parse(localStorage.getItem(Q_KEY)||"[]");}catch(e){return[];}}
@@ -768,7 +779,15 @@ function loadCache(){try{return JSON.parse(localStorage.getItem(CACHE_KEY)||"[]"
 function pendingItems(){return loadQueue().map(function(e,i){return Object.assign({},e,{id:"local-"+i,_pending:true});});}
 function updateSync(){var bar=$("syncbar");if(!bar)return;var q=loadQueue(),online=navigator.onLine;if(!online){bar.className="syncbar off";bar.innerHTML='<span class="sdot"></span>Offline'+(q.length?" \u00b7 "+q.length+" to sync":"");}else if(_syncing||q.length){bar.className="syncbar sync";bar.innerHTML='<span class="sdot"></span>Syncing'+(q.length?" "+q.length:"")+"\u2026";}else{bar.className="syncbar";bar.innerHTML="";}}
 async function flushQueue(){if(_syncing||!navigator.onLine){updateSync();return;}var q=loadQueue();if(!q.length){updateSync();return;}_syncing=true;updateSync();try{var r=await sb.from("expenses").insert(q);if(r.error)throw r.error;saveQueue([]);_syncing=false;await loadExpenses();renderAddRecent();applyFilters();haptic(10);showToast("Synced");}catch(e){_syncing=false;}updateSync();}
+function requireOnline(msg){if(!navigator.onLine){showToast(msg||"You’re offline — this needs a connection");return false;}return true;}
 window.addEventListener("online",function(){updateSync();flushQueue();});window.addEventListener("offline",updateSync);
+function openSyncMenu(){var q=loadQueue();var on=navigator.onLine;$("syncmenuSub").textContent=on?(q.length?(q.length+" expense"+(q.length>1?"s":"")+" waiting to upload."):"Everything is synced."):(q.length?("Offline \u00b7 "+q.length+" waiting. They upload automatically when you reconnect."):"You are offline.");$("syncDiscard").style.display=q.length?"":"none";$("syncmenu").classList.remove("hide");}
+function closeSyncMenu(){$("syncmenu").classList.add("hide");}
+$("syncbar").addEventListener("click",openSyncMenu);
+$("syncClose").onclick=closeSyncMenu;
+$("syncmenu").addEventListener("click",function(e){if(e.target.id==="syncmenu")closeSyncMenu();});
+$("syncNow").onclick=function(){closeSyncMenu();if(!navigator.onLine){showToast("You are offline \u2014 it will sync automatically when back online");return;}flushQueue();};
+$("syncDiscard").onclick=async function(){var n=loadQueue().length;if(!n){closeSyncMenu();return;}if(!confirm("Discard "+n+" unsynced expense"+(n>1?"s":"")+"? This cannot be undone.")){return;}saveQueue([]);closeSyncMenu();await loadExpenses();renderAddRecent();applyFilters();showToast("Discarded "+n+" unsynced");};
 async function loadExpenses(){var real=[];try{var r=await sb.from("expenses").select("id,amount,spent_on,paid_by,note,category_id,subcategory_id,method").order("spent_on",{ascending:false}).limit(5000);if(r.error)throw r.error;real=r.data||[];cacheExpenses(real);}catch(e){real=loadCache();}EXP=pendingItems().concat(real);updateSync();}
 let RECUR=[];const METHODS=["UPI","Card","Cash","Bank transfer","Other"];
 async function loadRecurring(){try{const{data}=await sb.from("recurring").select("*").order("day_of_month",{ascending:true});RECUR=data||[];}catch(e){RECUR=[];}}
@@ -955,7 +974,7 @@ function numFilter(el){el.addEventListener("input",()=>{let v=el.value.replace(/
 function addRow(d){d=d||{};const tr=document.createElement("div");tr.className="exp-card";tr.dataset.row="1";tr.innerHTML=`<button class="exp-del rdel" title="Remove">✕</button><div class="exp-grid"><div class="f f-amt"><label>Amount</label><div class="amt-wrap"><span class="cur">₹</span><input class="ramt" type="text" inputmode="decimal" autocomplete="off" placeholder="0.00" value="${d.amount||""}"></div></div><div class="f f-date"><label>Date</label><input class="rdate" type="date" value="${d.date||todayStr()}"></div><div class="f"><label>Paid by</label><div class="cell-paid"></div></div><div class="f"><label>Method</label><div class="cell-method"></div></div><div class="f"><label>Category</label><div class="cell-cat"></div></div><div class="f"><label>Sub-category</label><div class="cell-sub"></div></div><div class="f f-note"><label>Note <span class="opt">optional</span></label><input class="rnote" type="text" placeholder="e.g. weekend groceries"></div></div>`;$("rows").appendChild(tr);numFilter(tr.querySelector(".ramt"));const catSel=document.createElement("div"),subSel=document.createElement("div"),paidSel=document.createElement("div");tr.querySelector(".cell-cat").appendChild(catSel);tr.querySelector(".cell-sub").appendChild(subSel);tr.querySelector(".cell-paid").appendChild(paidSel);buildSelect(paidSel,{options:paidOpts(d.paid_by),value:d.paid_by||window._me||(USERS[0]||""),placeholder:"Paid by"});tr._paid=paidSel;const methodSel=document.createElement("div");tr.querySelector(".cell-method").appendChild(methodSel);buildSelect(methodSel,{options:METHODS.map(m=>({value:m,label:m})),value:d.method||"UPI",placeholder:"Method"});tr._method=methodSel;tr._cat=catSel;tr._sub=subSel;buildSelect(catSel,{options:rowCatOpts(),value:d.category_id||undefined,placeholder:"Category…",addLabel:"Add category…",onAdd:()=>openAddModal("cat",{catSel,subSel}),onChange:v=>{subSel.setOptions(rowSubOpts(v));subSel.value="";}});buildSelect(subSel,{options:rowSubOpts(d.category_id||""),value:d.subcategory_id||"",placeholder:"—",addLabel:"Add sub-category…",onAdd:()=>{const cid=catSel.value;if(!cid){banner("Pick a category first.");return;}openAddModal("sub",{catSel,subSel,cid});}});tr._cat=catSel;tr._sub=subSel;tr.querySelector(".rdel").onclick=()=>tr.remove();}
 $("addRowBtn").onclick=()=>addRow();
 let BUD={};
-async function loadBudgets(){try{const{data}=await sb.from("budgets").select("*");BUD={};(data||[]).forEach(b=>BUD[b.category_id]=Number(b.monthly)||0);}catch(e){BUD={};}}
+async function loadBudgets(){try{const{data,error}=await sb.from("budgets").select("*");if(error)throw error;BUD={};(data||[]).forEach(b=>BUD[b.category_id]=Number(b.monthly)||0);try{localStorage.setItem("kharcha-bud",JSON.stringify(BUD));}catch(_){}}catch(e){try{BUD=JSON.parse(localStorage.getItem("kharcha-bud")||"{}")||{};}catch(_){BUD={};}}}
 let USERS=[];
 async function loadUsers(){let names=[];try{const{data}=await sb.from("profiles").select("name");names=(data||[]).map(p=>p&&p.name).filter(Boolean);}catch(e){}const fromExp=[...new Set(EXP.map(e=>e.paid_by).filter(Boolean))];USERS=[...new Set([window._me,...names,...fromExp].filter(Boolean))];}
 function paidOpts(extra){const arr=[...new Set([...(USERS||[]),window._me,extra].filter(Boolean))];return arr.map(u=>({value:u,label:u}));}
@@ -968,7 +987,7 @@ function suggestSplit(total){total=parseFloat(total)||0;let w={},basis="last mon
   if(sum<=0){w={};const from=ymd(new Date(Date.now()-90*864e5));EXP.forEach(e=>{if(e.spent_on>=from)w[e.category_id]=(w[e.category_id]||0)+Number(e.amount);});sum=Object.values(w).reduce((a,b)=>a+b,0);basis="the last 90 days of spending";}
   if(sum<=0){const ever=[...new Set(EXP.map(e=>e.category_id))];const ids=ever.length?ever:CATS.map(c=>c.id);ids.forEach(id=>w[id]=1);sum=ids.length;basis="an even split";}
   const ids=Object.keys(w),alloc={};let used=0;ids.forEach(id=>{const r=Math.round((total*w[id]/sum)/10)*10;alloc[id]=r;used+=r;});let diff=Math.round(total)-used;if(ids.length){const big=ids.slice().sort((a,b)=>w[b]-w[a])[0];alloc[big]=Math.max(0,(alloc[big]||0)+diff);}return{alloc,basis};}
-async function applySplit(){let total=parseFloat($("budgetTotalInput").value)||0;
+async function applySplit(){if(!requireOnline("You’re offline — budgets need a connection"))return;let total=parseFloat($("budgetTotalInput").value)||0;
   const pm=prevMonthBounds();const pa={};EXP.forEach(e=>{if(e.spent_on>=pm.from&&e.spent_on<=pm.to)pa[e.category_id]=(pa[e.category_id]||0)+Number(e.amount);});
   const paTotal=Object.values(pa).reduce((a,b)=>a+b,0);
   let alloc={},basis;
@@ -986,14 +1005,14 @@ function bmInfo(catId){const act=monthActuals(),a=act[catId]||0;return a>0?`spen
 function bmSyms(){const pct=BM_MODE==="percent";const cur=document.querySelector(".bmcur"),suf=document.querySelector(".bmsuf");if(cur)cur.style.display=pct?"none":"";if(suf)suf.style.display=pct?"":"none";const ti=$("bmAmount");if(ti){ti.style.paddingLeft=pct?"13px":"27px";ti.style.paddingRight=pct?"30px":"13px";}[...$("bmModeSeg").children].forEach(x=>x.classList.toggle("on",x.dataset.m===BM_MODE));}
 function bmField(catId){const b=BUD[catId]||0;if(BM_MODE==="percent"){const base=budBase();$("bmAmount").value=(b>0&&base>0)?(b/base*100<10?(b/base*100).toFixed(1):Math.round(b/base*100)):"";$("bmHint").textContent=base>0?`= ${money2(b)} of ${money2(base)} total · ${bmInfo(catId)}`:"Set a Total monthly budget on the Budgets screen first to allocate by %.";}else{$("bmAmount").value=b>0?b:"";$("bmHint").textContent=bmInfo(catId).charAt(0).toUpperCase()+bmInfo(catId).slice(1)+".";}}
 function bmShow(){if(!CATS.length){closeBudgetModal();return;}if(BMI<0)BMI=0;if(BMI>=CATS.length)BMI=CATS.length-1;const c=CATS[BMI];bmHost.value=c.id;$("bmProgress").textContent=`(${BMI+1} of ${CATS.length})`;$("bmSave").textContent=BMI>=CATS.length-1?"Save & finish":"Save & next";bmField(c.id);setTimeout(()=>{$("bmAmount").focus();$("bmAmount").select();},20);}
-function openBudgetModal(){if(!CATS.length){budBanner("Add a category first.");return;}const opts=CATS.map(c=>({value:c.id,label:c.name}));
+function openBudgetModal(){if(!requireOnline("You’re offline — budgets need a connection"))return;if(!CATS.length){budBanner("Add a category first.");return;}const opts=CATS.map(c=>({value:c.id,label:c.name}));
   if(!bmHost){bmHost=$("bmCat");buildSelect(bmHost,{options:opts,value:CATS[0].id,onChange:v=>{const i=CATS.findIndex(c=>c.id===v);if(i>=0){BMI=i;$("bmProgress").textContent=`(${i+1} of ${CATS.length})`;$("bmSave").textContent=i>=CATS.length-1?"Save & finish":"Save & next";bmField(v);$("bmAmount").focus();}}});numFilter($("bmAmount"));$("bmAmount").addEventListener("keydown",e=>{if(e.key==="Enter")bmSave();});$("bmModeSeg").addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;BM_MODE=b.dataset.m;bmSyms();bmField(CATS[BMI].id);$("bmAmount").focus();});}
   else bmHost.setOptions(opts);
   const start=CATS.findIndex(c=>!(BUD[c.id]>0));BMI=start>=0?start:0;
   $("budgetModal").classList.remove("hide");bmSyms();bmShow();}
 function closeBudgetModal(){$("budgetModal").classList.add("hide");}
 function bmFinishCheck(){if(BMI>=CATS.length-1){closeBudgetModal();renderBudgets();renderBudgetVsActual();budBanner("Budgets updated.",true);return true;}return false;}
-async function bmSave(){const c=CATS[BMI];if(!c)return;let m;const val=parseFloat($("bmAmount").value)||0;if(BM_MODE==="percent"){const base=budBase();if(base<=0){$("bmHint").textContent="Set a Total monthly budget on the Budgets screen first to use %.";return;}m=Math.round(base*val/100/10)*10;}else m=val;BUD[c.id]=m;$("bmSave").disabled=true;try{await sb.from("budgets").upsert({category_id:c.id,monthly:m,updated_at:new Date().toISOString()});}catch(e){$("bmHint").textContent="Saved on screen — run add_budgets.sql in Supabase to keep it.";}$("bmSave").disabled=false;if(bmFinishCheck())return;BMI++;bmShow();}
+async function bmSave(){if(!requireOnline("You’re offline — budgets need a connection"))return;const c=CATS[BMI];if(!c)return;let m;const val=parseFloat($("bmAmount").value)||0;if(BM_MODE==="percent"){const base=budBase();if(base<=0){$("bmHint").textContent="Set a Total monthly budget on the Budgets screen first to use %.";return;}m=Math.round(base*val/100/10)*10;}else m=val;BUD[c.id]=m;$("bmSave").disabled=true;try{await sb.from("budgets").upsert({category_id:c.id,monthly:m,updated_at:new Date().toISOString()});}catch(e){$("bmHint").textContent="Saved on screen — run add_budgets.sql in Supabase to keep it.";}$("bmSave").disabled=false;if(bmFinishCheck())return;BMI++;bmShow();}
 function bmSkip(){if(bmFinishCheck())return;BMI++;bmShow();}
 function gotoScreen(name){const b=document.querySelector('.tab[data-screen="'+name+'"]');if(b)b.click();}
 function renderBudgetVsActual(){const host=$("budgetVsActual");if(!host)return;const mb=monthBounds();const lbl=$("budgetMonthLbl");if(lbl)lbl.textContent="— "+mb.label;
@@ -1022,21 +1041,21 @@ function onBudgetInput(el){const cat=el.dataset.cat,val=parseFloat(el.value)||0;
 function updateBudgetAlloc(){const el=$("budgetAlloc");if(!el)return;const totBud=CATS.reduce((s,c)=>s+(BUD[c.id]||0),0),base=budBase();if(base<=0){el.innerHTML="";return;}const ap=totBud/base*100;const tail=totBud>base?`<span style="color:#F2A2AE"> · over by ${money2(totBud-base)}</span>`:(totBud<base?`<span style="color:var(--ink-faint)"> · ${money2(base-totBud)} unallocated</span>`:` · fully allocated`);el.innerHTML=`Allocated <b>${pctStr(ap)}</b> — ${money2(totBud)} of ${money2(base)}${tail}`;}
 function updateBudgetTotals(){const act=monthActuals(),mb=monthBounds();const totBud=CATS.reduce((s,c)=>s+(BUD[c.id]||0),0),totAct=Object.values(act).reduce((a,b)=>a+b,0);const tt=$("budgetTotals");if(tt)tt.innerHTML=`<div class="bt"><span class="k">Total monthly budget</span><span class="v">${money(totBud)}</span></div><div class="bt"><span class="k">Spent in ${mb.label}</span><span class="v">${money(totAct)}</span></div><div class="bt"><span class="k">${totAct>totBud?"Over by":"Remaining"}</span><span class="v">${money(Math.abs(totBud-totAct))}</span></div>`;const base=budBase();document.querySelectorAll("#budgetList .budset").forEach(row=>{const inp=row.querySelector(".binp");if(!inp)return;const id=inp.dataset.cat,a=act[id]||0,b=BUD[id]||0,sub=row.querySelector(".sub"),sec=row.querySelector(".sec");if(sub)sub.textContent=b>0?`${money2(a)} spent · ${b>=a?money2(b-a)+" left":money2(a-b)+" over"}`:(a>0?`${money2(a)} spent · no budget set`:"no budget set");if(sec){if(BUDGET_MODE==="amount"){sec.textContent=b>0?pctStr(totBud>0?b/totBud*100:0)+" of budget":"—";}else{sec.textContent=`= ${money2(b)}`;}}});updateBudgetAlloc();const _ti=$("budgetTotalInput");if(_ti&&document.activeElement!==_ti)_ti.value=totBud>0?Math.round(totBud):"";}
 function flashSaved(el){if(!el)return;el.classList.add("saved");clearTimeout(el._st);el._st=setTimeout(()=>el.classList.remove("saved"),900);}
-async function saveBudget(catId,val,inputEl){const m=parseFloat(val)||0;BUD[catId]=m;const{error}=await sb.from("budgets").upsert({category_id:catId,monthly:m,updated_at:new Date().toISOString()});if(error){budBanner(/relation|exist|table|schema/i.test(error.message||"")?"Couldn't save — run add_budgets.sql in Supabase once, then try again.":("Couldn't save — "+error.message));return;}updateBudgetTotals();renderBudgetVsActual();flashSaved(inputEl);}
+async function saveBudget(catId,val,inputEl){if(!requireOnline("You’re offline — budgets need a connection"))return;const m=parseFloat(val)||0;BUD[catId]=m;const{error}=await sb.from("budgets").upsert({category_id:catId,monthly:m,updated_at:new Date().toISOString()});if(error){budBanner(/relation|exist|table|schema/i.test(error.message||"")?"Couldn't save — run add_budgets.sql in Supabase once, then try again.":("Couldn't save — "+error.message));return;}updateBudgetTotals();renderBudgetVsActual();flashSaved(inputEl);}
 async function clearAllBudgets(){if(!confirm("Reset the budget for every category to zero?"))return;CATS.forEach(c=>BUD[c.id]=0);$("budgetTotalInput").value="";$("clearBudgetsBtn").disabled=true;try{await Promise.all(CATS.map(c=>sb.from("budgets").upsert({category_id:c.id,monthly:0,updated_at:new Date().toISOString()})));budBanner("All budgets reset to zero.",true);}catch(e){budBanner(e.message||"Could not clear.");}$("clearBudgetsBtn").disabled=false;renderBudgets();renderBudgetVsActual();}
 function banner(t,ok){$("addBanner").innerHTML=`<div class="banner ${ok?'ok':'err'}">${esc(t)}</div>`;if(ok)setTimeout(()=>$("addBanner").innerHTML="",4000);}
 $("submitBtn").onclick=async()=>{const rows=[...$("rows").querySelectorAll("[data-row]")];const payload=[];let bad=0;rows.forEach(tr=>{const amt=parseFloat(tr.querySelector(".ramt").value),cat=tr._cat.value;if(!amt&&!cat)return;if(!amt||amt<=0||!cat){bad++;return;}payload.push({amount:amt,category_id:cat,subcategory_id:tr._sub.value||null,spent_on:tr.querySelector(".rdate").value||todayStr(),paid_by:(tr._paid&&tr._paid.value)||null,method:(tr._method&&tr._method.value)||null,note:tr.querySelector(".rnote").value.trim()||null});});if(!payload.length){banner(bad?"Some rows are missing amount or category.":"Fill at least one row.");return;}if(!navigator.onLine){var q0=loadQueue();payload.forEach(function(p){q0.push(p);});saveQueue(q0);banner("Saved "+payload.length+" offline \u2014 will sync when back online.",true);haptic(16);showToast("Saved offline");$("rows").innerHTML="";addRow();await loadExpenses();renderAddRecent();applyFilters();return;}$("submitBtn").disabled=true;$("submitBtn").textContent="Saving…";const{error}=await sb.from("expenses").insert(payload);$("submitBtn").disabled=false;$("submitBtn").textContent="Submit all";if(error){var q1=loadQueue();payload.forEach(function(p){q1.push(p);});saveQueue(q1);banner("Saved offline \u2014 will sync when the connection returns.",true);haptic(12);showToast("Saved offline");$("rows").innerHTML="";addRow();await loadExpenses();renderAddRecent();applyFilters();return;}banner(`Added ${payload.length} expense${payload.length>1?"s":""}${bad?` · ${bad} incomplete skipped`:""}.`,true);haptic(16);showToast("Added "+payload.length+" expense"+(payload.length>1?"s":""));$("rows").innerHTML="";addRow();await loadExpenses();renderAddRecent();applyFilters();flushQueue();};
 function refreshAllRowSelects(){[...document.querySelectorAll("#rows [data-row]")].forEach(tr=>{tr._cat.setOptions(rowCatOpts());tr._sub.setOptions(rowSubOpts(tr._cat.value));});}
 let MODAL=null;
 let PROF_OK=true;
-function openAddModal(type,ctx){MODAL=Object.assign({type},ctx);$("modalTitle").textContent=type==='cat'?'New category':'New sub-category';$("modalInput").value="";$("modalInput").placeholder=type==='cat'?'e.g. Subscriptions':'e.g. Hotstar';$("modalCancel").style.display="";$("modal").classList.remove("hide");setTimeout(()=>$("modalInput").focus(),30);}
+function openAddModal(type,ctx){if(!requireOnline("You’re offline — new categories can’t be added until you’re back online"))return;MODAL=Object.assign({type},ctx);$("modalTitle").textContent=type==='cat'?'New category':'New sub-category';$("modalInput").value="";$("modalInput").placeholder=type==='cat'?'e.g. Subscriptions':'e.g. Hotstar';$("modalCancel").style.display="";$("modal").classList.remove("hide");setTimeout(()=>$("modalInput").focus(),30);}
 function openNameModal(force){MODAL={type:'name',force:!!force};$("modalTitle").textContent="Your name";$("modalInput").placeholder="e.g. Pratik";$("modalInput").value=force?"":(window._me||"");$("modalCancel").style.display=force?"none":"";$("modal").classList.remove("hide");setTimeout(()=>{$("modalInput").focus();$("modalInput").select();},30);}
-$("whoName").onclick=()=>{if(!PROF_OK){banner("Run add_profiles.sql in Supabase once to enable usernames.");return;}openNameModal(false);};
+$("whoName").onclick=()=>{if(!requireOnline("You’re offline — name changes need a connection"))return;if(!PROF_OK){banner("Run add_profiles.sql in Supabase once to enable usernames.");return;}openNameModal(false);};
 function closeModal(){$("modal").classList.add("hide");$("modalCancel").style.display="";MODAL=null;}
 $("modalCancel").onclick=closeModal;
 $("modal").addEventListener("click",e=>{if(e.target.id==="modal")closeModal();});
 $("modalInput").addEventListener("keydown",e=>{if(e.key==="Enter")$("modalAdd").click();if(e.key==="Escape")closeModal();});
-$("modalAdd").onclick=async()=>{const name=$("modalInput").value.trim();if(!name||!MODAL)return;$("modalAdd").disabled=true;
+$("modalAdd").onclick=async()=>{const name=$("modalInput").value.trim();if(!name||!MODAL)return;if(!requireOnline("You’re offline — this needs a connection"))return;$("modalAdd").disabled=true;
   try{
     if(MODAL.type==='name'){const old=window._me;const{error}=await sb.from("profiles").upsert({id:window._uid,name,updated_at:new Date().toISOString()});if(error)throw error;window._me=name;$("whoName").textContent=name;USERS=[...new Set([name,...USERS.filter(u=>u!==old)])];refreshPaidSelects(old,name);banner(`Name set to “${name}”.`,true);closeModal();$("modalAdd").disabled=false;return;}
     if(MODAL.type==='cat'){let c=CATS.find(c=>c.name.toLowerCase()===name.toLowerCase());if(!c){const sort=(CATS.reduce((m,x)=>Math.max(m,x.sort||0),0))+10;const{data,error}=await sb.from("categories").insert({name,color:PREMIUM[CATS.length%PREMIUM.length],sort}).select().single();if(error)throw error;c=data;CATS.push(c);computeColors();buildFilterCats();}refreshAllRowSelects();MODAL.catSel.value=c.id;MODAL.subSel.setOptions(rowSubOpts(c.id));MODAL.subSel.value="";banner(`Category “${c.name}” added — selected on this row.`,true);}
@@ -1047,7 +1066,7 @@ $("modalAdd").onclick=async()=>{const name=$("modalInput").value.trim();if(!name
 };
 
 /* ---------- import (Excel) ---------- */
-$("importBtn").onclick=()=>$("fileInput").click();
+$("importBtn").onclick=()=>{if(!requireOnline("You’re offline — Excel import needs a connection"))return;$("fileInput").click();};
 $("fileInput").onchange=async e=>{const file=e.target.files[0];if(!file)return;
   try{const buf=await file.arrayBuffer();const wb=XLSX.read(buf,{cellDates:true});const json=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{raw:true,defval:""});
     const norm=json.map(r=>{const g=k=>{const key=Object.keys(r).find(x=>x.toLowerCase().replace(/[^a-z]/g,"")===k);return key?r[key]:"";};return{date:toDate(g("date")),amount:parseFloat(g("amount"))||0,category:String(g("category")||"").trim(),sub:String(g("subcategory")||"").trim(),paid:String(g("paidby")||"").trim(),method:String(g("method")||"").trim(),note:String(g("note")||"").trim()};}).filter(r=>r.amount>0);
