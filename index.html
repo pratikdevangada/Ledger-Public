@@ -258,9 +258,10 @@
   .exp-del:hover{color:var(--red);background:rgba(220,107,115,.12)}
   .exp-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:15px 16px}
   .exp-grid .f{display:flex;flex-direction:column;gap:7px;min-width:0}
+  .exp-card .amt-wrap,.exp-card input[type="date"]{min-width:0;max-width:100%}
   .exp-grid label{font-size:10px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--ink-faint)}
   .exp-grid label .opt{margin-left:6px;letter-spacing:.03em;text-transform:none;font-weight:500;opacity:.7}
-  .exp-card input{width:100%;height:42px;padding:0 13px;border:1px solid var(--line);border-radius:10px;background:var(--field);color:var(--ink);font-size:15px;font-family:var(--sans)}
+  .exp-card input{width:100%;min-width:0;height:42px;padding:0 13px;border:1px solid var(--line);border-radius:10px;background:var(--field);color:var(--ink);font-size:15px;font-family:var(--sans)}
   .exp-card input::placeholder{color:var(--ink-faint)}
   .exp-card input:focus{outline:none;border-color:var(--focus);box-shadow:0 0 0 4px var(--accent-soft)}
   .exp-card .csel-btn{padding:10px 13px;font-size:15px;border-radius:10px}
@@ -281,6 +282,9 @@
   .pill.warn{background:rgba(201,176,90,.18);color:#D8C57A}
   .pill.over{background:rgba(220,107,115,.16);color:#F2A2AE}
   .budtotals{display:flex;flex-wrap:wrap;gap:26px;padding:6px 4px 20px;border-bottom:1px solid var(--line);margin-bottom:6px}
+  .budtoprow{display:flex;justify-content:space-between;align-items:flex-start;gap:14px 18px;flex-wrap:wrap;border-bottom:1px solid var(--line);margin-bottom:6px}
+  .budtoprow .budtotals{border-bottom:none;margin-bottom:0;padding:6px 4px 8px;flex:1 1 auto}
+  .budtoprow #budModeSeg{flex:none;margin-top:6px}
   .budtotals .bt{display:flex;flex-direction:column;gap:3px}
   .budtotals .bt .k{font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-faint);font-weight:600}
   .budtotals .bt .v{font-size:20px;font-weight:600;font-variant-numeric:tabular-nums}
@@ -413,16 +417,18 @@
     .exp-card label{font-size:10px;margin-bottom:6px}
     .exp-card .ramt{font-weight:600}
     .exp-card input,.exp-card .csel-btn{scroll-margin-top:84px}
-    .row-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px}#addRowBtn{grid-column:1/-1}#submitBtn{grid-column:1/-1}
+    .row-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px}#addRowBtn{grid-column:1/-1}#submitBtn{grid-column:1/-1;margin:0;width:100%}
     /* ---- budgets ---- */
     .budsplit{gap:12px}.budsplit input{width:100%}
     .budsplit .splitctl,.budsplit .splitctl .inp{width:100%}
     .budtotals{gap:16px 22px}
     .budset{grid-template-columns:1fr;gap:10px}
     .budset .csel-btn{height:46px}
-    #screen-budgets .chead .ctools{width:100%;flex-wrap:nowrap;gap:8px}
-    #screen-budgets #guidedBtn{flex:1 1 auto;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-    #screen-budgets #budModeSeg{flex:none}
+    #screen-budgets .chead .ctools{width:100%}
+    #screen-budgets #guidedBtn{width:100%}
+    #screen-budgets .budtoprow{flex-direction:column}
+    #screen-budgets .budtoprow #budModeSeg{width:100%;margin-top:2px}
+    #screen-budgets .budtoprow #budModeSeg button{flex:1;justify-content:center}
     /* ---- modals ---- */
     .modal{padding:16px}.modal-card{max-width:none;width:100%}
     /* ---- bottom navigation (app style) ---- */
@@ -494,11 +500,14 @@
     @keyframes riseIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
   }
   button,.qa-chip,.navitem,.csel-btn,.chip{transition:transform .12s ease,background .18s ease,border-color .18s ease,color .18s ease,box-shadow .18s ease}
-  button:active,.qa-chip:active,.csel-btn:active,.navitem:active,.tab:active,.modtab:active{transform:scale(.96)}
+  button:active,.qa-chip:active,.csel-btn:active,.navitem:active,.tab:active,.modtab:active{transform:scale(.93)}
   .rec-row:active td,.ael tbody tr:active td{background:var(--accent-soft)}
   .toast{position:fixed;left:50%;bottom:calc(86px + env(safe-area-inset-bottom));transform:translate(-50%,16px);background:var(--ink);color:var(--bg);padding:11px 20px;border-radius:24px;font-size:13.5px;font-weight:600;z-index:300;opacity:0;pointer-events:none;box-shadow:0 14px 34px -12px rgba(0,0,0,.55);transition:opacity .25s ease,transform .28s cubic-bezier(.22,.9,.3,1);max-width:82%;text-align:center}
   .toast.show{opacity:1;transform:translate(-50%,0)}
   .toast.err{background:var(--red);color:#fff}
+
+  .screen-anim{animation:screenSlide .40s cubic-bezier(.22,.9,.3,1)}
+  @keyframes screenSlide{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:none}}
 </style>
 </head>
 <body>
@@ -654,13 +663,13 @@
     <div id="budgetBanner"></div>
     <section class="card">
       <div class="chead"><h2 class="ctitle">Monthly budgets <span class="soft">— what you plan to spend each month, per category</span></h2>
-        <div class="ctools"><button class="ghost" id="guidedBtn">+ Add per category</button><div class="miniseg" id="budModeSeg"><button data-m="amount" class="on">₹ Amount</button><button data-m="percent">% Percent</button></div></div>
+        <div class="ctools"><button class="ghost" id="guidedBtn">+ Add per category</button></div>
       </div>
       <div class="budsplit">
         <div class="meta"><div class="t">Total monthly budget <span style="color:var(--ink-faint);font-weight:500">(optional)</span></div><div class="sub">Set a target total to allocate against. It's used as the base when you enter category budgets as percentages, and the bar below shows how much you've allocated.</div></div>
         <div class="splitctl"><div class="inp"><span class="cur">₹</span><input id="budgetTotalInput" type="text" inputmode="decimal" autocomplete="off" placeholder="e.g. 40000"></div></div>
       </div>
-      <div id="budgetTotals" class="budtotals"></div>
+      <div class="budtoprow"><div id="budgetTotals" class="budtotals"></div><div class="miniseg" id="budModeSeg"><button data-m="amount" class="on">₹ Amount</button><button data-m="percent">% Percent</button></div></div>
       <div id="budgetAlloc" class="budalloc"></div>
       <div id="budgetList"></div>
     </section>
@@ -761,7 +770,7 @@ const subColor=id=>SUBSHADE[id]||"#A8ADB8";
 
 function haptic(ms){try{if(navigator.vibrate)navigator.vibrate(ms||8);}catch(e){}}
 let _toastT;function showToast(msg,kind){const t=$("toast");if(!t)return;t.textContent=msg;t.className="toast show"+(kind==="err"?" err":"");clearTimeout(_toastT);_toastT=setTimeout(function(){t.className="toast";},2200);}
-function goScreen(s){haptic(6);$("screen-dash").classList.toggle("hide",s!=="dash");$("screen-add").classList.toggle("hide",s!=="add");$("screen-budgets").classList.toggle("hide",s!=="budgets");document.querySelectorAll(".tab").forEach(x=>x.classList.toggle("active",x.dataset.screen===s));document.querySelectorAll(".navitem").forEach(x=>x.classList.toggle("active",x.dataset.screen===s));if(s==="add")renderAddRecent();if(s==="budgets")renderBudgets();window.scrollTo({top:0,behavior:"instant"});}
+function goScreen(s){haptic(6);$("screen-dash").classList.toggle("hide",s!=="dash");$("screen-add").classList.toggle("hide",s!=="add");$("screen-budgets").classList.toggle("hide",s!=="budgets");document.querySelectorAll(".tab").forEach(x=>x.classList.toggle("active",x.dataset.screen===s));document.querySelectorAll(".navitem").forEach(x=>x.classList.toggle("active",x.dataset.screen===s));var _el=$("screen-"+s);if(_el){_el.classList.remove("screen-anim");void _el.offsetWidth;_el.classList.add("screen-anim");}if(s==="add")renderAddRecent();if(s==="budgets")renderBudgets();window.scrollTo({top:0,behavior:"instant"});}
 document.addEventListener("click",ev=>{const b=ev.target.closest(".tab,.navitem");if(b&&b.dataset&&b.dataset.screen)goScreen(b.dataset.screen);});
 $("recentSeg").addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;RECENT_MODE=b.dataset.m;[...$("recentSeg").children].forEach(x=>x.classList.toggle("on",x===b));if(LASTF)renderRecent(LASTF);});
 numFilter($("budgetTotalInput"));$("budgetTotalInput").addEventListener("keydown",e=>{if(e.key==="Enter")$("budgetTotalInput").blur();});$("budgetTotalInput").addEventListener("input",()=>{if($("screen-budgets")&&!$("screen-budgets").classList.contains("hide"))updateBudgetAlloc();});
