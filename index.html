@@ -258,7 +258,9 @@
   .exp-del:hover{color:var(--red);background:rgba(220,107,115,.12)}
   .exp-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:15px 16px}
   .exp-grid .f{display:flex;flex-direction:column;gap:7px;min-width:0}
-  .exp-card .amt-wrap,.exp-card input[type="date"]{min-width:0;max-width:100%}
+  .exp-card .amt-wrap,.exp-card input[type="date"]{min-width:0;max-width:100%;-webkit-appearance:none;appearance:none;text-align:left}
+  input[type="date"]::-webkit-date-and-time-value{text-align:left;margin:0;min-width:0}
+  input[type="date"]::-webkit-calendar-picker-indicator{margin:0;padding:0}
   .exp-grid label{font-size:10px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--ink-faint)}
   .exp-grid label .opt{margin-left:6px;letter-spacing:.03em;text-transform:none;font-weight:500;opacity:.7}
   .exp-card input{width:100%;min-width:0;height:42px;padding:0 13px;border:1px solid var(--line);border-radius:10px;background:var(--field);color:var(--ink);font-size:15px;font-family:var(--sans)}
