@@ -530,6 +530,33 @@
   .syncmenu-title{font-weight:600;font-size:16px}
   .syncmenu-sub{font-size:13px;color:var(--ink-soft);margin-bottom:4px;line-height:1.5}
   .syncmenu .primary,.syncmenu .del-btn,.syncmenu .ghost{width:100%;height:46px}
+
+  #exportReminder:empty{display:none}
+  .rembar{display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px;justify-content:space-between;background:var(--accent-soft);border:1px solid var(--line);border-radius:12px;padding:12px 15px;margin-bottom:16px}
+  .rembar .remtxt{font-size:13px;font-weight:500;color:var(--ink);flex:1 1 200px;min-width:0}
+  .rembar .remact{display:flex;gap:8px;flex:none}
+  .rembar .primary{height:38px;padding:0 16px}
+  .rembar .ghost{height:38px;padding:0 14px}
+  .reprow{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:13px 2px;border-top:1px solid var(--line)}
+  .reprow:first-child{border-top:none}
+  .repmeta{display:flex;flex-direction:column;gap:2px;min-width:0}
+  .repname{font-weight:600;font-size:14.5px}
+  .repsub{font-size:12px;color:var(--ink-faint)}
+  .reprow .repdl{height:38px;padding:0 18px;flex:none}
+
+  .repdesc{font-size:13px;color:var(--ink-soft);margin:4px 0 14px;line-height:1.55}
+  .modal-sub{font-size:13px;color:var(--ink-soft);margin-top:4px;line-height:1.5}
+  .repicklist{display:flex;flex-direction:column;gap:9px;margin-top:12px}
+  .repick{display:flex;align-items:center;gap:13px;padding:13px 14px;border:1px solid var(--line);border-radius:12px;cursor:pointer;transition:.15s}
+  .repick:hover{border-color:var(--line-2)}
+  .repick .repchk{width:19px;height:19px;accent-color:var(--ink);flex:none;cursor:pointer}
+  .repick-meta{display:flex;flex-direction:column;gap:2px}
+  .repick-name{font-weight:600;font-size:14.5px}
+  .repick-sub{font-size:12px;color:var(--ink-faint)}
+
+  .monthdl{display:flex;gap:10px;align-items:stretch;margin-top:12px}
+  .monthdl .monthsel{flex:1 1 auto;min-width:0}
+  .monthdl .primary{flex:none;padding:0 22px}
 </style>
 </head>
 <body>
@@ -573,6 +600,7 @@
       <div class="fl"><label>Sub-category</label><div id="fSub"></div></div>
       <div class="fl spring"><label>&nbsp;</label><button class="ghost" id="exportBtn">Export to Excel</button></div>
     </div>
+    <div id="exportReminder"></div>
 
     <section class="hero">
       <div class="hero-eyebrow">Total spent · <span id="heroRange"></span></div>
@@ -661,6 +689,7 @@
     </div>
     </div>
     </div>
+    <section class="card" id="reportCard" style="margin-top:16px"><h2 class="ctitle">Monthly reports <span class="soft">— back up a month as Excel</span></h2><p class="repdesc">Download any of the last 3 months as an Excel file — a backup you can keep in Drive or email.</p><button class="ghost" id="openReports">Choose months to download…</button></section>
   </div>
 
   <div id="screen-add" class="wrap hide">
@@ -681,6 +710,10 @@
       <div class="chead"><h2 class="ctitle">All expenses <span class="soft">— tap a row to edit or delete</span></h2></div>
       <input id="allSearch" class="recent-search" type="text" placeholder="Search all expenses…" autocomplete="off">
       <div id="allExp"></div>
+    </section>
+    <section class="card" id="monthDownloadCard" style="margin-top:16px">
+      <h2 class="ctitle">Download a month <span class="soft">— pick any month as Excel</span></h2>
+      <div class="monthdl"><div id="monthSelect" class="monthsel"></div><button class="primary" id="monthDlBtn">Download</button></div>
     </section>
   </div>
 
@@ -706,6 +739,18 @@
   <button class="navitem" data-screen="add"><span class="navib"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5.5v13M5.5 12h13"/></svg></span><span>Add</span></button>
   <button class="navitem" data-screen="budgets"><span class="navib"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="18" height="13" rx="2.6"/><path d="M3 10.2h18"/><circle cx="16.6" cy="14" r="1.15" fill="currentColor" stroke="none"/></svg></span><span>Budget</span></button>
 </nav>
+</div>
+
+<div id="reportModal" class="modal hide">
+  <div class="modal-card">
+    <div class="modal-title">Monthly reports</div>
+    <div class="modal-sub">Tick the months you want. Selecting more than one downloads a single Excel file with a tab for each month.</div>
+    <div id="reportPickList" class="repicklist"></div>
+    <div class="modal-actions" style="justify-content:space-between;margin-top:16px">
+      <button class="ghost" id="reportSelectAll">Select all</button>
+      <span style="display:flex;gap:10px"><button class="ghost" id="reportClose">Close</button><button class="primary" id="reportDownload">Download</button></span>
+    </div>
+  </div>
 </div>
 
 <div id="modal" class="modal hide">
@@ -814,7 +859,7 @@ const subColor=id=>SUBSHADE[id]||"#A8ADB8";
 
 function haptic(ms){try{if(navigator.vibrate)navigator.vibrate(ms||8);}catch(e){}}
 let _toastT;function showToast(msg,kind){const t=$("toast");if(!t)return;t.textContent=msg;t.className="toast show"+(kind==="err"?" err":"");clearTimeout(_toastT);_toastT=setTimeout(function(){t.className="toast";},2200);}
-function goScreen(s){haptic(6);$("screen-dash").classList.toggle("hide",s!=="dash");$("screen-add").classList.toggle("hide",s!=="add");$("screen-budgets").classList.toggle("hide",s!=="budgets");document.querySelectorAll(".tab").forEach(x=>x.classList.toggle("active",x.dataset.screen===s));document.querySelectorAll(".navitem").forEach(x=>x.classList.toggle("active",x.dataset.screen===s));var _el=$("screen-"+s);if(_el){_el.classList.remove("screen-anim");void _el.offsetWidth;_el.classList.add("screen-anim");}if(s==="add")renderAddRecent();if(s==="budgets")renderBudgets();window.scrollTo({top:0,behavior:"instant"});}
+function goScreen(s){haptic(6);$("screen-dash").classList.toggle("hide",s!=="dash");$("screen-add").classList.toggle("hide",s!=="add");$("screen-budgets").classList.toggle("hide",s!=="budgets");document.querySelectorAll(".tab").forEach(x=>x.classList.toggle("active",x.dataset.screen===s));document.querySelectorAll(".navitem").forEach(x=>x.classList.toggle("active",x.dataset.screen===s));var _el=$("screen-"+s);if(_el){_el.classList.remove("screen-anim");void _el.offsetWidth;_el.classList.add("screen-anim");}if(s==="add")renderAddRecent();if(s==="budgets")renderBudgets();if(s==="dash")renderReports();window.scrollTo({top:0,behavior:"instant"});}
 document.addEventListener("click",ev=>{const b=ev.target.closest(".tab,.navitem");if(b&&b.dataset&&b.dataset.screen)goScreen(b.dataset.screen);});
 $("recentSeg").addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;RECENT_MODE=b.dataset.m;[...$("recentSeg").children].forEach(x=>x.classList.toggle("on",x===b));if(LASTF)renderRecent(LASTF);});
 numFilter($("budgetTotalInput"));$("budgetTotalInput").addEventListener("keydown",e=>{if(e.key==="Enter")$("budgetTotalInput").blur();});$("budgetTotalInput").addEventListener("input",()=>{if($("screen-budgets")&&!$("screen-budgets").classList.contains("hide"))updateBudgetAlloc();});
@@ -855,6 +900,27 @@ let LASTF=[],LASTR=["",""];
 const CT={trend:'area',cat:'doughnut',dow:'bar',who:'doughnut'};
 function applyFilters(){const[from,to]=rangeDates();LASTR=[from,to];const F=filtered();LASTF=F;renderHero(F,from,to);renderStats(F,from,to);renderTrend(F,from,to);renderCat(F);renderSub(F);renderDow(F);renderWho(F);renderSummary(F,from,to);renderCompare(F,from,to);renderBudgetVsActual();renderInsights();renderRecent(F);}
 function rerender(key){const[from,to]=LASTR,F=LASTF;if(key==='trend')renderTrend(F,from,to);else if(key==='cat')renderCat(F);else if(key==='dow')renderDow(F);else if(key==='who')renderWho(F);}
+let _remDismissed=false;
+function exportKey(){return "kharcha-exported-"+(window._uid||"anon");}
+function exportedMonths(){try{return JSON.parse(localStorage.getItem(exportKey())||"[]");}catch(e){return[];}}
+function markExported(ym){try{var a=exportedMonths();if(a.indexOf(ym)<0){a.push(ym);localStorage.setItem(exportKey(),JSON.stringify(a));}}catch(e){}}
+function _ym(d){return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0");}
+function lastNMonths(n){var out=[],now=new Date();for(var i=1;i<=n;i++){var d=new Date(now.getFullYear(),now.getMonth()-i,1);out.push({y:d.getFullYear(),m:d.getMonth(),label:d.toLocaleDateString(LOCALE,{month:"long",year:"numeric"}),ym:_ym(d)});}return out;}
+function _monthRows(y,m){return EXP.filter(function(e){if(e._pending)return false;var d=new Date(e.spent_on);return d.getFullYear()===y&&d.getMonth()===m;}).sort(function(a,b){return a.spent_on<b.spent_on?-1:(a.spent_on>b.spent_on?1:0);});}
+function _buildSheet(wb,y,m){var rows=_monthRows(y,m),label=new Date(y,m,1).toLocaleDateString(LOCALE,{month:"long",year:"numeric"});var aoa=[["Kharcha \u2014 "+label],[],["Date","Category","Sub-category","Paid by","Method","Amount (INR)","Note"]];var total=0;rows.forEach(function(e){total+=Number(e.amount);aoa.push([new Date(e.spent_on),nameOf(e.category_id),subName(e.subcategory_id)||"",e.paid_by||"",e.method||"",Number(e.amount),e.note||""]);});aoa.push([]);aoa.push(["","","","","Total",total,""]);var ws=XLSX.utils.aoa_to_sheet(aoa);ws["!cols"]=[{wch:12},{wch:24},{wch:20},{wch:12},{wch:12},{wch:13},{wch:30}];XLSX.utils.book_append_sheet(wb,ws,label.slice(0,31));return label;}
+function downloadMonths(list){if(typeof XLSX==="undefined"){showToast("Export library not loaded");return;}if(!list.length){showToast("Pick at least one month");return;}var wb=XLSX.utils.book_new();var labels=list.map(function(mo){return _buildSheet(wb,mo.y,mo.m);});list.forEach(function(mo){markExported(mo.ym);});var fname=list.length===1?("Kharcha_"+labels[0].replace(/ /g,"_")):"Kharcha_Monthly_Reports";XLSX.writeFile(wb,fname+".xlsx");haptic(12);showToast("Downloaded "+list.length+" month"+(list.length>1?"s":""));renderReports();}
+function openReportModal(preLast){var months=lastNMonths(3),exp=exportedMonths(),host=$("reportPickList");host.innerHTML=months.map(function(mo,idx){var cnt=_monthRows(mo.y,mo.m).length,done=exp.indexOf(mo.ym)>=0,chk=(preLast&&idx===0)?" checked":"";return '<label class="repick"><input type="checkbox" class="repchk" data-y="'+mo.y+'" data-m="'+mo.m+'" data-ym="'+mo.ym+'"'+chk+'><span class="repick-meta"><span class="repick-name">'+mo.label+'</span><span class="repick-sub">'+cnt+' expense'+(cnt!==1?"s":"")+(done?' \u00b7 downloaded':'')+'</span></span></label>';}).join("");$("reportSelectAll").textContent="Select all";$("reportModal").classList.remove("hide");}
+function closeReportModal(){$("reportModal").classList.add("hide");}
+function renderReports(){var rem=$("exportReminder");if(!rem)return;var now=new Date(),last=new Date(now.getFullYear(),now.getMonth()-1,1),lym=_ym(last),done=exportedMonths().indexOf(lym)>=0,lastLabel=last.toLocaleDateString(LOCALE,{month:"long",year:"numeric"});if(!done&&!_remDismissed){rem.innerHTML='<div class="rembar"><span class="remtxt">'+lastLabel+' is complete \u2014 download your report to keep a backup.</span><span class="remact"><button class="primary rembtn">Download</button><button class="ghost remlater">Later</button></span></div>';rem.querySelector(".rembtn").onclick=function(){downloadMonths([{y:last.getFullYear(),m:last.getMonth(),ym:lym}]);};rem.querySelector(".remlater").onclick=function(){_remDismissed=true;rem.innerHTML="";};}else rem.innerHTML="";}
+$("openReports").onclick=function(){openReportModal(false);};
+$("reportClose").onclick=closeReportModal;
+$("reportModal").addEventListener("click",function(e){if(e.target.id==="reportModal")closeReportModal();});
+$("reportSelectAll").onclick=function(){var boxes=Array.from($("reportPickList").querySelectorAll(".repchk"));var allc=boxes.length&&boxes.every(function(b){return b.checked;});boxes.forEach(function(b){b.checked=!allc;});$("reportSelectAll").textContent=allc?"Select all":"Clear all";};
+$("reportDownload").onclick=function(){var boxes=Array.from($("reportPickList").querySelectorAll(".repchk")).filter(function(b){return b.checked;});var list=boxes.map(function(b){return{y:+b.dataset.y,m:+b.dataset.m,ym:b.dataset.ym};});if(!list.length){showToast("Pick at least one month");return;}downloadMonths(list);closeReportModal();};
+var _monthSelBuilt=false;
+function availableMonths(){var set={};EXP.forEach(function(e){if(e._pending)return;var d=new Date(e.spent_on);if(isNaN(d))return;var ym=d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0");if(!set[ym])set[ym]={y:d.getFullYear(),m:d.getMonth(),ym:ym,label:d.toLocaleDateString(LOCALE,{month:"long",year:"numeric"})};});return Object.keys(set).sort().reverse().map(function(k){return set[k];});}
+function renderMonthDownload(){var card=$("monthDownloadCard"),host=$("monthSelect");if(!card||!host)return;var months=availableMonths();if(!months.length){card.style.display="none";return;}card.style.display="";var opts=months.map(function(mo){return{value:mo.ym,label:mo.label};});if(!_monthSelBuilt){buildSelect(host,{options:opts,value:months[0].ym,placeholder:"Select month"});_monthSelBuilt=true;}else{host.setOptions(opts);if(!host.value||!months.some(function(m){return m.ym===host.value;}))host.value=months[0].ym;}}
+$("monthDlBtn").onclick=function(){var host=$("monthSelect"),ym=host&&host.value;if(!ym){showToast("Pick a month first");return;}var p=ym.split("-");downloadMonths([{y:+p[0],m:+p[1]-1,ym:ym}]);};
 function renderInsights(){const host=$("insights");if(!host)return;const now=new Date();const inM=(e,b)=>{const d=new Date(e.spent_on),t=new Date(now.getFullYear(),now.getMonth()-b,1);return d.getFullYear()===t.getFullYear()&&d.getMonth()===t.getMonth();};const cur=EXP.filter(e=>inM(e,0)),prev=EXP.filter(e=>inM(e,1));const T=l=>l.reduce((s,e)=>s+Number(e.amount),0);const ct=T(cur),pt=T(prev);const items=[];if(pt>0){const dp=Math.round((ct-pt)/pt*100);items.push(`Total spending is <b>${dp>=0?"up":"down"} ${Math.abs(dp)}%</b> vs last month — ${money2(ct)} vs ${money2(pt)}.`);}else if(ct>0){items.push(`You have spent <b>${money2(ct)}</b> so far this month.`);}const cc={},pc={};cur.forEach(e=>cc[e.category_id]=(cc[e.category_id]||0)+Number(e.amount));prev.forEach(e=>pc[e.category_id]=(pc[e.category_id]||0)+Number(e.amount));const ids=new Set([...Object.keys(cc),...Object.keys(pc)]);let up=null,dn=null;ids.forEach(id=>{const d=(cc[id]||0)-(pc[id]||0);if(up===null||d>up.d)up={id,d};if(dn===null||d<dn.d)dn={id,d};});if(up&&up.d>0)items.push(`Biggest rise: <b>${esc(nameOf(up.id))}</b> +${money2(up.d)}.`);if(dn&&dn.d<0)items.push(`Biggest drop: <b>${esc(nameOf(dn.id))}</b> −${money2(Math.abs(dn.d))}.`);const topc=Object.entries(cc).sort((a,b)=>b[1]-a[1])[0];if(topc)items.push(`Top category this month: <b>${esc(nameOf(topc[0]))}</b> at ${money2(topc[1])}.`);const act=monthActuals();const over=CATS.filter(c=>BUD[c.id]>0&&(act[c.id]||0)>BUD[c.id]);if(over.length)items.push(`Over budget: <b>${over.map(c=>esc(c.name)).join(", ")}</b>.`);host.innerHTML=items.length?`<ul class="insightlist">${items.map(i=>`<li>${i}</li>`).join("")}</ul>`:`<div class="empty" style="padding:12px 2px">Not enough history yet for insights.</div>`;}
 document.addEventListener('click',ev=>{
   const seg=ev.target.closest('.miniseg button');
@@ -924,7 +990,7 @@ function renderRecentGrouped(F){
 }
 function renderRecent(F){let G=F;if(RECENT_Q){const q=RECENT_Q.toLowerCase();G=F.filter(r=>[nameOf(r.category_id),subName(r.subcategory_id),r.note,r.paid_by,r.method,String(r.amount)].filter(Boolean).join(" ").toLowerCase().includes(q));}if(!G.length){$("recent").innerHTML=`<div class="empty">${RECENT_Q?"No matches for “"+esc(RECENT_Q)+"”.":"No expenses in this period."}</div>`;return;}RECENT_MODE==="list"?renderRecentList(G):renderRecentGrouped(G);}
 function renderQuickAdd(){const host=$("quickAdd");if(!host)return;const cutoff=Date.now()-60*864e5;const cnt={};EXP.forEach(e=>{if(!e.category_id)return;const t=new Date(e.spent_on).getTime();if(isNaN(t)||t<cutoff)return;const k=e.category_id+"|"+(e.subcategory_id||"");cnt[k]=(cnt[k]||0)+1;});let top=Object.entries(cnt).sort((a,b)=>b[1]-a[1]).slice(0,7).map(([k])=>k.split("|"));if(!top.length)top=CATS.slice(0,7).map(c=>[c.id,""]);if(!top.length){host.innerHTML="";return;}host.innerHTML=`<span class="qa-lbl">Quick add</span>`+top.map(([c,s])=>`<button type="button" class="qa-chip" data-c="${c}" data-s="${s}"><span class="dot" style="background:${s?subColor(s):colorOf(c)}"></span>${esc(s?subName(s):nameOf(c))}</button>`).join("");host.querySelectorAll(".qa-chip").forEach(b=>b.onclick=()=>{haptic(6);const c=b.dataset.c,s=b.dataset.s||"";const rows=[...$("rows").querySelectorAll(".exp-card")];const empty=rows.find(r=>{const a=r.querySelector(".ramt");const cv=r._cat&&r._cat.value;return (!a||!a.value.trim())&&!cv;});let target;if(empty){target=empty;empty._cat.value=c;if(empty._sub){empty._sub.setOptions(rowSubOpts(c));empty._sub.value=s;}}else{addRow({category_id:c,subcategory_id:s});target=$("rows").lastElementChild;}if(target){const amt=target.querySelector(".ramt");if(amt){amt.focus();target.scrollIntoView({behavior:"smooth",block:"center"});}}});}
-function renderAddRecent(){renderQuickAdd();renderAllExpenses();}
+function renderAddRecent(){renderQuickAdd();renderAllExpenses();renderMonthDownload();}
 let ALL_Q="";
 function methodIcon(m){const a='width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"';const k=(m||"").toLowerCase();let p;if(k==="card")p='<rect x="2.5" y="5" width="19" height="14" rx="2.5"/><path d="M2.5 10h19"/>';else if(k==="cash")p='<rect x="2.5" y="6" width="19" height="12" rx="2"/><circle cx="12" cy="12" r="2.6"/>';else if(k==="upi")p='<rect x="7" y="2.5" width="10" height="19" rx="2.2"/><path d="M10.5 18.5h3"/>';else if(k.indexOf("bank")>-1)p='<path d="M3 9.5 12 4l9 5.5"/><path d="M5 10.5V19M19 10.5V19M9.5 10.5V19M14.5 10.5V19M3.5 19h17"/>';else p='<circle cx="12" cy="12" r="8"/>';return `<svg ${a}>${p}</svg>`;}
 function renderAllExpenses(){const host=$("allExp");if(!host)return;let list=EXP.slice();if(ALL_Q){const q=ALL_Q.toLowerCase();list=list.filter(r=>[nameOf(r.category_id),subName(r.subcategory_id),r.note,r.paid_by,r.method,String(r.amount)].filter(Boolean).join(" ").toLowerCase().includes(q));}if(!list.length){host.innerHTML=`<div class="empty" style="padding:22px">${ALL_Q?"No matches.":"No expenses yet — add one above."}</div>`;return;}const more=list.length>300;const shown=more?list.slice(0,300):list;const body=shown.map((r,i)=>{const sn=subName(r.subcategory_id);return`<tr class="${r._pending?'pending':''}" onclick="openEditModal('${r.id}')"><td class="ael-d">${new Date(r.spent_on).toLocaleDateString(LOCALE,{day:"2-digit",month:"short"})}</td><td class="ael-it"><span class="ael-cat">${esc(nameOf(r.category_id))}</span>${sn?`<span class="ael-sub">${esc(sn)}</span>`:""}</td><td class="ael-a"><span class="ael-amt">${money2(r.amount)}</span>${(r.paid_by||r.method)?`<span class="ael-pm">${r.paid_by?`<span class="ini" title="${esc(r.paid_by)}">${esc(r.paid_by.trim().charAt(0).toUpperCase())}</span>`:""}${r.method?`${methodIcon(r.method)}${esc(r.method)}`:""}</span>`:""}</td></tr>`;}).join("");host.innerHTML=`<div class="allexp-scroll"><table class="ael"><thead><tr><th>Date</th><th>Item</th><th class="r">Amount</th></tr></thead><tbody>${body}</tbody></table></div>${more?`<div class="empty" style="padding:12px">Showing the latest 300 of ${list.length}. Use search for older.</div>`:""}`;}
@@ -1097,7 +1163,7 @@ async function showApp(session){if(window._appReady)return;$("gate").classList.a
   catch(e){fatalLoad("Couldn't reach the database. Check your connection and try again. If this keeps happening, your free Supabase project may have paused — open your Supabase dashboard and resume it. ("+(e&&e.message||e)+")");return;}
   let nm="";PROF_OK=true;try{const{data,error}=await sb.from("profiles").select("name").eq("id",session.user.id).maybeSingle();if(error)PROF_OK=false;else nm=(data&&data.name)?data.name:"";}catch(e){PROF_OK=false;}
   window._me=nm||session.user.email.split("@")[0];$("whoName").textContent=window._me;$("whoName").title=session.user.email+" — click to edit your name";await loadUsers();
-  try{initFilters();$("rows").innerHTML="";addRow();renderAddRecent();applyFilters();updateSync();if(navigator.onLine)flushQueue();}catch(e){fatalLoad("Something went wrong while drawing the dashboard. ("+(e&&e.message||e)+")");return;}
+  try{initFilters();$("rows").innerHTML="";addRow();renderAddRecent();applyFilters();updateSync();if(navigator.onLine)flushQueue();renderReports();}catch(e){fatalLoad("Something went wrong while drawing the dashboard. ("+(e&&e.message||e)+")");return;}
   window._appReady=true;const _le=$("loadErr");if(_le)_le.remove();
   if(PROF_OK&&!nm)openNameModal(true);}
 
