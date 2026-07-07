@@ -1,5 +1,8 @@
-/* Devangada Kharcha service worker — app-shell cache + offline, live data always from network */
-const CACHE = 'kharcha-v1';
+/* Devangada Kharcha service worker — v2
+   Handles ONLY same-origin requests (the app shell). It never touches CDN
+   libraries, Google Fonts, or Supabase — those always load straight from the
+   network, exactly as they did before the PWA was added. */
+const CACHE = 'kharcha-v2';
 const SHELL = ['/', '/index.html', '/manifest.json', '/icon-192.png', '/icon-512.png', '/apple-touch-icon.png'];
 
 self.addEventListener('install', e => {
@@ -20,10 +23,10 @@ self.addEventListener('fetch', e => {
   if (req.method !== 'GET') return;
   const url = new URL(req.url);
 
-  // Never intercept Supabase — data must always be live from the network
-  if (url.hostname.includes('supabase')) return;
+  // Bypass everything that isn't our own origin (CDN, fonts, Supabase, etc.)
+  if (url.origin !== self.location.origin) return;
 
-  // HTML / navigation: network-first so new deploys show, fall back to cache offline
+  // HTML / navigation: network-first so new deploys show; cached shell offline
   if (req.mode === 'navigate' || (req.headers.get('accept') || '').includes('text/html')) {
     e.respondWith(
       fetch(req).then(res => {
@@ -35,7 +38,7 @@ self.addEventListener('fetch', e => {
     return;
   }
 
-  // Static assets (CDN libraries, fonts, icons): stale-while-revalidate
+  // Same-origin static assets (icons, manifest): cache, revalidate in background
   e.respondWith(
     caches.match(req).then(cached => {
       const net = fetch(req).then(res => {
