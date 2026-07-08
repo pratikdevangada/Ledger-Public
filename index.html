@@ -654,6 +654,20 @@
   .nwl{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-faint);font-weight:600}
   .nwv{font-size:22px;font-weight:700;font-variant-numeric:tabular-nums}
   .nwhint{font-size:12px;color:var(--ink-faint);margin-top:6px}
+
+  /* --- Money card header alignment: title flexes, action button stays top-right --- */
+  #incomeManageCard .chead,#cardsCard .chead,#investCard .chead{flex-wrap:nowrap;align-items:flex-start;gap:10px}
+  #incomeManageCard .chead>.ctitle,#cardsCard .chead>.ctitle,#investCard .chead>.ctitle{flex:1 1 auto;min-width:0}
+  #incomeManageCard .chead>button,#cardsCard .chead>button,#investCard .chead>.invacts,#investCard .chead>button{flex:0 0 auto;white-space:nowrap;margin-top:1px}
+  #investCard .invacts{display:flex;gap:8px}
+  @media(max-width:620px){#incomeManageCard .ctitle .soft,#cardsCard .ctitle .soft,#investCard .ctitle .soft{display:none}}
+  /* --- date & inputs never overflow inside modals --- */
+  .editform .ef{min-width:0}
+  .editform input,.editform input[type="date"],.editform .amt-wrap{width:100%;min-width:0;box-sizing:border-box}
+  .editform .amt-wrap input{width:100%}
+  /* a little breathing room under the sub-tabs */
+  #screen-budgets .card[data-mtab]{margin-top:2px!important}
+  .addbtn{width:100%;margin-top:18px}
 </style>
 </head>
 <body>
@@ -827,7 +841,7 @@
     <div class="moneytabs" id="moneytabs"><button class="mtab on" data-mt="budgets">Budgets</button><button class="mtab" data-mt="income">Income</button><button class="mtab" data-mt="cards">Cards</button><button class="mtab" data-mt="invest">Invest</button></div>
     <section class="card" data-mtab="budgets">
       <div class="chead"><h2 class="ctitle">Monthly budgets <span class="soft">— what you plan to spend each month, per category</span></h2>
-        <div class="ctools"><button class="ghost" id="guidedBtn">+ Add per category</button></div>
+        
       </div>
       <div class="budsplit">
         <div class="meta"><div class="t">Total monthly budget <span style="color:var(--ink-faint);font-weight:500">(optional)</span></div><div class="sub">Set a target total to allocate against. It's used as the base when you enter category budgets as percentages, and the bar below shows how much you've allocated.</div></div>
@@ -836,20 +850,24 @@
       <div class="budtoprow"><div id="budgetTotals" class="budtotals"></div><div class="miniseg" id="budModeSeg"><button data-m="amount" class="on">₹ Amount</button><button data-m="percent">% Percent</button></div></div>
       <div id="budgetAlloc" class="budalloc"></div>
       <div id="budgetList"></div>
+      <button class="ghost addbtn" id="guidedBtn">+ Add per category</button>
     </section>
     <section class="card" id="incomeManageCard" data-mtab="income" style="margin-top:16px">
-      <div class="chead"><h2 class="ctitle">Income <span class="soft">— log salary & other income</span></h2><button class="ghost" id="addIncomeBtn">+ Add income</button></div>
+      <div class="chead"><h2 class="ctitle">Income <span class="soft">— log salary & other income</span></h2></div>
       <div id="incomeList"></div>
+      <button class="ghost addbtn" id="addIncomeBtn">+ Add income</button>
     </section>
     <section class="card" id="cardsCard" data-mtab="cards" style="margin-top:16px">
-      <div class="chead"><h2 class="ctitle">Credit cards <span class="soft">— spend & due dates</span></h2><button class="ghost" id="addCardBtn">+ Add card</button></div>
+      <div class="chead"><h2 class="ctitle">Credit cards <span class="soft">— spend & due dates</span></h2></div>
       <div id="cardsList"></div>
+      <button class="ghost addbtn" id="addCardBtn">+ Add card</button>
     </section>
     <section class="card" id="investCard" data-mtab="invest" style="margin-top:16px">
-      <div class="chead"><h2 class="ctitle">Investments <span class="soft">— total portfolio</span></h2><span class="invacts"><button class="ghost" id="addInvestBtn">+ Add</button></span></div>
+      <div class="chead"><h2 class="ctitle">Investments <span class="soft">— total portfolio</span></h2></div>
       <input id="investFile" type="file" accept=".csv,.xlsx,.xls" class="hide">
       <div id="investTotal"></div>
       <div id="investList"></div>
+      <button class="ghost addbtn" id="addInvestBtn">+ Add investment</button>
     </section>
   </div>
   <div id="toast" class="toast"></div>
