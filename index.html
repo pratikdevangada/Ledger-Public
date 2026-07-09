@@ -4,14 +4,7 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
 <script>try{var _t=localStorage.getItem('ledger-theme')||'dark';document.documentElement.setAttribute('data-theme',_t);}catch(e){document.documentElement.setAttribute('data-theme','dark');}</script>
-<link rel="manifest" href="/manifest.json">
-<meta name="theme-color" content="#0A0A0B" id="themeColorMeta">
-<link rel="apple-touch-icon" href="/apple-touch-icon.png">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="default">
-<meta name="apple-mobile-web-app-title" content="Kharcha">
-<title>DevangadaKharcha</title>
+<title>DevangadaKharcha — Preview</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -831,13 +824,37 @@
     /* smooth momentum for any inner scroll area */
     body,.modal-card{-webkit-overflow-scrolling:touch}
   }
-</style>
+
+  /* ===== ADD SCREEN POLISH (preview) ===== */
+  .exp-card{border-radius:14px;padding:16px 16px 18px}
+  .exp-card input,.exp-card .csel-btn,.exp-card .amt-wrap{border-radius:11px !important}
+  .exp-card input:focus{border-color:var(--ink) !important;box-shadow:none !important}
+  .exp-card label{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--ink-faint);font-weight:600;margin-bottom:7px}
+  .exp-grid{gap:13px 12px}
+  .quickadd{margin:0 0 18px}
+  #importBtn,#templateBtn{display:none}
+  .add-alt{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:16px}
+  .add-alt .ghost{width:100%}
+  .add-alt+ input+ .addbtn,#addRowBtn.addbtn{margin-top:10px}
+  #submitBtn.addbtn{margin-top:10px;box-shadow:0 6px 20px -8px rgba(0,0,0,.4)}
+
+  /* ===== COLLAPSIBLE CARDS ===== */
+  .card.collapsible{position:relative}
+  .card.collapsible .ctitle,.card.collapsible .chead{padding-right:40px}
+  .card.collapsible .coll-head{cursor:pointer}
+  .card-chev{position:absolute;top:14px;right:12px;width:34px;height:34px;display:flex;align-items:center;justify-content:center;color:var(--ink-soft);background:none;border:none;cursor:pointer;transition:transform .24s ease,background .15s;z-index:3;border-radius:9px;padding:0}
+  .card-chev:active{background:var(--accent-soft)}
+  .card.collapsed .card-chev{transform:rotate(-90deg)}
+  .card.collapsible.collapsed>*:not(.chead):not(.ctitle):not(.card-chev){display:none}
+  .card.collapsible.collapsed{padding-bottom:18px}
+  .card.collapsible.collapsed .chead,.card.collapsible.collapsed>.ctitle{margin-bottom:0}
+</style></style></style>
 </head>
 <body>
 <div class="grain"></div>
 
 
-<div id="gate" class="gate">
+<div id="gate" class="gate hide">
   <div class="card">
     <h1><span class="mark"></span> DevangadaKharcha</h1>
     <p class="sub" id="gateSub">Sign in to your shared expenses.</p>
@@ -849,7 +866,7 @@
   </div>
 </div>
 
-<div id="app" class="hide">
+<div id="app">
   <div class="topstick">
   <header class="topbar">
     <div class="brand"><span class="mark"></span><span class="name">Devangada<em>Kharcha</em></span></div>
@@ -980,22 +997,22 @@
       <h2 class="ctitle">Add expenses <span class="soft">— add as many as you like, then submit all at once</span></h2>
       <div id="quickAdd" class="quickadd"></div>
       <div id="rows" class="exp-list"></div>
-      <div class="row-actions">
-        <button class="ghost" id="addRowBtn">＋ Add another</button>
+      <div class="add-alt">
+        <button class="ghost" id="splitBtn">Split</button>
+        <button class="ghost" id="smsBtn">Paste SMS</button>
         <button class="ghost" id="importBtn">Import Excel</button>
-        <button class="ghost" id="templateBtn">Download template</button>
-        <input id="fileInput" type="file" accept=".xlsx,.xls,.csv" class="hide">
-        <button class="primary spring" id="submitBtn">Submit all</button>
+        <button class="ghost" id="templateBtn">Template</button>
       </div>
-      <button class="ghost" id="splitBtn" style="width:100%;margin-top:10px">Split one expense across categories</button>
-      <button class="ghost" id="smsBtn" style="width:100%;margin-top:8px">Paste a bank SMS to add</button>
+      <input id="fileInput" type="file" accept=".xlsx,.xls,.csv" class="hide">
+      <button class="ghost addbtn" id="addRowBtn">＋ Add another expense</button>
+      <button class="primary spring addbtn" id="submitBtn">Submit all</button>
     </section>
     <section class="card" style="margin-top:16px">
       <div class="chead"><h2 class="ctitle">All expenses <span class="soft">— tap a row to edit or delete</span></h2></div>
       <input id="allSearch" class="recent-search" type="text" placeholder="Search all expenses…" autocomplete="off">
       <div id="allExp"></div>
     </section>
-    <section class="card" id="monthDownloadCard" style="margin-top:16px">
+    <section class="card collapsible" id="monthDownloadCard" style="margin-top:16px">
       <h2 class="ctitle">Download a month <span class="soft">— pick any month as Excel</span></h2>
       <div class="monthdl"><div id="monthSelect" class="monthsel"></div><button class="primary" id="monthDlBtn">Download</button></div>
     </section>
@@ -1004,7 +1021,7 @@
   <div id="screen-budgets" class="wrap hide">
     <div id="budgetBanner"></div>
     <div class="moneytabs" id="moneytabs"><button class="mtab on" data-mt="budgets">Budget</button><button class="mtab" data-mt="cards">Cards</button><button class="mtab" data-mt="invest">Invest</button></div>
-    <section class="card" data-mtab="budgets">
+    <section class="card collapsible" data-mtab="budgets">
       <div class="chead"><h2 class="ctitle">Monthly budgets <span class="soft">— what you plan to spend each month, per category</span></h2>
         
       </div>
@@ -1017,17 +1034,17 @@
       <div id="budgetList"></div>
       <button class="ghost addbtn" id="guidedBtn">+ Add per category</button>
     </section>
-    <section class="card" id="incomeManageCard" data-mtab="budgets" style="margin-top:16px">
+    <section class="card collapsible" id="incomeManageCard" data-mtab="budgets" style="margin-top:16px">
       <div class="chead"><h2 class="ctitle">Income <span class="soft">— log salary & other income</span></h2></div>
       <div id="incomeList"></div>
       <button class="ghost addbtn" id="addIncomeBtn">+ Add income</button>
     </section>
-    <section class="card" id="cardsCard" data-mtab="cards" style="margin-top:16px">
+    <section class="card collapsible" id="cardsCard" data-mtab="cards" style="margin-top:16px">
       <div class="chead"><h2 class="ctitle">Credit cards <span class="soft">— spend & due dates</span></h2></div>
       <div id="cardsList"></div>
       <button class="ghost addbtn" id="addCardBtn">+ Add card</button>
     </section>
-    <section class="card" id="investCard" data-mtab="invest" style="margin-top:16px">
+    <section class="card collapsible" id="investCard" data-mtab="invest" style="margin-top:16px">
       <div class="chead"><h2 class="ctitle">Investments <span class="soft">— total portfolio</span></h2></div>
       <input id="investFile" type="file" accept=".csv,.xlsx,.xls" class="hide">
       <div id="investTotal"></div>
@@ -1035,7 +1052,7 @@
       <div id="investList"></div>
       <button class="ghost addbtn" id="addInvestBtn">+ Add investment</button>
     </section>
-    <section class="card" id="recurCard" data-mtab="budgets" style="margin-top:16px">
+    <section class="card collapsible" id="recurCard" data-mtab="budgets" style="margin-top:16px">
       <div class="chead"><h2 class="ctitle">Recurring <span class="soft">— auto-added each month</span></h2></div>
       <div id="recurList"></div>
       <button class="ghost addbtn" id="addRecurBtn">+ Add recurring</button>
@@ -1405,6 +1422,7 @@ if($("backupModal"))$("backupModal").addEventListener("click",function(e){if(e.t
 if($("backupExport"))$("backupExport").onclick=exportBackup;
 if($("backupImport"))$("backupImport").onclick=function(){$("backupFile").click();};
 if($("backupFile"))$("backupFile").onchange=function(e){var f=e.target.files[0];restoreBackup(f);e.target.value="";};
+function initCollapsibles(){document.querySelectorAll(".card.collapsible").forEach(function(card){if(card._collInit)return;card._collInit=true;var head=card.querySelector(".chead")||card.querySelector(".ctitle");if(!head)return;var key="kharcha-collapse-"+(card.id||(head.textContent||"").trim().slice(0,24));var chev=document.createElement("button");chev.type="button";chev.className="card-chev";chev.setAttribute("aria-label","Collapse or expand");chev.innerHTML='<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>';card.appendChild(chev);var collapsed=false;try{collapsed=localStorage.getItem(key)==="1";}catch(e){}if(collapsed)card.classList.add("collapsed");function toggle(){card.classList.toggle("collapsed");var c=card.classList.contains("collapsed");try{localStorage.setItem(key,c?"1":"0");}catch(e){}haptic&&haptic(8);}chev.addEventListener("click",function(e){e.stopPropagation();toggle();});head.classList.add("coll-head");head.addEventListener("click",function(e){if(e.target.closest("button,input,select,.csel-btn,a"))return;toggle();});});}
 function renderInsights(){const host=$("insights");if(!host)return;const now=new Date();const inM=(e,b)=>{const d=new Date(e.spent_on),t=new Date(now.getFullYear(),now.getMonth()-b,1);return d.getFullYear()===t.getFullYear()&&d.getMonth()===t.getMonth();};const cur=EXP.filter(e=>inM(e,0)),prev=EXP.filter(e=>inM(e,1));const T=l=>l.reduce((s,e)=>s+Number(e.amount),0);const ct=T(cur),pt=T(prev);const items=[];if(pt>0){const dp=Math.round((ct-pt)/pt*100);items.push(`Total spending is <b>${dp>=0?"up":"down"} ${Math.abs(dp)}%</b> vs last month — ${money2(ct)} vs ${money2(pt)}.`);}else if(ct>0){items.push(`You have spent <b>${money2(ct)}</b> so far this month.`);}const cc={},pc={};cur.forEach(e=>cc[e.category_id]=(cc[e.category_id]||0)+Number(e.amount));prev.forEach(e=>pc[e.category_id]=(pc[e.category_id]||0)+Number(e.amount));const ids=new Set([...Object.keys(cc),...Object.keys(pc)]);let up=null,dn=null;ids.forEach(id=>{const d=(cc[id]||0)-(pc[id]||0);if(up===null||d>up.d)up={id,d};if(dn===null||d<dn.d)dn={id,d};});if(up&&up.d>0)items.push(`Biggest rise: <b>${esc(nameOf(up.id))}</b> +${money2(up.d)}.`);if(dn&&dn.d<0)items.push(`Biggest drop: <b>${esc(nameOf(dn.id))}</b> −${money2(Math.abs(dn.d))}.`);const topc=Object.entries(cc).sort((a,b)=>b[1]-a[1])[0];if(topc)items.push(`Top category this month: <b>${esc(nameOf(topc[0]))}</b> at ${money2(topc[1])}.`);const act=monthActuals();const over=CATS.filter(c=>BUD[c.id]>0&&(act[c.id]||0)>BUD[c.id]);if(over.length)items.push(`Over budget: <b>${over.map(c=>esc(c.name)).join(", ")}</b>.`);host.innerHTML=items.length?`<ul class="insightlist">${items.map(i=>`<li>${i}</li>`).join("")}</ul>`:`<div class="empty" style="padding:12px 2px">Not enough history yet for insights.</div>`;}
 document.addEventListener('click',ev=>{
   const seg=ev.target.closest('.miniseg button');
@@ -1657,11 +1675,40 @@ async function showApp(session){if(window._appReady)return;$("gate").classList.a
   if(PROF_OK&&!nm)openNameModal(true);}
 
 /* ---------- startup ---------- */
-const CFG_OK=SUPABASE_URL&&SUPABASE_ANON_KEY&&!/PASTE_/.test(SUPABASE_URL)&&!/PASTE_/.test(SUPABASE_ANON_KEY);
-window.addEventListener("error",ev=>{if(!$("app")||$("app").classList.contains("hide")){const m=ev.message&&ev.message!=="Script error."?ev.message:"A library failed to load. Check your connection/ad-blocker and the Supabase URL/key.";gateMsg("Error: "+m,"err");}});
-if(!CFG_OK){showGate();gateMsg("Setup needed: paste your Supabase Project URL and anon public key into the four CONFIG lines near the top of this file, then reload. (Supabase → Project Settings → API.)","info");$("authBtn").disabled=true;}
-else{try{sb=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);}catch(e){showGate();gateMsg("Couldn't start: "+e.message,"err");}if(sb){sb.auth.onAuthStateChange((_e,s)=>{if(s){if(!window._appReady)showApp(s);}else{window._appReady=false;showGate();}});sb.auth.getSession().then(({data})=>{data.session?showApp(data.session):showGate();}).catch(e=>{showGate();gateMsg("Couldn't reach Supabase: "+e.message,"err");});}}
+/* ===== PREVIEW MODE: in-memory sample data, no login ===== */
+const DB={categories:[],subcategories:[],expenses:[],budgets:[],profiles:[],recurring:[],income:[],cards:[],investments:[],investment_snapshots:[],investment_holdings:[]};
+let _idc=1;const uid=()=>"id"+(_idc++);
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
+function mq(table){let op="select",ret=false,single=false,maybe=false,payload=null,flt=[],ord=null;
+  const match=r=>flt.every(([k,v])=>r[k]===v);
+  function exec(){const T=DB[table];try{
+    if(op==="select"){let d=T.filter(match);if(ord){d=d.slice().sort((a,b)=>{const x=a[ord.col],y=b[ord.col];return (x<y?-1:x>y?1:0)*(ord.asc?1:-1);});}if(maybe||single)return{data:d[0]||null,error:null};return{data:d.slice(),error:null};}
+    if(op==="insert"){const arr=Array.isArray(payload)?payload:[payload];const ins=arr.map(o=>{const row=Object.assign({},o);if(table!=="budgets"&&table!=="profiles"&&!row.id)row.id=uid();T.push(row);return row;});return ret?{data:single?ins[0]:ins,error:null}:{data:null,error:null};}
+    if(op==="upsert"){const key=table==="profiles"?"id":(table==="budgets"?"category_id":"id");const k=payload[key];const idx=T.findIndex(r=>r[key]===k);if(idx>=0)Object.assign(T[idx],payload);else T.push(Object.assign({},payload));return{data:null,error:null};}
+    if(op==="delete"){for(let n=T.length-1;n>=0;n--)if(match(T[n]))T.splice(n,1);return{data:null,error:null};}
+    if(op==="update"){T.forEach((r,i)=>{if(match(r))Object.assign(T[i],payload);});return{data:null,error:null};}
+    return{data:null,error:null};
+  }catch(e){return{data:null,error:{message:e.message}};}}
+  const b={select(){if(op!=="select")ret=true;return b;},insert(p){op="insert";payload=p;return b;},upsert(p){op="upsert";payload=p;return b;},update(p){op="update";payload=p;return b;},delete(){op="delete";return b;},eq(k,v){flt.push([k,v]);return b;},order(c,o){if(!ord)ord={col:c,asc:!o||o.ascending!==false};return b;},limit(){return b;},single(){single=true;ret=true;return b;},maybeSingle(){maybe=true;ret=true;return b;},then(res){res(exec());}};
+  return b;}
+sb={from:mq,auth:{signOut(){location.reload();},onAuthStateChange(){},getSession(){return Promise.resolve({data:{session:null}});},signInWithPassword(){return Promise.resolve({error:null});},signUp(){return Promise.resolve({error:null});}}};
+function seedSample(){
+  const cats=[["Food & Dining",["Swiggy","Zomato","Dine-in","Cafe","Street food"]],["Groceries & Quick Commerce",["Blinkit","Zepto","Swiggy Instamart","DMart","Vegetables & Fruits","Dairy / Milk (Amul)"]],["Housing",["Rent / Home EMI","Society / Maintenance","Domestic help"]],["Utilities & Bills",["Electricity (Torrent Power)","Piped Gas","Broadband / Wi-Fi","Mobile recharge"]],["Transport & Fuel",["Petrol","Uber","Ola","Rapido","Metro"]],["Health & Medical",["Doctor","Medicines","Gym / Fitness"]],["Personal Care & Grooming",["Salon","Skincare","Toiletries"]],["Shopping (Apparel & Lifestyle)",["Amazon","Flipkart","Myntra","Footwear"]],["Entertainment & Subscriptions",["Movies","OTT (Netflix/Prime)","Spotify"]],["Education & Learning",["Online courses","Books"]],["Gifts, Festivals & Donations",["Gifts","Festivals","Donation"]],["Other",["Cash / ATM","Miscellaneous"]]];
+  cats.forEach((c,i)=>{const id=uid();DB.categories.push({id,name:c[0],color:null,sort:(i+1)*10});c[1].forEach(sn=>DB.subcategories.push({id:uid(),category_id:id,name:sn}));});
+  const base=[350,600,18000,1200,700,800,500,1500,500,900,1500,600],wt=[10,10,2,5,8,4,3,4,4,1,2,2];
+  const pool=[];DB.categories.forEach((c,i)=>{for(let w=0;w<wt[i];w++)pool.push(i);});
+  const rng=mulberry32(11),today=new Date(),payers=["You","Jivika"];
+  for(let n=0;n<120;n++){const ci=pool[Math.floor(rng()*pool.length)];const cat=DB.categories[ci];const subs=DB.subcategories.filter(s=>s.category_id===cat.id);const sub=(subs.length&&rng()>.15)?subs[Math.floor(rng()*subs.length)]:null;const dt=new Date(today.getTime()-Math.floor(rng()*70)*864e5);const amt=Math.max(20,Math.round(base[ci]*(0.4+rng()*1.4)/10)*10);DB.expenses.push({id:uid(),spent_on:ymd(dt),amount:amt,category_id:cat.id,subcategory_id:sub?sub.id:null,paid_by:payers[Math.floor(rng()*2)],method:["UPI","UPI","Card","Cash","UPI"][Math.floor(rng()*5)],note:""});}
+  const setB=(nm,a)=>{const c=DB.categories.find(c=>c.name===nm);if(c)DB.budgets.push({category_id:c.id,monthly:a});};
+  setB("Food & Dining",8000);setB("Groceries & Quick Commerce",12000);setB("Utilities & Bills",5000);
+  (function(){const _h=DB.categories.find(c=>c.name==="Housing"),_rs=_h?DB.subcategories.find(s=>s.category_id===_h.id&&/Rent/.test(s.name)):null;if(_h)DB.recurring.push({id:uid(),amount:18000,category_id:_h.id,subcategory_id:_rs?_rs.id:null,paid_by:"You",method:"UPI",note:"Rent",day_of_month:1,active:true,last_added:null});const _e=DB.categories.find(c=>c.name==="Entertainment & Subscriptions"),_o=_e?DB.subcategories.find(s=>s.category_id===_e.id&&/OTT/.test(s.name)):null;if(_e)DB.recurring.push({id:uid(),amount:649,category_id:_e.id,subcategory_id:_o?_o.id:null,paid_by:"You",method:"Card",note:"Netflix",day_of_month:5,active:true,last_added:null});})();
+  DB.profiles.push({id:"me-uid",name:"You"});DB.profiles.push({id:"jivika-uid",name:"Jivika"});(function(){var ym=new Date();var d1=ymd(new Date(ym.getFullYear(),ym.getMonth(),1)),d2=ymd(new Date(ym.getFullYear(),ym.getMonth(),1));DB.income.push({id:uid(),received_on:d1,amount:65000,source:"Salary",received_by:"You",note:""});DB.income.push({id:uid(),received_on:d2,amount:48000,source:"Salary",received_by:"Jivika",note:""});})();(function(){var c1=uid(),c2=uid();DB.cards.push({id:c1,name:"HDFC Millennia",last4:"4821",statement_day:18,due_day:5});DB.cards.push({id:c2,name:"Amazon ICICI",last4:"7733",statement_day:25,due_day:12});DB.cards.push({id:uid(),name:"Zaggle",last4:"9021",kind:"prepaid",monthly_load:6000,opening_balance:3200,opening_on:ymd(new Date(new Date().getFullYear(),new Date().getMonth()-2,10)),load_day:5});var cids=[c1,c2];DB.expenses.forEach(function(e,i){if(e.method==="Card")e.card_id=cids[i%2];});})();(function(){var t=ymd(new Date());var s=uid(),m=uid(),u=uid();DB.investments.push({id:s,name:"Zerodha stocks",type:"stocks",value:342500,updated_on:t});DB.investments.push({id:m,name:"Coin mutual funds",type:"mf",value:518000,updated_on:t});DB.investments.push({id:u,name:"INDmoney US",type:"us",value:96400,updated_on:t});DB.investments.push({id:uid(),name:"NPS",type:"nps",value:184000,updated_on:t});DB.investments.push({id:uid(),name:"EPF",type:"epf",value:267000,updated_on:t});[["Parag Parikh Flexi Cap",148000],["UTI Nifty 50 Index",96000],["Mirae Asset Large Cap",72000],["Axis Small Cap",58000],["ICICI Balanced Advantage",144000]].forEach(function(x){DB.investment_holdings.push({id:uid(),investment_id:m,name:x[0],value:x[1]});});[["Reliance Industries",84000],["HDFC Bank",76000],["Infosys",52000],["Tata Motors",68000],["ITC",62500]].forEach(function(x){DB.investment_holdings.push({id:uid(),investment_id:s,name:x[0],value:x[1]});});[["Apple",38000],["Microsoft",34000],["Nvidia",24400]].forEach(function(x){DB.investment_holdings.push({id:uid(),investment_id:u,name:x[0],value:x[1]});});(function(){var now=new Date();var base=980000;for(var i=6;i>=1;i--){var d=new Date(now.getFullYear(),now.getMonth()-i,1);var ym=d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0");DB.investment_snapshots.push({ym:ym,total:base});base+=Math.round(30000+Math.random()*25000);}DB.investment_snapshots.push({ym:now.getFullYear()+"-"+String(now.getMonth()+1).padStart(2,"0"),total:1207900});})();})();
+}
+window.addEventListener("error",ev=>{console.error(ev.message);});
+seedSample();
+showApp({user:{id:"me-uid",email:"you@household.app"}});
+
+try{setTimeout(initCollapsibles,80);}catch(e){}
 </script>
-<script>if("serviceWorker" in navigator){window.addEventListener("load",function(){navigator.serviceWorker.register("/sw.js").catch(function(){});});}</script>
 </body>
 </html>
