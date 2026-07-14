@@ -1564,6 +1564,57 @@
 
   /* collapsed ledger sections read as single calm rows */
   .card.collapsible.collapsed{border-color:rgba(231,207,147,.10)}
+
+  /* ================================================================
+     HOME DASHBOARD — CALM LEDGER v3
+     ================================================================ */
+
+  /* hero: tighter rhythm, quieter glow, passbook strip for the three figures */
+  .ghero-greet{margin-bottom:14px}
+  .ghero-num{margin:8px 0 10px}
+  .ghero-barcap{margin-bottom:16px}
+  .ghero-glow.g1{opacity:.22}.ghero-glow.g2{opacity:.14}
+  .gtiles{display:flex;gap:0;margin-bottom:15px;border-radius:14px;overflow:hidden;
+    background:rgba(231,207,147,.05);border:1px solid rgba(231,207,147,.14)}
+  .gtile{flex:1;border-radius:0;background:none;border:none;
+    border-left:1px solid rgba(231,207,147,.13);padding:12px 12px 11px}
+  .gtile:first-child{border-left:none}
+  .gtile:active{transform:none;background:rgba(231,207,147,.10)}
+  [data-theme="light"] .gtiles{background:rgba(31,60,49,.04);border-color:rgba(31,60,49,.12)}
+  [data-theme="light"] .gtile{border-left-color:rgba(31,60,49,.10);background:none}
+  [data-theme="light"] .gtile:active{background:rgba(31,60,49,.07)}
+
+  /* collapsed analysis cards read as a briefing list */
+  #screen-dash .card.collapsible.collapsed{padding-top:14px;padding-bottom:14px}
+  .card.collapsible.collapsed .ctitle .soft{display:none}
+  .card.collapsible.collapsed .ctitle{margin-bottom:0}
+  .card-chev{color:var(--brass-2)}
+  [data-theme="light"] .card-chev{color:#8A701F}
+
+  /* one bar language across budget/trends/pace/compare */
+  .barrow .track,.mv-bar,.budtrack,.pace-bar{
+    background:rgba(231,207,147,.10) !important;box-shadow:none !important;border-radius:6px}
+  [data-theme="light"] .barrow .track,[data-theme="light"] .mv-bar,
+  [data-theme="light"] .budtrack,[data-theme="light"] .pace-bar{background:rgba(31,60,49,.08) !important}
+  .barrow .fill,.mv-fill,.budfill,.pace-fill{border-radius:6px}
+  .barrow{margin-bottom:13px}
+  .barrow .val{font-weight:650}
+
+  /* grouped recent: day totals in brass, calmer rows */
+  .tree .lvl-day>summary{padding:12px 2px}
+  .tree .lvl-day>summary .tamt{color:var(--brass-2)}
+  [data-theme="light"] .tree .lvl-day>summary .tamt{color:#8A701F}
+  .tree .lvl-day{border-top:1px solid var(--line)}
+  .tree .lvl-day:first-child{border-top:none}
+
+  /* summary-for-planning + reports: quiet utilities */
+  #summary{width:100%;min-height:150px;resize:vertical;border-radius:13px;padding:13px 14px;
+    font-size:13px;line-height:1.6;color:var(--ink-soft);
+    background:rgba(231,207,147,.05);border:1px solid rgba(231,207,147,.12)}
+  [data-theme="light"] #summary{background:#FAFAF4;border-color:rgba(31,60,49,.12);color:#48584D}
+  .sumcard .row-actions{margin-top:12px}
+  .repdesc{font-size:13px;color:var(--ink-soft);line-height:1.55;margin:2px 0 14px}
+  #openReports{width:100%}
 </style>
 </head>
 <body>
@@ -1635,19 +1686,19 @@
     </div>
     <div class="modpanel" id="modpanel">
     <div class="charts m-overview">
-      <section class="card full" data-mod="budget" id="budgetCard">
+      <section class="card full collapsible" data-mod="budget" id="budgetCard">
         <div class="chead"><h2 class="ctitle">Budget vs actual <span class="soft" id="budgetMonthLbl"></span></h2></div>
         <div id="budgetVsActual"></div>
       </section>
-      <section class="card full" data-mod="overview" id="insightsCard">
+      <section class="card full collapsible" data-mod="overview" id="insightsCard">
         <h2 class="ctitle">Insights <span class="soft">— this month vs last</span></h2>
         <div id="insights"></div>
       </section>
-      <section class="card full" data-mod="overview" id="trendsCard">
+      <section class="card full collapsible" data-mod="overview" id="trendsCard">
         <h2 class="ctitle">Trends <span class="soft">— vs last month</span></h2>
         <div id="trendsBody"></div>
       </section>
-      <section class="card full" data-mod="overview" id="paceCard">
+      <section class="card full collapsible" data-mod="overview" id="paceCard">
         <h2 class="ctitle">Budget pace <span class="soft">— on track this month?</span></h2>
         <div id="paceBody"></div>
       </section>
@@ -1693,7 +1744,7 @@
         </div>
         <div class="cwrap"><canvas id="cWho"></canvas></div>
       </section>
-      <section class="card full" data-mod="budget">
+      <section class="card full collapsible" data-mod="budget" id="compareCard">
         <h2 class="ctitle">Up &amp; down vs previous period <span class="soft">— where spending rose or fell</span></h2>
         <div id="compare"></div>
       </section>
@@ -1704,7 +1755,7 @@
         <input id="recentSearch" class="recent-search" type="text" placeholder="Search notes, category, amount…" autocomplete="off">
         <div id="recent"></div>
       </section>
-      <section class="card sumcard full" data-mod="budget">
+      <section class="card sumcard full collapsible" data-mod="budget" id="sumCard">
         <h2 class="ctitle">Summary for planning <span class="soft">— paste into Claude</span></h2>
         <textarea id="summary" readonly></textarea>
         <div class="row-actions"><button class="primary" id="copyBtn">Copy summary</button></div>
@@ -1712,7 +1763,7 @@
     </div>
     </div>
     </div>
-    <section class="card" id="reportCard" style="margin-top:16px"><h2 class="ctitle">Monthly reports <span class="soft">— back up a month as Excel</span></h2><p class="repdesc">Download any of the last 3 months as an Excel file — a backup you can keep in Drive or email.</p><button class="ghost" id="openReports">Choose months to download…</button></section>
+    <section class="card collapsible" id="reportCard" style="margin-top:16px"><h2 class="ctitle">Monthly reports <span class="soft">— back up a month as Excel</span></h2><p class="repdesc">Download any of the last 3 months as an Excel file — a backup you can keep in Drive or email.</p><button class="ghost" id="openReports">Choose months to download…</button></section>
   </div>
 
   <div id="screen-add" class="wrap hide">
