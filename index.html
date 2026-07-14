@@ -4,12 +4,13 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
 <script>try{if(!localStorage.getItem('ledger-theme-v2')){localStorage.setItem('ledger-theme','dark');localStorage.setItem('ledger-theme-v2','1');}var _t=localStorage.getItem('ledger-theme')||'dark';document.documentElement.setAttribute('data-theme',_t);}catch(e){document.documentElement.setAttribute('data-theme','dark');}</script>
-<link rel="manifest" href="/manifest.json">
+<link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#0B1410" id="themeColorMeta">
-<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="format-detection" content="telephone=no">
 <meta name="apple-mobile-web-app-title" content="Kharcha">
 <title>DevangadaKharcha</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -1406,6 +1407,133 @@
   /* remove legacy tab underline; unify brass active tabs */
   .modtab.on::before{display:none}
   #screen-dash .modtab.on,.modtab.on{background:linear-gradient(160deg,#EDD8A0,#C7A557 62%,#B4913F);color:#241B07;box-shadow:0 8px 18px -7px rgba(199,165,87,.5), inset 0 1px 0 rgba(255,255,255,.5)}
+  /* ================================================================
+     MOBILE-NATIVE LAYER — iPhone (PWA) + Android (APK/WebView)
+     ================================================================ */
+  html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
+  html,body{overscroll-behavior-y:none}                      /* no pull-to-refresh inside the app */
+  body{touch-action:manipulation}                            /* kill 300ms delay + double-tap zoom */
+  button,.navitem,.gtile,.gact,.mtab,.modtab,.chip,.qa-chip,a,label,.iconbtn,.hdr-icon,.avatarbtn{
+    -webkit-tap-highlight-color:transparent;
+    -webkit-touch-callout:none;
+    -webkit-user-select:none;user-select:none;
+  }
+  input,textarea{-webkit-user-select:text;user-select:text}
+  @media(max-width:760px){
+    /* iOS Safari zooms the page when a focused input is <16px — prevent it */
+    input,select,textarea,.inp input,.fl input,.budset input,.exp-card input{font-size:16px !important}
+    /* status bar runs over the app (black-translucent): pad fixed chrome by the notch */
+    .gate{padding-top:calc(24px + env(safe-area-inset-top,0px));padding-bottom:calc(24px + env(safe-area-inset-bottom,0px))}
+    .filterpanel,.profilemenu{max-height:min(70vh,560px)}
+    /* slide the bottom nav away while the keyboard is up */
+    .botnav{transition:transform .22s cubic-bezier(.22,.9,.3,1),opacity .2s}
+    body:has(input:focus,textarea:focus,select:focus) .botnav{transform:translateY(150%);opacity:0;pointer-events:none}
+    /* modals: keep actions clear of the home indicator */
+    .modal{padding-bottom:calc(16px + env(safe-area-inset-bottom,0px))}
+  }
+  @media(display-mode:standalone){
+    body{-webkit-user-select:none;user-select:none}
+    input,textarea{-webkit-user-select:text;user-select:text}
+  }
+
+  /* ================================================================
+     SCREEN POLISH v2 — HOME + ADD
+     ================================================================ */
+
+  /* ---------- HOME: stats strip -> 2x2 ledger grid on phones ---------- */
+  .stats{border:1px solid rgba(231,207,147,.12);border-radius:var(--r)}
+  .stat-k{color:var(--brass-2);letter-spacing:.15em}
+  [data-theme="light"] .stat-k{color:#8A701F}
+  .stat-s .dotc{width:8px;height:8px;border-radius:50%;display:inline-block}
+  @media(max-width:760px){
+    .stats{display:grid;grid-template-columns:1fr 1fr;overflow:hidden}
+    .stat{border-left:none !important;padding:15px 16px}
+    .stat:nth-child(2n){border-left:1px solid var(--line) !important}
+    .stat:nth-child(n+3){border-top:1px solid var(--line)}
+    .stat-v{font-size:21px}
+  }
+
+  /* ---------- HOME: chart card controls ---------- */
+  .miniseg{border-radius:12px;background:rgba(231,207,147,.06);border-color:rgba(231,207,147,.12)}
+  .miniseg button{border-radius:9px;font-weight:600}
+  .miniseg button.on{background:linear-gradient(160deg,#EDD8A0,#C7A557 62%,#B4913F);color:#241B07}
+  [data-theme="light"] .miniseg{background:rgba(31,60,49,.05);border-color:rgba(31,60,49,.12)}
+  .chead{margin-bottom:16px}
+  .expand{border-radius:9px}
+
+  /* ---------- HOME: recent transactions ---------- */
+  .recent-search,#allSearch{border-radius:13px;background:rgba(231,207,147,.05);border-color:rgba(231,207,147,.12)}
+  [data-theme="light"] .recent-search,[data-theme="light"] #allSearch{background:#FAFAF4;border-color:rgba(31,60,49,.13)}
+  table.recent td{padding:14px 12px}
+  table.recent .amt,.ael .amt,.tamt{font-weight:650;font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+  .chip{font-weight:650;letter-spacing:.01em;box-shadow:inset 0 0 0 1px rgba(0,0,0,.12)}
+  .rec-row:hover td{background:rgba(199,165,87,.07)}
+  .rec-row:active td,.ael tbody tr:active td{background:rgba(199,165,87,.10)}
+  tr.rec-row.pending td{background:rgba(199,165,87,.08)}
+  .del,.exp-del{transition:.15s}
+  .del:hover{color:var(--red)}
+
+  /* ---------- ADD: quick add -> labeled chip tray ---------- */
+  .quickadd{gap:9px;margin-bottom:20px}
+  .qa-lbl{display:block;width:100%;font-size:10.5px;font-weight:650;text-transform:uppercase;letter-spacing:.17em;color:var(--brass-2);margin-bottom:2px}
+  [data-theme="light"] .qa-lbl{color:#8A701F}
+  .qa-chip{height:38px;border-radius:19px;padding:0 15px;font-weight:600;
+    background:rgba(231,207,147,.06);border:1px solid rgba(231,207,147,.14);
+    transition:transform .12s,background .15s,border-color .15s}
+  .qa-chip:hover{border-color:rgba(231,207,147,.32)}
+  .qa-chip:active{transform:scale(.95);background:rgba(199,165,87,.16)}
+  .qa-chip .dot{width:9px;height:9px;box-shadow:0 0 0 2px rgba(0,0,0,.15)}
+  [data-theme="light"] .qa-chip{background:#FAFAF4;border-color:rgba(31,60,49,.13)}
+  [data-theme="light"] .qa-chip:active{background:rgba(154,126,52,.10)}
+  @media(max-width:760px){.qa-chip{height:42px;border-radius:21px}}
+
+  /* ---------- ADD: the expense card — amount is the hero ---------- */
+  :root:not([data-theme="light"]) .exp-card{
+    background:linear-gradient(164deg,rgba(240,246,240,.07),rgba(240,246,240,.02));
+    border:1px solid rgba(231,207,147,.13);border-radius:18px;
+    box-shadow:0 18px 40px -26px rgba(0,0,0,.55), inset 0 1px 0 rgba(255,255,255,.06);
+  }
+  [data-theme="light"] .exp-card{background:#FFFFFF;border:1px solid rgba(31,60,49,.11);border-radius:18px;
+    box-shadow:0 1px 2px rgba(20,40,30,.04), 0 16px 34px -26px rgba(20,40,30,.25)}
+  .exp-card{padding:18px 16px 18px}
+  .exp-card + .exp-card{margin-top:14px}
+  .exp-grid .f label{font-size:10.5px;font-weight:650;text-transform:uppercase;letter-spacing:.14em;color:var(--ink-faint)}
+  .exp-grid .f label .opt{text-transform:none;letter-spacing:0;font-weight:500}
+
+  /* amount: full-width, ledger numerals */
+  .f-amt{grid-column:1/-1}
+  .amt-wrap{border-radius:14px !important}
+  .exp-card .amt-wrap{background:rgba(199,165,87,.06) !important;border:1px solid rgba(231,207,147,.20) !important}
+  .exp-card .amt-wrap:focus-within{border-color:rgba(199,165,87,.6) !important;box-shadow:0 0 0 4px rgba(199,165,87,.13)}
+  .exp-card .amt-wrap .cur{background:none !important;border-right:none !important;color:var(--brass-2);
+    font-family:var(--serif);font-weight:560;font-size:24px;padding:0 2px 0 16px}
+  .exp-card .ramt{height:58px !important;font-size:26px !important;font-weight:600;
+    font-family:var(--serif);font-variation-settings:"opsz" 60;
+    font-variant-numeric:lining-nums tabular-nums;letter-spacing:.01em;padding-left:6px !important}
+  .exp-card .ramt::placeholder{color:var(--ink-faint);font-weight:500}
+  [data-theme="light"] .exp-card .amt-wrap{background:rgba(199,165,87,.07) !important;border-color:rgba(154,126,52,.30) !important}
+  [data-theme="light"] .exp-card .amt-wrap .cur{color:#8A701F}
+
+  /* inputs + selects inside the card */
+  .exp-card input:not(.ramt),.exp-card .csel-btn{border-radius:12px}
+  .exp-card .exp-del{width:32px;height:32px;border-radius:50%;display:grid;place-items:center;
+    background:rgba(231,207,147,.07);border:1px solid rgba(231,207,147,.12);color:var(--ink-faint)}
+  .exp-card .exp-del:hover{color:var(--red);border-color:var(--red)}
+
+  /* ---------- ADD: tool tray + action hierarchy ---------- */
+  .add-alt{display:grid;grid-template-columns:repeat(2,1fr);gap:9px;margin-top:18px;padding-top:18px;
+    border-top:1px solid var(--line)}
+  .add-alt .ghost{height:44px;padding:0 6px;font-size:12.5px;font-weight:650;border-radius:12px;letter-spacing:.01em}
+  
+  #addRowBtn{background:transparent;border:1.5px dashed rgba(231,207,147,.30);color:var(--brass-2);font-weight:650}
+  #addRowBtn:hover{border-color:rgba(231,207,147,.55);background:rgba(199,165,87,.06)}
+  [data-theme="light"] #addRowBtn{border-color:rgba(154,126,52,.40);color:#8A701F}
+  #submitBtn{height:54px !important;font-size:16px !important;border-radius:16px;margin-top:12px;letter-spacing:.02em}
+
+  /* ---------- ADD: all-expenses ledger table ---------- */
+  .allexp-scroll{border-radius:14px;border-color:rgba(231,207,147,.12)}
+  .ael td{padding:14px 8px}
+  .monthdl .primary{border-radius:12px}
 </style>
 </head>
 <body>
