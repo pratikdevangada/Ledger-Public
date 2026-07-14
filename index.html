@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
-<script>try{if(!localStorage.getItem('ledger-theme-v2')){localStorage.setItem('ledger-theme','dark');localStorage.setItem('ledger-theme-v2','1');}var _t=localStorage.getItem('ledger-theme')||'dark';document.documentElement.setAttribute('data-theme',_t);}catch(e){document.documentElement.setAttribute('data-theme','dark');}</script>
+<script>try{var _t=localStorage.getItem('ledger-theme');if(!_t){_t=(window.matchMedia&&window.matchMedia('(prefers-color-scheme: light)').matches)?'light':'dark';}document.documentElement.setAttribute('data-theme',_t);}catch(e){document.documentElement.setAttribute('data-theme','dark');}</script>
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#0B1410" id="themeColorMeta">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
@@ -1534,6 +1534,36 @@
   .allexp-scroll{border-radius:14px;border-color:rgba(231,207,147,.12)}
   .ael td{padding:14px 8px}
   .monthdl .primary{border-radius:12px}
+
+  /* ================================================================
+     ADD SCREEN — FOCUSED FORM v3 (essentials visible, rest one tap away)
+     ================================================================ */
+  .exp-card:not(.showmore) .f-more{display:none}
+  .f-note{grid-column:1/-1}
+  .exp-more-btn{grid-column:1/-1;justify-self:start;background:none;border:none;cursor:pointer;
+    padding:4px 2px;margin-top:-2px;font-size:12.5px;font-weight:650;letter-spacing:.02em;
+    color:var(--brass-2);display:inline-flex;align-items:center}
+  [data-theme="light"] .exp-more-btn{color:#8A701F}
+  .exp-more-btn:active{opacity:.7}
+  .exp-card .exp-more-btn .mc{display:none}
+  .exp-card.showmore .exp-more-btn .mo{display:none}
+  .exp-card.showmore .exp-more-btn .mc{display:inline}
+
+  /* quick add: one clean swipeable row */
+  .quickadd{display:block;white-space:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;
+    scrollbar-width:none;margin:0 -16px 18px;padding:0 16px}
+  .quickadd::-webkit-scrollbar{display:none}
+  .quickadd .qa-lbl{display:block;white-space:normal;margin-bottom:9px}
+  .quickadd .qa-chip{display:inline-flex;margin:0 8px 2px 0;vertical-align:top}
+
+  /* tool tray sits quietly under the primary actions */
+  .add-alt{margin-top:16px;padding-top:14px}
+  .add-alt .ghost{height:40px;font-size:12px;color:var(--ink-soft)}
+  #addRowBtn{margin-top:16px}
+  #submitBtn{margin-top:10px}
+
+  /* collapsed ledger sections read as single calm rows */
+  .card.collapsible.collapsed{border-color:rgba(231,207,147,.10)}
 </style>
 </head>
 <body>
@@ -1688,21 +1718,21 @@
   <div id="screen-add" class="wrap hide">
     <div id="addBanner"></div>
     <section class="card">
-      <h2 class="ctitle">Add expenses <span class="soft">— add as many as you like, then submit all at once</span></h2>
+      <h2 class="ctitle">Add expenses</h2>
       <div id="quickAdd" class="quickadd"></div>
       <div id="rows" class="exp-list"></div>
+      <input id="fileInput" type="file" accept=".xlsx,.xls,.csv" class="hide">
+      <button class="ghost addbtn" id="addRowBtn">＋ Add another expense</button>
+      <button class="primary spring addbtn" id="submitBtn">Submit all</button>
       <div class="add-alt">
         <button class="ghost" id="splitBtn">Split</button>
         <button class="ghost" id="smsBtn">Paste SMS</button>
         <button class="ghost" id="importBtn">Import Excel</button>
         <button class="ghost" id="templateBtn">Template</button>
       </div>
-      <input id="fileInput" type="file" accept=".xlsx,.xls,.csv" class="hide">
-      <button class="ghost addbtn" id="addRowBtn">＋ Add another expense</button>
-      <button class="primary spring addbtn" id="submitBtn">Submit all</button>
     </section>
-    <section class="card" style="margin-top:16px">
-      <div class="chead"><h2 class="ctitle">All expenses <span class="soft">— tap a row to edit or delete</span></h2></div>
+    <section class="card collapsible" id="allExpCard" style="margin-top:16px">
+      <div class="chead"><h2 class="ctitle">All expenses <span class="soft">— tap to edit</span></h2></div>
       <input id="allSearch" class="recent-search" type="text" placeholder="Search all expenses…" autocomplete="off">
       <div id="allExp"></div>
     </section>
@@ -2300,7 +2330,7 @@ const rowCatOpts=()=>CATS.map(c=>({value:c.id,label:c.name}));
 const rowSubOpts=catId=>[{value:"",label:"— none —"}].concat(SUBS.filter(s=>s.category_id===catId).map(s=>({value:s.id,label:s.name})));
 function numFilter(el){el.addEventListener("input",()=>{let v=el.value.replace(/[^0-9.]/g,"");const i=v.indexOf(".");if(i>=0)v=v.slice(0,i+1)+v.slice(i+1).replace(/\./g,"");el.value=v;});}
 function collapseRow(tr){if(!tr||tr.classList.contains("collapsed"))return false;var amtEl=tr.querySelector(".ramt");var amt=amtEl?amtEl.value:"";var catId=tr._cat&&tr._cat.value;if(!amt||!parseFloat(amt)||!catId)return false;var sub=tr._sub&&tr._sub.value?subName(tr._sub.value):"";var summ=tr.querySelector(".exp-summary");if(!summ)return false;summ.innerHTML='<span class="dot" style="background:'+colorOf(catId)+'"></span><span class="exp-sum-cat">'+esc(nameOf(catId))+(sub?' \u00b7 '+esc(sub):'')+'</span><span class="exp-sum-amt">'+money2(parseFloat(amt))+'</span><button type="button" class="exp-sum-del" title="Remove">\u2715</button>';tr.classList.add("collapsed");return true;}
-function addRow(d){d=d||{};const tr=document.createElement("div");tr.className="exp-card";tr.dataset.row="1";tr.innerHTML=`<button class="exp-del rdel" title="Remove">✕</button><div class="exp-summary"></div><div class="exp-grid"><div class="f f-amt"><label>Amount</label><div class="amt-wrap"><span class="cur">₹</span><input class="ramt" type="text" inputmode="decimal" autocomplete="off" placeholder="0.00" value="${d.amount||""}"></div></div><div class="f f-date"><label>Date</label><input class="rdate" type="date" value="${d.date||todayStr()}"></div><div class="f"><label>Paid by</label><div class="cell-paid"></div></div><div class="f"><label>Method</label><div class="cell-method"></div></div><div class="f"><label>Category</label><div class="cell-cat"></div></div><div class="f"><label>Sub-category</label><div class="cell-sub"></div></div><div class="f f-note"><label>Note <span class="opt">optional</span></label><input class="rnote" type="text" placeholder="e.g. weekend groceries"></div></div>`;$("rows").appendChild(tr);numFilter(tr.querySelector(".ramt"));const catSel=document.createElement("div"),subSel=document.createElement("div"),paidSel=document.createElement("div");tr.querySelector(".cell-cat").appendChild(catSel);tr.querySelector(".cell-sub").appendChild(subSel);tr.querySelector(".cell-paid").appendChild(paidSel);buildSelect(paidSel,{options:paidOpts(d.paid_by),value:d.paid_by||window._me||(USERS[0]||""),placeholder:"Paid by"});tr._paid=paidSel;const methodSel=document.createElement("div");tr.querySelector(".cell-method").appendChild(methodSel);buildSelect(methodSel,{options:methodOpts(),value:d.card_id?("card:"+d.card_id):(d.method||"UPI"),placeholder:"Method"});tr._method=methodSel;tr._cat=catSel;tr._sub=subSel;buildSelect(catSel,{options:rowCatOpts(),value:d.category_id||undefined,placeholder:"Category…",addLabel:"Add category…",onAdd:()=>openAddModal("cat",{catSel,subSel}),onChange:v=>{subSel.setOptions(rowSubOpts(v));subSel.value="";}});buildSelect(subSel,{options:rowSubOpts(d.category_id||""),value:d.subcategory_id||"",placeholder:"—",addLabel:"Add sub-category…",onAdd:()=>{const cid=catSel.value;if(!cid){banner("Pick a category first.");return;}openAddModal("sub",{catSel,subSel,cid});}});tr._cat=catSel;tr._sub=subSel;tr.querySelector(".rdel").onclick=()=>tr.remove();var _summ=tr.querySelector(".exp-summary");if(_summ)_summ.onclick=function(e){if(e.target.closest(".exp-sum-del")){tr.remove();return;}tr.classList.remove("collapsed");var a=tr.querySelector(".ramt");if(a)setTimeout(function(){a.focus();},30);};}
+function addRow(d){d=d||{};const tr=document.createElement("div");tr.className="exp-card";tr.dataset.row="1";tr.innerHTML=`<button class="exp-del rdel" title="Remove">✕</button><div class="exp-summary"></div><div class="exp-grid"><div class="f f-amt"><label>Amount</label><div class="amt-wrap"><span class="cur">₹</span><input class="ramt" type="text" inputmode="decimal" autocomplete="off" placeholder="0.00" value="${d.amount||""}"></div></div><div class="f f-more f-date"><label>Date</label><input class="rdate" type="date" value="${d.date||todayStr()}"></div><div class="f f-more"><label>Paid by</label><div class="cell-paid"></div></div><div class="f f-more"><label>Method</label><div class="cell-method"></div></div><div class="f"><label>Category</label><div class="cell-cat"></div></div><div class="f"><label>Sub-category</label><div class="cell-sub"></div></div><div class="f f-more f-note"><label>Note <span class="opt">optional</span></label><input class="rnote" type="text" placeholder="e.g. weekend groceries"></div><button type="button" class="exp-more-btn" onclick="this.closest('.exp-card').classList.toggle('showmore')"><span class="mo">Date, payer &amp; note&nbsp;&nbsp;▾</span><span class="mc">Hide details&nbsp;&nbsp;▴</span></button></div>`;if((d.date&&d.date!==todayStr())||d.note||d.method)tr.classList.add("showmore");$("rows").appendChild(tr);numFilter(tr.querySelector(".ramt"));const catSel=document.createElement("div"),subSel=document.createElement("div"),paidSel=document.createElement("div");tr.querySelector(".cell-cat").appendChild(catSel);tr.querySelector(".cell-sub").appendChild(subSel);tr.querySelector(".cell-paid").appendChild(paidSel);buildSelect(paidSel,{options:paidOpts(d.paid_by),value:d.paid_by||window._me||(USERS[0]||""),placeholder:"Paid by"});tr._paid=paidSel;const methodSel=document.createElement("div");tr.querySelector(".cell-method").appendChild(methodSel);buildSelect(methodSel,{options:methodOpts(),value:d.card_id?("card:"+d.card_id):(d.method||"UPI"),placeholder:"Method"});tr._method=methodSel;tr._cat=catSel;tr._sub=subSel;buildSelect(catSel,{options:rowCatOpts(),value:d.category_id||undefined,placeholder:"Category…",addLabel:"Add category…",onAdd:()=>openAddModal("cat",{catSel,subSel}),onChange:v=>{subSel.setOptions(rowSubOpts(v));subSel.value="";}});buildSelect(subSel,{options:rowSubOpts(d.category_id||""),value:d.subcategory_id||"",placeholder:"—",addLabel:"Add sub-category…",onAdd:()=>{const cid=catSel.value;if(!cid){banner("Pick a category first.");return;}openAddModal("sub",{catSel,subSel,cid});}});tr._cat=catSel;tr._sub=subSel;tr.querySelector(".rdel").onclick=()=>tr.remove();var _summ=tr.querySelector(".exp-summary");if(_summ)_summ.onclick=function(e){if(e.target.closest(".exp-sum-del")){tr.remove();return;}tr.classList.remove("collapsed");var a=tr.querySelector(".ramt");if(a)setTimeout(function(){a.focus();},30);};}
 $("addRowBtn").onclick=()=>{var any=false;$("rows").querySelectorAll(".exp-card:not(.collapsed)").forEach(function(tr){if(collapseRow(tr))any=true;});addRow();var last=$("rows").lastElementChild;if(last){var amt=last.querySelector(".ramt");if(amt){setTimeout(function(){amt.focus();last.scrollIntoView({behavior:"smooth",block:"center"});},60);}}haptic&&haptic(6);};
 let BUD={};
 async function loadBudgets(){try{const{data,error}=await sb.from("budgets").select("*");if(error)throw error;BUD={};(data||[]).forEach(b=>BUD[b.category_id]=Number(b.monthly)||0);try{localStorage.setItem("kharcha-bud",JSON.stringify(BUD));}catch(_){}}catch(e){try{BUD=JSON.parse(localStorage.getItem("kharcha-bud")||"{}")||{};}catch(_){BUD={};}}}
@@ -2443,7 +2473,7 @@ window.addEventListener("error",ev=>{if(!$("app")||$("app").classList.contains("
 if(!CFG_OK){showGate();gateMsg("Setup needed: paste your Supabase Project URL and anon public key into the four CONFIG lines near the top of this file, then reload. (Supabase → Project Settings → API.)","info");$("authBtn").disabled=true;}
 else{try{sb=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);}catch(e){showGate();gateMsg("Couldn't start: "+e.message,"err");}if(sb){sb.auth.onAuthStateChange((_e,s)=>{if(s){if(!window._appReady)showApp(s);}else{window._appReady=false;showGate();}});sb.auth.getSession().then(({data})=>{data.session?showApp(data.session):showGate();}).catch(e=>{showGate();gateMsg("Couldn't reach Supabase: "+e.message,"err");});}}
 </script>
-<script>if("serviceWorker" in navigator){window.addEventListener("load",function(){navigator.serviceWorker.register("/sw.js").catch(function(){});});}
+<script>if("serviceWorker" in navigator){window.addEventListener("load",function(){navigator.serviceWorker.register("sw.js").catch(function(){});});}
 try{setTimeout(initCollapsibles,80);}catch(e){}
 </script>
 </body>
