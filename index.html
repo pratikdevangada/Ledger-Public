@@ -1615,6 +1615,74 @@
   .sumcard .row-actions{margin-top:12px}
   .repdesc{font-size:13px;color:var(--ink-soft);line-height:1.55;margin:2px 0 14px}
   #openReports{width:100%}
+
+  /* ================================================================
+     FINISH PASS — gate, selects, modals, money screen, motion
+     ================================================================ */
+
+  /* ---- login gate: a proper brand moment ---- */
+  .gate h1{flex-direction:column;align-items:flex-start;gap:16px;margin:4px 0 8px;font-size:30px}
+  .gate .mark{width:46px;height:46px;border-radius:14px}
+  .gate .mark::before,.gate .mark::after{left:11px;right:11px;height:3.5px;border-radius:3px}
+  .gate .mark::before{top:16px}
+  .gate .mark::after{top:26px;right:19px}
+  .gate .sub{font-size:14.5px;margin-bottom:26px}
+  .gfield{margin-bottom:15px}
+  .gfield label{display:block;font-size:10.5px;font-weight:650;text-transform:uppercase;letter-spacing:.15em;color:var(--brass-2);margin-bottom:8px}
+  [data-theme="light"] .gfield label{color:#8A701F}
+  .gfield input{height:50px;border-radius:13px;font-size:16px}
+  .gbtn{width:100%;height:52px !important;font-size:16px !important;border-radius:14px;margin-top:6px}
+  .gate .switch{margin-top:18px;font-size:14px;color:var(--ink-soft);text-align:center}
+  .gate .switch button{background:none;border:none;font-weight:700;cursor:pointer;font-size:14px}
+
+  /* ---- custom select menus: the most-touched control in the app ---- */
+  .csel-menu{
+    background:linear-gradient(164deg,rgba(26,48,39,.98),rgba(13,27,21,.98));
+    -webkit-backdrop-filter:blur(20px);backdrop-filter:blur(20px);
+    border:1px solid rgba(231,207,147,.16);border-radius:14px;padding:7px;
+    box-shadow:0 26px 60px -20px rgba(0,0,0,.75), inset 0 1px 0 rgba(255,255,255,.07);
+  }
+  [data-theme="light"] .csel-menu{background:rgba(255,255,255,.98);border-color:rgba(31,60,49,.14);
+    box-shadow:0 26px 56px -22px rgba(20,40,30,.35)}
+  .csel-opt{border-radius:10px;padding:11px 12px}
+  .csel-opt:hover{background:rgba(199,165,87,.10);color:var(--ink)}
+  .csel-opt.sel{color:var(--brass-2)}
+  [data-theme="light"] .csel-opt.sel{color:#8A701F}
+  .csel-opt.sel::before{content:"✓";color:var(--brass)}
+  @media(max-width:760px){.csel-opt{padding:13px 12px;font-size:15px}}
+
+  /* ---- modals: echo the ledger plate ---- */
+  .modal{-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px)}
+  .modal-card{position:relative;border-radius:20px;padding:26px 22px 22px;
+    border:1px solid rgba(231,207,147,.16)}
+  .modal-card::before{content:"";position:absolute;left:18px;right:18px;top:11px;height:5px;pointer-events:none;
+    border-top:1px solid rgba(199,165,87,.45);border-bottom:1px solid rgba(199,165,87,.18)}
+  [data-theme="light"] .modal-card{border-color:rgba(31,60,49,.13)}
+  [data-theme="light"] .modal-card::before{border-top-color:rgba(154,126,52,.5);border-bottom-color:rgba(154,126,52,.2)}
+  .modal-card input{border-radius:12px}
+  .modal-actions{gap:10px;margin-top:4px}
+
+  /* ---- money screen: ledger rows ---- */
+  .budset input{height:46px;border-radius:12px}
+  .budset{padding:15px 2px}
+  .budrow{padding:15px 2px}
+  .banner{border-radius:13px;padding:13px 16px;font-weight:600}
+  .banner.ok{background:rgba(95,176,140,.12);border:1px solid rgba(95,176,140,.35);color:var(--pos)}
+  .banner.err{background:rgba(220,107,115,.12);border:1px solid rgba(220,107,115,.35)}
+
+  /* ---- sync pill: quiet but visible ---- */
+  .syncbar.off,.syncbar.sync{font-size:12px;letter-spacing:.02em;border-bottom:none;padding:7px 14px}
+  .syncbar.off{background:rgba(199,165,87,.14);color:var(--brass-2)}
+  [data-theme="light"] .syncbar.off{background:rgba(154,126,52,.10);color:#8A701F}
+  .syncbar.sync{background:rgba(95,176,140,.10);color:var(--pos)}
+
+  /* ---- empty states: gentle, in the app's voice ---- */
+  .empty{font-family:var(--serif);font-style:italic;font-size:15px;color:var(--ink-faint);
+    font-variation-settings:"opsz" 20;letter-spacing:.01em}
+
+  /* ---- motion: screens arrive, nothing jumps ---- */
+  @keyframes screenIn{from{opacity:0;transform:translateY(7px)}to{opacity:1;transform:none}}
+  #screen-dash:not(.hide),#screen-add:not(.hide),#screen-budgets:not(.hide){animation:screenIn .26s cubic-bezier(.22,.9,.3,1) both}
 </style>
 </head>
 <body>
