@@ -1811,6 +1811,11 @@
   .bl-dots span:nth-child(2){animation-delay:-.16s}
   @keyframes bl-bounce{0%,80%,100%{transform:scale(.6);opacity:.4}
     40%{transform:scale(1);opacity:1}}
+
+  /* Filter panel apply/reset actions */
+  .filter-actions{display:flex;gap:10px;margin-top:14px;padding-top:14px;border-top:1px solid var(--line)}
+  .filter-actions button{flex:1;height:44px;border-radius:12px;font-weight:650;font-size:14px}
+  .filter-actions .ghost{flex:0 0 auto;padding:0 18px}
 </style>
 </head>
 <body>
@@ -2245,6 +2250,10 @@
     <div class="fl"><label>Category</label><div id="fCat"></div></div>
     <div class="fl"><label>Sub-category</label><div id="fSub"></div></div>
     <div class="fl spring"><label>&nbsp;</label><button class="ghost" id="exportBtn">Export to Excel</button></div>
+    <div class="filter-actions">
+      <button class="ghost" id="filterReset">Reset</button>
+      <button class="primary" id="filterApply">Apply filters</button>
+    </div>
   </div>
 </div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -2322,7 +2331,12 @@ const subColor=id=>SUBSHADE[id]||"#A8ADB8";
 
 function haptic(ms){try{if(navigator.vibrate)navigator.vibrate(ms||8);}catch(e){}}
 let _toastT;function showToast(msg,kind,action){var t=$("toast");if(!t)return;t.innerHTML="";var s=document.createElement("span");s.textContent=msg;t.appendChild(s);if(action&&action.label&&action.fn){var b=document.createElement("button");b.className="toast-act";b.textContent=action.label;b.onclick=function(){t.className="toast";clearTimeout(_toastT);action.fn();};t.appendChild(b);}t.className="toast show"+(kind==="err"?" err":"");clearTimeout(_toastT);_toastT=setTimeout(function(){t.className="toast";},action?5000:2200);}
-function goScreen(s){haptic(6);$("screen-dash").classList.toggle("hide",s!=="dash");$("screen-add").classList.toggle("hide",s!=="add");$("screen-budgets").classList.toggle("hide",s!=="budgets");document.querySelectorAll(".tab").forEach(x=>x.classList.toggle("active",x.dataset.screen===s));document.querySelectorAll(".navitem").forEach(x=>x.classList.toggle("active",x.dataset.screen===s));var _el=$("screen-"+s);if(_el){_el.classList.remove("screen-anim");void _el.offsetWidth;_el.classList.add("screen-anim");}if(s==="add")renderAddRecent();if(s==="budgets"){renderBudgets();renderCards();renderIncomeList();renderInvest();}if(s==="dash")renderReports();window.scrollTo({top:0,behavior:"instant"});}
+function goScreen(s){haptic(6);
+  var ft=document.getElementById("filterToggle");
+  if(ft){ft.style.display=(s==="dash")?"":"none";}
+  var fp=document.getElementById("filterPanel");
+  if(fp&&s!=="dash"){fp.classList.remove("open");var bd=document.getElementById("filterBackdrop");if(bd)bd.classList.remove("on");if(ft)ft.classList.remove("on");}
+  $("screen-dash").classList.toggle("hide",s!=="dash");$("screen-add").classList.toggle("hide",s!=="add");$("screen-budgets").classList.toggle("hide",s!=="budgets");document.querySelectorAll(".tab").forEach(x=>x.classList.toggle("active",x.dataset.screen===s));document.querySelectorAll(".navitem").forEach(x=>x.classList.toggle("active",x.dataset.screen===s));var _el=$("screen-"+s);if(_el){_el.classList.remove("screen-anim");void _el.offsetWidth;_el.classList.add("screen-anim");}if(s==="add")renderAddRecent();if(s==="budgets"){renderBudgets();renderCards();renderIncomeList();renderInvest();}if(s==="dash")renderReports();window.scrollTo({top:0,behavior:"instant"});}
 document.addEventListener("click",ev=>{const b=ev.target.closest(".tab,.navitem");if(b&&b.dataset&&b.dataset.screen)goScreen(b.dataset.screen);});
 function setMoneyTab(mt){var s=$("screen-budgets");if(!s)return;s.className=(s.className.replace(/\s*mt-\w+/g,"")+" mt-"+mt).trim();document.querySelectorAll("#moneytabs .mtab").forEach(function(b){b.classList.toggle("on",b.dataset.mt===mt);});try{localStorage.setItem("ledger-mtab",mt);}catch(e){}if(window._appReady){try{if(mt==="invest")renderInvest();else if(mt==="cards")renderCards();else if(mt==="budgets"){renderBudgets();renderIncomeList();renderRecurring();}}catch(e){}}}
 document.querySelectorAll("#moneytabs .mtab").forEach(function(b){b.onclick=function(){haptic(6);setMoneyTab(b.dataset.mt);};});
@@ -2347,11 +2361,24 @@ const subFilterOpts=catId=>{const a=[{value:"",label:"All sub-categories"}];if(c
 function buildFilterSubs(){$("fSub").setOptions(subFilterOpts($("fCat").value));}
 function buildFilterCats(){$("fCat").setOptions(catFilterOpts());buildFilterSubs();}
 function initFilters(){
-  buildSelect($("fRange"),{options:RANGE_OPTS,value:"this_month",onChange:v=>{$("customRange").style.display=v==="custom"?"flex":"none";if(v!=="custom")applyFilters();}});
-  buildSelect($("fCat"),{options:catFilterOpts(),value:"",onChange:()=>{buildFilterSubs();$("fSub").value="";applyFilters();}});
-  buildSelect($("fSub"),{options:subFilterOpts(""),value:"",onChange:applyFilters});
+  buildSelect($("fRange"),{options:RANGE_OPTS,value:"this_month",onChange:v=>{$("customRange").style.display=v==="custom"?"flex":"none";}});
+  buildSelect($("fCat"),{options:catFilterOpts(),value:"",onChange:()=>{buildFilterSubs();$("fSub").value="";}});
+  buildSelect($("fSub"),{options:subFilterOpts(""),value:"",onChange:function(){}});
 }
-["fFrom","fTo"].forEach(id=>$(id).addEventListener("change",applyFilters));
+// Apply / Reset wiring — filters no longer apply on every change
+document.addEventListener("DOMContentLoaded",function(){
+  var applyBtn=document.getElementById("filterApply");
+  if(applyBtn)applyBtn.onclick=function(){applyFilters();toggleFilter();haptic(10);showToast("Filters applied");};
+  var resetBtn=document.getElementById("filterReset");
+  if(resetBtn)resetBtn.onclick=function(){
+    if($("fRange").setOptions){$("fRange").value="this_month";}
+    if($("fCat").setOptions){$("fCat").value="";buildFilterSubs();}
+    if($("fSub").setOptions){$("fSub").value="";}
+    $("fFrom").value="";$("fTo").value="";
+    document.getElementById("customRange").style.display="none";
+    applyFilters();haptic(6);showToast("Filters reset");
+  };
+});
 function rangeDates(){const now=new Date(),y=now.getFullYear(),m=now.getMonth(),iso=d=>d.toISOString().slice(0,10);switch($("fRange").value){
   case"this_month":return[iso(new Date(y,m,1)),iso(new Date(y,m+1,0))];
   case"last_month":return[iso(new Date(y,m-1,1)),iso(new Date(y,m,0))];
@@ -2960,7 +2987,12 @@ async function showApp(session){if(window._appReady)return;
 const CFG_OK=SUPABASE_URL&&SUPABASE_ANON_KEY&&!/PASTE_/.test(SUPABASE_URL)&&!/PASTE_/.test(SUPABASE_ANON_KEY);
 window.addEventListener("error",ev=>{if(!$("app")||$("app").classList.contains("hide")){const m=ev.message&&ev.message!=="Script error."?ev.message:"A library failed to load. Check your connection/ad-blocker and the Supabase URL/key.";gateMsg("Error: "+m,"err");}});
 if(!CFG_OK){showGate();gateMsg("Setup needed: paste your Supabase Project URL and anon public key into the four CONFIG lines near the top of this file, then reload. (Supabase → Project Settings → API.)","info");$("authBtn").disabled=true;}
-else{try{sb=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);}catch(e){showGate();gateMsg("Couldn't start: "+e.message,"err");}if(sb){sb.auth.onAuthStateChange((_e,s)=>{if(s){if(!window._appReady)showApp(s);}else{window._appReady=false;showGate();}});sb.auth.getSession().then(({data})=>{data.session?showApp(data.session):showGate();}).catch(e=>{showGate();gateMsg("Couldn't reach Supabase: "+e.message,"err");});}}
+else{try{sb=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);}catch(e){showGate();gateMsg("Couldn't start: "+e.message,"err");}if(sb){
+  // paint PIN lock immediately — before any network work
+  if(hasPinLock())showPinLock();
+  sb.auth.onAuthStateChange((_e,s)=>{if(s){if(!window._appReady)showApp(s);}else{window._appReady=false;showGate();}});
+  sb.auth.getSession().then(({data})=>{data.session?showApp(data.session):showGate();}).catch(e=>{showGate();gateMsg("Couldn\u2019t reach Supabase: "+e.message,"err");});
+}}
 
 // ================================================================
 // 4-DIGIT PASSCODE LOCK
