@@ -1816,6 +1816,84 @@
   .filter-actions{display:flex;gap:10px;margin-top:14px;padding-top:14px;border-top:1px solid var(--line)}
   .filter-actions button{flex:1;height:44px;border-radius:12px;font-weight:650;font-size:14px}
   .filter-actions .ghost{flex:0 0 auto;padding:0 18px}
+
+  /* ================================================================
+     DELIGHT PASS — cards as plates, success burst, themed pickers
+     ================================================================ */
+
+  /* native date/time pickers follow the app theme (fixes white iOS popups in dark) */
+  :root:not([data-theme="light"]) input[type="date"],
+  :root:not([data-theme="light"]) input[type="month"],
+  :root:not([data-theme="light"]) select{color-scheme:dark}
+  [data-theme="light"] input[type="date"],
+  [data-theme="light"] input[type="month"],
+  [data-theme="light"] select{color-scheme:light}
+
+  /* credit cards rendered as actual card plates */
+  .cardrow{
+    display:flex;flex-direction:column;align-items:stretch;gap:14px;
+    padding:18px 18px 16px;margin-top:14px;border-top:none !important;
+    border-radius:18px;position:relative;overflow:hidden;
+    background:linear-gradient(135deg,#24493B 0%,#152E24 55%,#0F221A 100%);
+    border:1px solid rgba(231,207,147,.18);
+    box-shadow:0 20px 44px -24px rgba(0,0,0,.6), inset 0 1px 0 rgba(255,255,255,.08);
+  }
+  .cardrow::before{content:"";position:absolute;inset:0;pointer-events:none;
+    background:radial-gradient(90% 120% at 100% 0%,rgba(199,165,87,.16),transparent 55%)}
+  .cardrow::after{content:"";position:absolute;top:18px;right:18px;width:30px;height:22px;
+    border-radius:5px;background:linear-gradient(150deg,#EDD8A0,#C7A557 60%,#9A7E34);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.5), inset 0 -1px 0 rgba(0,0,0,.2);opacity:.9}
+  .cardrow:first-child{margin-top:4px}
+  .cardname{font-family:var(--serif);font-size:18px;font-weight:600;
+    font-variation-settings:"opsz" 40;letter-spacing:.01em;color:#F6F2E6}
+  .card4{font-size:13px;font-weight:600;color:rgba(231,207,147,.75);letter-spacing:.12em}
+  .cardkind{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.14em;
+    padding:3px 8px;border-radius:9px;background:rgba(231,207,147,.14);
+    color:var(--brass-2);vertical-align:2px;margin-left:6px}
+  .cardspent{font-family:var(--serif);font-variation-settings:"opsz" 60;
+    font-size:24px;font-weight:560;color:#F8F4E8;font-variant-numeric:lining-nums tabular-nums;
+    display:block;margin-top:8px}
+  .carddue{margin-top:4px}
+  .cardacts{display:flex;gap:8px;position:relative;z-index:1}
+  .cardacts .ghost{flex:1;height:42px;background:rgba(231,207,147,.07);
+    border-color:rgba(231,207,147,.16)}
+  [data-theme="light"] .cardrow{
+    background:linear-gradient(135deg,#2C5343 0%,#1A3529 55%,#122820 100%);
+    border-color:rgba(231,207,147,.22)}
+  [data-theme="light"] .cardname,[data-theme="light"] .cardspent{color:#F6F2E6}
+  [data-theme="light"] .carddue{color:rgba(246,242,230,.65)}
+  [data-theme="light"] .cardrow .cardacts .ghost{color:#F6F2E6;background:rgba(231,207,147,.10);border-color:rgba(231,207,147,.25)}
+  [data-theme="light"] .cardrow .cardtxn{color:#E7CF93 !important}
+
+  /* the repeat-last chip stands out */
+  .qa-repeat{background:rgba(199,165,87,.14) !important;border-color:rgba(231,207,147,.30) !important;
+    color:var(--brass-2) !important;font-weight:650}
+  [data-theme="light"] .qa-repeat{background:rgba(154,126,52,.10) !important;color:#8A701F !important;
+    border-color:rgba(154,126,52,.30) !important}
+
+  /* insights read as a considered briefing */
+  .insightlist{list-style:none;padding:0;margin:0}
+  .insightlist li{position:relative;padding:9px 0 9px 22px;line-height:1.55;font-size:13.5px;
+    border-top:1px solid var(--line)}
+  .insightlist li:first-child{border-top:none}
+  .insightlist li::before{content:"";position:absolute;left:2px;top:16px;width:7px;height:7px;
+    border-radius:50%;background:var(--brass);box-shadow:0 0 8px rgba(199,165,87,.5)}
+
+  /* success burst */
+  .success-burst{position:fixed;inset:0;z-index:700;display:grid;place-items:center;
+    pointer-events:none;background:transparent}
+  .sb-circle{width:84px;height:84px;border-radius:50%;display:grid;place-items:center;
+    background:linear-gradient(150deg,#EDD8A0,#C7A557 60%,#B4913F);
+    box-shadow:0 20px 60px -12px rgba(199,165,87,.7);opacity:0;transform:scale(.4)}
+  .sb-circle svg{width:42px;height:42px}
+  .success-burst.go .sb-circle{animation:sb-pop .85s cubic-bezier(.22,.68,.3,1.2) both}
+  @keyframes sb-pop{
+    0%{opacity:0;transform:scale(.4)}
+    18%{opacity:1;transform:scale(1.08)}
+    30%{transform:scale(1)}
+    70%{opacity:1;transform:scale(1)}
+    100%{opacity:0;transform:scale(1.1)}
+  }
 </style>
 </head>
 <body>
@@ -1860,6 +1938,8 @@
     <div class="switch"><span id="switchText">First time here?</span> <button id="switchBtn" type="button">Create an account</button></div>
   </div>
 </div>
+
+<div id="successBurst" class="success-burst hide"><div class="sb-circle"><svg viewBox="0 0 24 24" fill="none" stroke="#241B07" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5l5 5L20 6.5"/></svg></div></div>
 
 <div id="bootLoader" class="boot-loader hide">
   <div class="bl-inner">
@@ -2296,6 +2376,7 @@ function loadCache(){try{return JSON.parse(localStorage.getItem(CACHE_KEY)||"[]"
 function pendingItems(){return loadQueue().map(function(e,i){return Object.assign({},e,{id:"local-"+i,_pending:true});});}
 function updateSync(){var bar=$("syncbar");if(!bar)return;var q=loadQueue(),online=navigator.onLine;if(!online){bar.className="syncbar off";bar.innerHTML='<span class="sdot"></span>Offline'+(q.length?" \u00b7 "+q.length+" to sync":"");}else if(_syncing||q.length){bar.className="syncbar sync";bar.innerHTML='<span class="sdot"></span>Syncing'+(q.length?" "+q.length:"")+"\u2026";}else{bar.className="syncbar";bar.innerHTML="";}}
 async function flushQueue(){if(_syncing||!navigator.onLine){updateSync();return;}var q=loadQueue();if(!q.length){updateSync();return;}_syncing=true;updateSync();try{var r=await sb.from("expenses").insert(q);if(r.error)throw r.error;saveQueue([]);_syncing=false;await loadExpenses();renderAddRecent();applyFilters();haptic(10);showToast("Synced");}catch(e){_syncing=false;}updateSync();}
+function showSuccessBurst(){var b=document.getElementById("successBurst");if(!b)return;b.classList.remove("hide");b.classList.remove("go");void b.offsetWidth;b.classList.add("go");setTimeout(function(){b.classList.add("hide");b.classList.remove("go");},900);}
 function requireOnline(msg){if(!navigator.onLine){showToast(msg||"You’re offline — this needs a connection");return false;}return true;}
 window.addEventListener("online",function(){updateSync();flushQueue();});window.addEventListener("offline",updateSync);
 function openSyncMenu(){var q=loadQueue();var on=navigator.onLine;$("syncmenuSub").textContent=on?(q.length?(q.length+" expense"+(q.length>1?"s":"")+" waiting to upload."):"Everything is synced."):(q.length?("Offline \u00b7 "+q.length+" waiting. They upload automatically when you reconnect."):"You are offline.");$("syncDiscard").style.display=q.length?"":"none";$("syncmenu").classList.remove("hide");}
@@ -2726,7 +2807,11 @@ function renderRecentGrouped(F){
   $("recent").innerHTML=`<div class="tree">${html}</div>${cap}`;
 }
 function renderRecent(F){let G=F;if(RECENT_Q){const q=RECENT_Q.toLowerCase();G=F.filter(r=>[nameOf(r.category_id),subName(r.subcategory_id),r.note,r.paid_by,r.method,String(r.amount)].filter(Boolean).join(" ").toLowerCase().includes(q));}if(!G.length){$("recent").innerHTML=`<div class="empty">${RECENT_Q?"No matches for “"+esc(RECENT_Q)+"”.":"No expenses in this period."}</div>`;return;}RECENT_MODE==="list"?renderRecentList(G):renderRecentGrouped(G);}
-function renderQuickAdd(){const host=$("quickAdd");if(!host)return;const cutoff=Date.now()-60*864e5;const cnt={};EXP.forEach(e=>{if(!e.category_id)return;const t=new Date(e.spent_on).getTime();if(isNaN(t)||t<cutoff)return;const k=e.category_id+"|"+(e.subcategory_id||"");cnt[k]=(cnt[k]||0)+1;});let top=Object.entries(cnt).sort((a,b)=>b[1]-a[1]).slice(0,7).map(([k])=>k.split("|"));if(!top.length)top=CATS.slice(0,7).map(c=>[c.id,""]);if(!top.length){host.innerHTML="";return;}host.innerHTML=`<span class="qa-lbl">Quick add</span>`+top.map(([c,s])=>`<button type="button" class="qa-chip" data-c="${c}" data-s="${s}"><span class="dot" style="background:${s?subColor(s):colorOf(c)}"></span>${esc(s?subName(s):nameOf(c))}</button>`).join("");host.querySelectorAll(".qa-chip").forEach(b=>b.onclick=()=>{haptic(6);const c=b.dataset.c,s=b.dataset.s||"";const rows=[...$("rows").querySelectorAll(".exp-card")];const empty=rows.find(r=>{const a=r.querySelector(".ramt");const cv=r._cat&&r._cat.value;return (!a||!a.value.trim())&&!cv;});let target;if(empty){target=empty;empty._cat.value=c;if(empty._sub){empty._sub.setOptions(rowSubOpts(c));empty._sub.value=s;}}else{addRow({category_id:c,subcategory_id:s});target=$("rows").lastElementChild;}if(target){const amt=target.querySelector(".ramt");if(amt){amt.focus();target.scrollIntoView({behavior:"smooth",block:"center"});}}});}
+function renderQuickAdd(){const host=$("quickAdd");if(!host)return;const cutoff=Date.now()-60*864e5;const cnt={};EXP.forEach(e=>{if(!e.category_id)return;const t=new Date(e.spent_on).getTime();if(isNaN(t)||t<cutoff)return;const k=e.category_id+"|"+(e.subcategory_id||"");cnt[k]=(cnt[k]||0)+1;});let top=Object.entries(cnt).sort((a,b)=>b[1]-a[1]).slice(0,7).map(([k])=>k.split("|"));if(!top.length)top=CATS.slice(0,7).map(c=>[c.id,""]);if(!top.length){host.innerHTML="";return;}const last=EXP[0];
+  const repChip=last&&last.category_id?`<button type="button" class="qa-chip qa-repeat" data-rep="1" data-c="${last.category_id}" data-s="${last.subcategory_id||""}" data-amt="${last.amount}" data-m="${last.method||""}" data-cid="${last.card_id||""}">\u21ba ${esc(nameOf(last.category_id))} \u00b7 ${money(last.amount)}</button>`:"";
+  host.innerHTML=`<span class="qa-lbl">Quick add</span>`+repChip+top.map(([c,s])=>`<button type="button" class="qa-chip" data-c="${c}" data-s="${s}"><span class="dot" style="background:${s?subColor(s):colorOf(c)}"></span>${esc(s?subName(s):nameOf(c))}</button>`).join("");host.querySelectorAll(".qa-chip").forEach(b=>b.onclick=()=>{haptic(6);const c=b.dataset.c,s=b.dataset.s||"";
+    if(b.dataset.rep){addRow({amount:b.dataset.amt,category_id:c,subcategory_id:s,method:b.dataset.cid?null:(b.dataset.m||null),card_id:b.dataset.cid||null});const t=$("rows").lastElementChild;if(t){const a=t.querySelector(".ramt");if(a){a.focus();a.select&&a.select();t.scrollIntoView({behavior:"smooth",block:"center"});}}return;}
+    const rows=[...$("rows").querySelectorAll(".exp-card")];const empty=rows.find(r=>{const a=r.querySelector(".ramt");const cv=r._cat&&r._cat.value;return (!a||!a.value.trim())&&!cv;});let target;if(empty){target=empty;empty._cat.value=c;if(empty._sub){empty._sub.setOptions(rowSubOpts(c));empty._sub.value=s;}}else{addRow({category_id:c,subcategory_id:s});target=$("rows").lastElementChild;}if(target){const amt=target.querySelector(".ramt");if(amt){amt.focus();target.scrollIntoView({behavior:"smooth",block:"center"});}}});}
 function renderAddRecent(){renderQuickAdd();try{buildAelFilters();}catch(e){}renderAllExpenses();renderMonthDownload();}
 let ALL_Q="";
 var AEL_F={method:"",paid_by:"",category_id:"",subcategory_id:"",card_id:""};
@@ -2915,7 +3000,7 @@ function flashSaved(el){if(!el)return;el.classList.add("saved");clearTimeout(el.
 async function saveBudget(catId,val,inputEl){if(!requireOnline("You’re offline — budgets need a connection"))return;const m=parseFloat(val)||0;BUD[catId]=m;const{error}=await sb.from("budgets").upsert({category_id:catId,monthly:m,updated_at:new Date().toISOString()});if(error){budBanner(/relation|exist|table|schema/i.test(error.message||"")?"Couldn't save — run add_budgets.sql in Supabase once, then try again.":("Couldn't save — "+error.message));return;}updateBudgetTotals();renderBudgetVsActual();flashSaved(inputEl);}
 async function clearAllBudgets(){if(!confirm("Reset the budget for every category to zero?"))return;CATS.forEach(c=>BUD[c.id]=0);$("budgetTotalInput").value="";$("clearBudgetsBtn").disabled=true;try{await Promise.all(CATS.map(c=>sb.from("budgets").upsert({category_id:c.id,monthly:0,updated_at:new Date().toISOString()})));budBanner("All budgets reset to zero.",true);}catch(e){budBanner(e.message||"Could not clear.");}$("clearBudgetsBtn").disabled=false;renderBudgets();renderBudgetVsActual();}
 function banner(t,ok){$("addBanner").innerHTML=`<div class="banner ${ok?'ok':'err'}">${esc(t)}</div>`;if(ok)setTimeout(()=>$("addBanner").innerHTML="",4000);}
-$("submitBtn").onclick=async()=>{const rows=[...$("rows").querySelectorAll("[data-row]")];const payload=[];let bad=0;rows.forEach(tr=>{const amt=parseFloat(tr.querySelector(".ramt").value),cat=tr._cat.value;if(!amt&&!cat)return;if(!amt||amt<=0||!cat){bad++;return;}payload.push({amount:amt,category_id:cat,subcategory_id:tr._sub.value||null,spent_on:tr.querySelector(".rdate").value||todayStr(),paid_by:(tr._paid&&tr._paid.value)||null,note:tr.querySelector(".rnote").value.trim()||null,...parseMethod((tr._method&&tr._method.value)||null)});});if(!payload.length){banner(bad?"Some rows are missing amount or category.":"Fill at least one row.");return;}if(!navigator.onLine){var q0=loadQueue();payload.forEach(function(p){q0.push(p);});saveQueue(q0);banner("Saved "+payload.length+" offline \u2014 will sync when back online.",true);haptic(16);showToast("Saved offline");$("rows").innerHTML="";addRow();await loadExpenses();renderAddRecent();applyFilters();return;}$("submitBtn").disabled=true;$("submitBtn").textContent="Saving…";const{error}=await sb.from("expenses").insert(payload);$("submitBtn").disabled=false;$("submitBtn").textContent="Submit all";if(error){var q1=loadQueue();payload.forEach(function(p){q1.push(p);});saveQueue(q1);banner("Saved offline \u2014 will sync when the connection returns.",true);haptic(12);showToast("Saved offline");$("rows").innerHTML="";addRow();await loadExpenses();renderAddRecent();applyFilters();return;}banner(`Added ${payload.length} expense${payload.length>1?"s":""}${bad?` · ${bad} incomplete skipped`:""}.`,true);haptic(16);showToast("Added "+payload.length+" expense"+(payload.length>1?"s":""));$("rows").innerHTML="";addRow();await loadExpenses();renderAddRecent();applyFilters();flushQueue();};
+$("submitBtn").onclick=async()=>{const rows=[...$("rows").querySelectorAll("[data-row]")];const payload=[];let bad=0;rows.forEach(tr=>{const amt=parseFloat(tr.querySelector(".ramt").value),cat=tr._cat.value;if(!amt&&!cat)return;if(!amt||amt<=0||!cat){bad++;return;}payload.push({amount:amt,category_id:cat,subcategory_id:tr._sub.value||null,spent_on:tr.querySelector(".rdate").value||todayStr(),paid_by:(tr._paid&&tr._paid.value)||null,note:tr.querySelector(".rnote").value.trim()||null,...parseMethod((tr._method&&tr._method.value)||null)});});if(!payload.length){banner(bad?"Some rows are missing amount or category.":"Fill at least one row.");return;}if(!navigator.onLine){var q0=loadQueue();payload.forEach(function(p){q0.push(p);});saveQueue(q0);banner("Saved "+payload.length+" offline \u2014 will sync when back online.",true);haptic(16);showToast("Saved offline");$("rows").innerHTML="";addRow();await loadExpenses();renderAddRecent();applyFilters();return;}$("submitBtn").disabled=true;$("submitBtn").textContent="Saving…";const{error}=await sb.from("expenses").insert(payload);$("submitBtn").disabled=false;$("submitBtn").textContent="Submit all";if(error){var q1=loadQueue();payload.forEach(function(p){q1.push(p);});saveQueue(q1);banner("Saved offline \u2014 will sync when the connection returns.",true);haptic(12);showToast("Saved offline");$("rows").innerHTML="";addRow();await loadExpenses();renderAddRecent();applyFilters();return;}banner(`Added ${payload.length} expense${payload.length>1?"s":""}${bad?` · ${bad} incomplete skipped`:""}.`,true);haptic(16);showSuccessBurst();showToast("Added "+payload.length+" expense"+(payload.length>1?"s":""));$("rows").innerHTML="";addRow();await loadExpenses();renderAddRecent();applyFilters();flushQueue();};
 function refreshAllRowSelects(){[...document.querySelectorAll("#rows [data-row]")].forEach(tr=>{tr._cat.setOptions(rowCatOpts());tr._sub.setOptions(rowSubOpts(tr._cat.value));});}
 let MODAL=null;
 let PROF_OK=true;
