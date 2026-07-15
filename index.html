@@ -2131,7 +2131,46 @@ $("syncDiscard").onclick=async function(){var n=loadQueue().length;if(!n){closeS
 async function loadExpenses(){var real=[];try{var r=await sb.from("expenses").select("id,amount,spent_on,paid_by,note,category_id,subcategory_id,method,card_id").order("spent_on",{ascending:false}).limit(5000);if(r.error)throw r.error;real=r.data||[];cacheExpenses(real);}catch(e){real=loadCache();}EXP=pendingItems().concat(real);updateSync();}
 let RECUR=[];const METHODS=["UPI","Card","Cash","Bank transfer","Other"];
 async function loadRecurring(){try{const{data}=await sb.from("recurring").select("*").order("day_of_month",{ascending:true});RECUR=data||[];}catch(e){RECUR=[];}}
-async function processRecurring(){const now=new Date();const ym=now.getFullYear()+"-"+String(now.getMonth()+1).padStart(2,"0");const dnum=now.getDate();let added=0;for(const r of RECUR){if(r.active===false)continue;if(r.last_added===ym)continue;const due=Math.min(r.day_of_month||1,28);if(dnum<due)continue;const{error}=await sb.from("expenses").insert({amount:r.amount,category_id:r.category_id,subcategory_id:r.subcategory_id||null,spent_on:ym+"-"+String(due).padStart(2,"0"),paid_by:r.paid_by||null,method:r.method||null,note:(r.note?r.note+" ":"")+"(recurring)"});if(!error){await sb.from("recurring").update({last_added:ym}).eq("id",r.id);r.last_added=ym;added++;}}if(added)await loadExpenses();return added;}
+async function processRecurring(){
+  if(window._recurRunning)return 0;
+  window._recurRunning=true;
+  try{
+    const now=new Date();
+    const ym=now.getFullYear()+"-"+String(now.getMonth()+1).padStart(2,"0");
+    const dnum=now.getDate();
+    let added=0;
+    for(const r of RECUR){
+      if(r.active===false)continue;
+      if(r.last_added===ym)continue;
+      const due=Math.min(r.day_of_month||1,28);
+      if(dnum<due)continue;
+      const spent_on=ym+"-"+String(due).padStart(2,"0");
+      // Safety net: even if last_added is stale, don't duplicate an existing recurring
+      // for the same fingerprint (amount + category + date + "(recurring)" note tag)
+      const dupe=(EXP||[]).some(function(e){
+        return String(e.spent_on)===spent_on
+          && Number(e.amount)===Number(r.amount)
+          && e.category_id===r.category_id
+          && (e.note||"").indexOf("(recurring)")>-1;
+      });
+      if(dupe){
+        // Heal the flag so we stop trying every boot
+        try{await sb.from("recurring").update({last_added:ym}).eq("id",r.id);r.last_added=ym;}catch(_){}
+        continue;
+      }
+      const{error}=await sb.from("expenses").insert({amount:r.amount,category_id:r.category_id,subcategory_id:r.subcategory_id||null,spent_on:spent_on,paid_by:r.paid_by||null,method:r.method||null,card_id:r.card_id||null,note:(r.note?r.note+" ":"")+"(recurring)"});
+      if(!error){
+        await sb.from("recurring").update({last_added:ym}).eq("id",r.id);
+        r.last_added=ym;
+        added++;
+      }
+    }
+    if(added)await loadExpenses();
+    return added;
+  }finally{
+    window._recurRunning=false;
+  }
+}
 
 let TICK="#88988C",GRID="rgba(245,242,236,.06)",SEG="#14211A",CINK="#EDEBE3";const GFONT={family:"Inter",size:11};
 function cssv(n){return getComputedStyle(document.documentElement).getPropertyValue(n).trim();}
@@ -2706,8 +2745,14 @@ function paidOpts(extra){const arr=[...new Set([...(USERS||[]),window._me,extra]
 function refreshPaidSelects(oldName,newName){document.querySelectorAll("#rows [data-row]").forEach(tr=>{if(tr._paid){const cur=tr._paid.value;tr._paid.setOptions(paidOpts(cur));if(!cur||cur===oldName)tr._paid.value=newName;}});}
 function ymd(x){return`${x.getFullYear()}-${String(x.getMonth()+1).padStart(2,"0")}-${String(x.getDate()).padStart(2,"0")}`;}
 function monthBounds(){const n=new Date(),f=new Date(n.getFullYear(),n.getMonth(),1),l=new Date(n.getFullYear(),n.getMonth()+1,0);return{from:ymd(f),to:ymd(l),label:f.toLocaleDateString(LOCALE,{month:"long",year:"numeric"})};}
-function catExcluded(id){var c=(CATS||[]).find(function(x){return x.id===id;});if(!c)return false;if(c.exclude_from_spending===true||c.exclude_from_spending==="t")return true;return /invest/i.test(String(c.name||""));}
-function subExcluded(id){if(!id)return false;var s=(SUBS||[]).find(function(x){return x.id===id;});if(!s)return false;if(s.exclude_from_spending===true||s.exclude_from_spending==="t")return true;return /invest/i.test(String(s.name||""));}
+function _isInvestName(n){
+  n=String(n||"");
+  // EMI, loan, credit repayment are DEBT — that is spending, not investing
+  if(/\b(emi|loan|repay|credit.?card|debt)\b/i.test(n))return false;
+  return /invest|\bsip\b|\bmf\b|mutual.?fund|\bnps\b|\bppf\b|\bfd\b|fixed.?deposit|\brd\b|recurring.?deposit|stocks?\b|equity|shares?\b/i.test(n);
+}
+function catExcluded(id){var c=(CATS||[]).find(function(x){return x.id===id;});if(!c)return false;if(c.exclude_from_spending===true||c.exclude_from_spending==="t")return true;return _isInvestName(c.name);}
+function subExcluded(id){if(!id)return false;var s=(SUBS||[]).find(function(x){return x.id===id;});if(!s)return false;if(s.exclude_from_spending===true||s.exclude_from_spending==="t")return true;return _isInvestName(s.name);}
 function spendExcluded(e){return catExcluded(e.category_id)||subExcluded(e.subcategory_id);}
 
 function monthActuals(){const {from,to}=monthBounds();const m={};EXP.forEach(e=>{if(e.spent_on>=from&&e.spent_on<=to&&!spendExcluded(e))m[e.category_id]=(m[e.category_id]||0)+Number(e.amount);});return m;}
