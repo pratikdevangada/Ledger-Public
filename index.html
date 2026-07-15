@@ -1704,6 +1704,24 @@
     box-shadow:none !important;padding-left:6px !important}
   [data-theme="light"] .editform .amt-wrap{background:rgba(199,165,87,.07) !important;border-color:rgba(154,126,52,.30) !important}
   [data-theme="light"] .editform .amt-wrap .cur{color:#8A701F}
+
+  /* ================================================================
+     CARD TRANSACTIONS + BY-CARD CHART
+     ================================================================ */
+  .cardtxn{font-weight:650 !important;color:var(--brass-2) !important;border-color:rgba(231,207,147,.22) !important}
+  .cardtxn:hover{background:rgba(199,165,87,.10) !important}
+  [data-theme="light"] .cardtxn{color:#8A701F !important;border-color:rgba(154,126,52,.25) !important}
+  #cardTxnModal .modal-card{border-radius:20px;max-width:520px;width:calc(100% - 24px)}
+  #cardTxnModal .modal-title{font-family:var(--serif);font-variation-settings:"opsz" 40;font-weight:600}
+  #cardTxnModal .modal-sub{font-size:13px;color:var(--ink-soft);margin-top:4px;font-variant-numeric:tabular-nums}
+  #cardTxnModal .ael{width:100%}
+  #cardTxnModal .ael td{padding:12px 8px}
+  #cardTxnModal .rec-row{cursor:pointer}
+  #cardTxnModal .rec-row:active td{background:rgba(199,165,87,.10)}
+  @media(max-width:760px){
+    #cardTxnModal .modal-card{position:fixed;bottom:0;left:0;right:0;width:100%;
+      border-radius:20px 20px 0 0;max-height:85vh;padding-bottom:calc(16px + env(safe-area-inset-bottom,0px))}
+  }
 </style>
 </head>
 <body>
@@ -1832,6 +1850,15 @@
           </div>
         </div>
         <div class="cwrap"><canvas id="cWho"></canvas></div>
+      </section>
+      <section class="card full" data-mod="breakdown" data-chart="cardspend">
+        <div class="chead"><h2 class="ctitle">By card</h2>
+          <div class="ctools">
+            <div class="miniseg" data-target="cardspend"><button data-type="doughnut" class="on">Donut</button><button data-type="bar">Bar</button><button data-type="pie">Pie</button></div>
+            <button class="expand" data-card="cardspend" title="Toggle full width">⤢</button>
+          </div>
+        </div>
+        <div class="cwrap"><canvas id="cCard"></canvas></div>
       </section>
       <section class="card full collapsible" data-mod="budget" id="compareCard">
         <h2 class="ctitle">Up &amp; down vs previous period <span class="soft">— where spending rose or fell</span></h2>
@@ -2039,6 +2066,17 @@
     </div>
   </div>
 </div>
+<div id="cardTxnModal" class="modal hide">
+  <div class="modal-card" style="max-height:85vh;display:flex;flex-direction:column">
+    <div class="modal-title" id="cardTxnTitle">Card transactions</div>
+    <div class="modal-sub" id="cardTxnSub"></div>
+    <div style="overflow-y:auto;flex:1;margin:12px -6px 0;padding:0 6px">
+      <table class="ael" id="cardTxnTable"><thead><tr><th>Date</th><th>Category</th><th class="r">Amount</th></tr></thead><tbody id="cardTxnBody"></tbody></table>
+      <div id="cardTxnEmpty" class="empty hide" style="padding:24px 4px">No transactions found for this card.</div>
+    </div>
+    <div style="text-align:right;margin-top:14px"><button class="ghost" onclick="document.getElementById('cardTxnModal').classList.add('hide')">Close</button></div>
+  </div>
+</div>
 
 <div id="budgetModal" class="modal hide">
   <div class="modal-card">
@@ -2196,7 +2234,61 @@ const rangeLabel=()=>({this_month:"this month",last_month:"last month",last_30:"
 function filtered(){const[from,to]=rangeDates();const cat=$("fCat").value,sub=$("fSub").value;return EXP.filter(e=>e.spent_on>=from&&e.spent_on<=to&&(!cat||e.category_id===cat)&&(!sub||e.subcategory_id===sub)&&(cat||!spendExcluded(e)));}
 let LASTF=[],LASTR=["",""];
 const CT={trend:'area',cat:'doughnut',dow:'bar',who:'doughnut'};
-function applyFilters(){const[from,to]=rangeDates();LASTR=[from,to];const F=filtered();LASTF=F;renderHomeHero(F,from,to);renderStats(F,from,to);renderTrend(F,from,to);renderCat(F);renderSub(F);renderDow(F);renderWho(F);renderSummary(F,from,to);renderCompare(F,from,to);renderBudgetVsActual();renderInsights();renderIncome();renderTrends();renderPace();renderNetWorth();renderRecent(F);}
+
+// ---- Card transactions modal ----
+function openCardTxn(cardId){
+  var card=(CARDS||[]).find(function(c){return c.id===cardId;});
+  if(!card){showToast("Card not found");return;}
+  var txns=EXP.filter(function(e){return e.card_id===cardId;}).sort(function(a,b){return b.spent_on<a.spent_on?-1:b.spent_on>a.spent_on?1:0;});
+  $("cardTxnTitle").textContent=card.name+(card.last4?" \u00b7\u00b7"+card.last4:"");
+  var total=txns.reduce(function(s,e){return s+Number(e.amount);},0);
+  $("cardTxnSub").textContent=txns.length+" transaction"+(txns.length!==1?"s":"")+" \u00b7 "+money2(total)+" total";
+  var body=$("cardTxnBody");
+  var empty=$("cardTxnEmpty");
+  if(!txns.length){body.innerHTML="";empty.classList.remove("hide");}
+  else{empty.classList.add("hide");
+    body.innerHTML=txns.map(function(e){
+      var sn=subName(e.subcategory_id);
+      return '<tr class="rec-row" onclick="document.getElementById(\'cardTxnModal\').classList.add(\'hide\');openEditModal(\''+e.id+'\')"><td class="muted num">'+new Date(e.spent_on).toLocaleDateString(LOCALE,{day:"2-digit",month:"short"})+'</td><td><span class="chip" style="background:'+colorOf(e.category_id)+'">'+esc(nameOf(e.category_id))+'</span>'+(sn?'<span class="subtag"><span class="dot" style="background:'+subColor(e.subcategory_id)+'"></span>'+esc(sn)+'</span>':"")+'</td><td class="amt" style="text-align:right">'+money2(e.amount)+'</td></tr>';
+    }).join("");}
+  $("cardTxnModal").classList.remove("hide");
+}
+
+// ---- By-card chart (breakdown tab) ----
+var CT_CARD="doughnut";
+function renderCardChart(F){
+  kill("cCard");
+  if(typeof Chart==="undefined"||!Chart.defaults)return;
+  var m={},cardNames={};
+  (CARDS||[]).forEach(function(c){cardNames[c.id]=c.name+(c.last4?" \u00b7\u00b7"+c.last4:"");});
+  F.forEach(function(e){if(e.card_id){m[e.card_id]=(m[e.card_id]||0)+Number(e.amount);}});
+  var noCard=F.filter(function(e){return !e.card_id;}).reduce(function(s,e){return s+Number(e.amount);},0);
+  if(noCard>0){m["_nocrd"]=noCard;cardNames["_nocrd"]="UPI / Cash / Other";}
+  var arr=Object.entries(m).sort(function(a,b){return b[1]-a[1];});
+  if(!arr.length){$("cCard").parentElement.style.minHeight="60px";return;}
+  var total=arr.reduce(function(t,a){return t+a[1];},0);
+  var cols=["#5E96C4","#CE8E5C","#9579C0","#5FB08C","#C56F77","#7DB5A0","#B8A43F","#E07070"];
+  var labels=arr.map(function(a){return cardNames[a[0]]||a[0];});
+  var vals=arr.map(function(a){return a[1];});
+  var bg=arr.map(function(_,i){return cols[i%cols.length];});
+  var t=CT_CARD;
+  if(t==="bar"){
+    CHARTS.cCard=new Chart($("cCard"),{type:"bar",data:{labels:labels,datasets:[{data:vals,backgroundColor:bg,borderRadius:4,maxBarThickness:46}]},options:{plugins:{legend:{display:false},tooltip:{callbacks:{label:function(c){return " "+money2(c.raw)+" ("+Math.round(c.raw/total*100)+"%)"}}}},scales:{x:{grid:{color:GRID},border:{display:false},ticks:{color:TICK}},y:{grid:{color:GRID},border:{display:false},ticks:{color:TICK,callback:function(v){return money2(v)}}}}}});
+  }else{
+    CHARTS.cCard=new Chart($("cCard"),{type:t,data:{labels:labels,datasets:[{data:vals,backgroundColor:bg,borderWidth:2,borderColor:"transparent",hoverOffset:6}]},options:{cutout:t==="doughnut"?"55%":"0%",plugins:{legend:{position:"bottom",labels:{color:TICK,padding:14,boxWidth:11,font:{size:12}}},tooltip:{callbacks:{label:function(c){return " "+c.label+": "+money2(c.raw)+" ("+Math.round(c.raw/total*100)+"%)";}}}}}});
+  }
+}
+document.addEventListener("click",function(e){
+  var btn=e.target.closest&&e.target.closest('.miniseg[data-target="cardspend"] button');
+  if(!btn)return;
+  btn.parentElement.querySelectorAll("button").forEach(function(b){b.classList.remove("on");});
+  btn.classList.add("on");
+  CT_CARD=btn.dataset.type;
+  if(LASTF)renderCardChart(LASTF);
+});
+
+
+function applyFilters(){const[from,to]=rangeDates();LASTR=[from,to];const F=filtered();LASTF=F;renderHomeHero(F,from,to);renderStats(F,from,to);renderTrend(F,from,to);renderCat(F);renderSub(F);renderDow(F);renderWho(F);renderCardChart(F);renderSummary(F,from,to);renderCompare(F,from,to);renderBudgetVsActual();renderInsights();renderIncome();renderTrends();renderPace();renderNetWorth();renderRecent(F);}
 function rerender(key){const[from,to]=LASTR,F=LASTF;if(key==='trend')renderTrend(F,from,to);else if(key==='cat')renderCat(F);else if(key==='dow')renderDow(F);else if(key==='who')renderWho(F);}
 let _remDismissed=false;
 function exportKey(){return "kharcha-exported-"+(window._uid||"anon");}
@@ -2234,7 +2326,8 @@ function paidMap(){try{return JSON.parse(localStorage.getItem(cardPaidKey())||"{
 function isCardPaid(cid,cy){return paidMap()[cid+"|"+cy]===true;}
 function toggleCardPaid(cid,cy){var mp=paidMap();var k=cid+"|"+cy;mp[k]=!mp[k];try{localStorage.setItem(cardPaidKey(),JSON.stringify(mp));}catch(e){}haptic(8);renderCards();}
 function nextDue(c){var now=new Date();now.setHours(0,0,0,0);var dd=Math.min(c.due_day||1,28);var due=new Date(now.getFullYear(),now.getMonth(),dd);if(due<now)due=new Date(now.getFullYear(),now.getMonth()+1,dd);var days=Math.round((due-now)/864e5);var cy=due.getFullYear()+"-"+String(due.getMonth()+1).padStart(2,"0");return{date:due,days:days,dateLabel:due.toLocaleDateString(LOCALE,{day:"numeric",month:"short"}),cycleYm:cy};}
-function renderCards(){var host=$("cardsList");if(!host)return;if(!(CARDS||[]).length){host.innerHTML='<div class="empty" style="padding:16px 2px">No cards yet. Add a credit card (with due date) or a prepaid/wallet card like Zaggle.</div>';return;}var now=new Date(),y=now.getFullYear(),m=now.getMonth();host.innerHTML=CARDS.map(function(c){var spentMonth=EXP.filter(function(e){if(e.card_id!==c.id)return false;var d=new Date(e.spent_on);return d.getFullYear()===y&&d.getMonth()===m;}).reduce(function(s,e){return s+Number(e.amount);},0);var mainLine=money2(spentMonth)+" this month",duehtml="",acts="";if(c.kind==="prepaid"){var loads=prepaidLoads(c.opening_on,c.load_day);var spentSince=EXP.filter(function(e){return e.card_id===c.id&&c.opening_on&&String(e.spent_on)>=String(c.opening_on);}).reduce(function(s,e){return s+Number(e.amount);},0);var bal=(Number(c.opening_balance)||0)+(Number(c.monthly_load)||0)*loads-spentSince;mainLine=money2(bal)+" balance";duehtml='<div class="carddue'+(bal<0?" carddue-soon":"")+'">+'+money2(c.monthly_load||0)+' on the '+(c.load_day||5)+'th \u00b7 '+money2(spentMonth)+' spent this month</div>';}else{var di=nextDue(c),paid=c.due_day?isCardPaid(c.id,di.cycleYm):false;if(c.due_day){var cls=(di.days<=5&&!paid)?" carddue-soon":"";duehtml='<div class="carddue'+cls+'">'+(paid?"Paid this cycle":("Due "+di.dateLabel+" \u00b7 in "+di.days+" day"+(di.days!==1?"s":"")))+'</div>';acts='<button class="ghost cardpaid'+(paid?" on":"")+'" data-id="'+c.id+'" data-cy="'+di.cycleYm+'">'+(paid?"Paid":"Mark paid")+'</button>';}}return '<div class="cardrow"><div class="cardmeta"><span class="cardname">'+esc(c.name)+(c.last4?' <span class="card4">\u00b7\u00b7'+esc(c.last4)+'</span>':'')+(c.kind==="prepaid"?' <span class="cardkind">Prepaid</span>':'')+'</span><span class="cardspent">'+mainLine+'</span>'+duehtml+'</div><div class="cardacts">'+acts+'<button class="ghost cardedit" data-id="'+c.id+'">Edit</button></div></div>';}).join("");host.querySelectorAll(".cardpaid").forEach(function(b){b.onclick=function(){toggleCardPaid(b.dataset.id,b.dataset.cy);};});host.querySelectorAll(".cardedit").forEach(function(b){b.onclick=function(){openCardModal(b.dataset.id);};});}
+function renderCards(){var host=$("cardsList");if(!host)return;if(!(CARDS||[]).length){host.innerHTML='<div class="empty" style="padding:16px 2px">No cards yet. Add a credit card (with due date) or a prepaid/wallet card like Zaggle.</div>';return;}var now=new Date(),y=now.getFullYear(),m=now.getMonth();host.innerHTML=CARDS.map(function(c){var spentMonth=EXP.filter(function(e){if(e.card_id!==c.id)return false;var d=new Date(e.spent_on);return d.getFullYear()===y&&d.getMonth()===m;}).reduce(function(s,e){return s+Number(e.amount);},0);var mainLine=money2(spentMonth)+" this month",duehtml="",acts="";if(c.kind==="prepaid"){var loads=prepaidLoads(c.opening_on,c.load_day);var spentSince=EXP.filter(function(e){return e.card_id===c.id&&c.opening_on&&String(e.spent_on)>=String(c.opening_on);}).reduce(function(s,e){return s+Number(e.amount);},0);var bal=(Number(c.opening_balance)||0)+(Number(c.monthly_load)||0)*loads-spentSince;mainLine=money2(bal)+" balance";duehtml='<div class="carddue'+(bal<0?" carddue-soon":"")+'">+'+money2(c.monthly_load||0)+' on the '+(c.load_day||5)+'th \u00b7 '+money2(spentMonth)+' spent this month</div>';}else{var di=nextDue(c),paid=c.due_day?isCardPaid(c.id,di.cycleYm):false;if(c.due_day){var cls=(di.days<=5&&!paid)?" carddue-soon":"";duehtml='<div class="carddue'+cls+'">'+(paid?"Paid this cycle":("Due "+di.dateLabel+" \u00b7 in "+di.days+" day"+(di.days!==1?"s":"")))+'</div>';acts='<button class="ghost cardpaid'+(paid?" on":"")+'" data-id="'+c.id+'" data-cy="'+di.cycleYm+'">'+(paid?"Paid":"Mark paid")+'</button>';}}return '<div class="cardrow"><div class="cardmeta"><span class="cardname">'+esc(c.name)+(c.last4?' <span class="card4">\u00b7\u00b7'+esc(c.last4)+'</span>':'')+(c.kind==="prepaid"?' <span class="cardkind">Prepaid</span>':'')+'</span><span class="cardspent">'+mainLine+'</span>'+duehtml+'</div><div class="cardacts">'+acts+'<button class="ghost cardtxn" data-id="'+c.id+'">Transactions</button><button class="ghost cardedit" data-id="'+c.id+'">Edit</button></div></div>';}).join("");host.querySelectorAll(".cardpaid").forEach(function(b){b.onclick=function(){toggleCardPaid(b.dataset.id,b.dataset.cy);};});host.querySelectorAll(".cardtxn").forEach(function(b){b.onclick=function(){openCardTxn(b.dataset.id);};});
+  host.querySelectorAll(".cardedit").forEach(function(b){b.onclick=function(){openCardModal(b.dataset.id);};});}
 var EDIT_CARD=null;
 var CARDF={};
 function _syncCardFields(){if($("cName"))CARDF.name=$("cName").value;if($("cLast4"))CARDF.last4=$("cLast4").value;if($("cOpen"))CARDF.opening_balance=$("cOpen").value;if($("cLoad"))CARDF.monthly_load=$("cLoad").value;if($("cLoadDay"))CARDF.load_day=$("cLoadDay").value;if($("cStmt"))CARDF.statement_day=$("cStmt").value;if($("cDue"))CARDF.due_day=$("cDue").value;}
