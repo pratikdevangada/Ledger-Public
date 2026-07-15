@@ -2629,21 +2629,29 @@ let ALL_Q="";
 var AEL_F={method:"",paid_by:"",category_id:"",subcategory_id:"",card_id:""};
 function buildAelFilters(){
   var host=$("aelFilterChips");if(!host)return;
-  var methods={},paidby={},cats={},subs={},cards={};
+  var methods={},paidby={},cats={},subsByCat={},cards={};
   EXP.forEach(function(e){
     if(e.method)methods[e.method]=1;
     if(e.paid_by)paidby[e.paid_by]=1;
     if(e.category_id)cats[e.category_id]=nameOf(e.category_id);
-    if(e.subcategory_id){var sn=subName(e.subcategory_id);if(sn)subs[e.subcategory_id]=sn;}
+    if(e.subcategory_id&&e.category_id){
+      var sn=subName(e.subcategory_id);
+      if(sn){(subsByCat[e.category_id]=subsByCat[e.category_id]||{})[e.subcategory_id]=sn;}
+    }
     if(e.card_id)cards[e.card_id]=cardName(e.card_id);
   });
   var groups=[
     {key:"paid_by",label:"Paid by",opts:Object.keys(paidby).sort().map(function(v){return{value:v,label:v};})},
     {key:"method",label:"Method",opts:Object.keys(methods).sort().map(function(v){return{value:v,label:v==="Card"?"Credit card":v};})},
     {key:"card_id",label:"Card",opts:Object.keys(cards).sort().map(function(v){return{value:v,label:cards[v]};})},
-    {key:"category_id",label:"Category",opts:Object.keys(cats).sort(function(a,b){return(cats[a]||"").localeCompare(cats[b]||"");}).map(function(v){return{value:v,label:cats[v]};})},
-    {key:"subcategory_id",label:"Sub-cat",opts:Object.keys(subs).sort(function(a,b){return(subs[a]||"").localeCompare(subs[b]||"");}).map(function(v){return{value:v,label:subs[v]||v};})}
+    {key:"category_id",label:"Category",opts:Object.keys(cats).sort(function(a,b){return(cats[a]||"").localeCompare(cats[b]||"");}).map(function(v){return{value:v,label:cats[v]};})}
   ];
+  // Sub-cat only appears when a category is selected AND that category has sub-categories
+  if(AEL_F.category_id){
+    var childMap=subsByCat[AEL_F.category_id]||{};
+    var childOpts=Object.keys(childMap).sort(function(a,b){return(childMap[a]||"").localeCompare(childMap[b]||"");}).map(function(v){return{value:v,label:childMap[v]};});
+    if(childOpts.length){groups.push({key:"subcategory_id",label:"Sub-cat",opts:childOpts});}
+  }
   host.innerHTML=groups.map(function(g){
     if(!g.opts.length)return"";
     return '<div class="ael-fg"><span class="ael-fg-label">'+g.label+'</span>'+
@@ -2673,9 +2681,16 @@ document.addEventListener("click",function(e){
   if(chip){var k=chip.dataset.fk,v=chip.dataset.fv;
     AEL_F[k]=AEL_F[k]===v?"":v;
     if(k==="card_id"&&AEL_F[k])AEL_F.method="Card";
+    // Category changed (selected/deselected) → sub-category no longer applies
+    if(k==="category_id")AEL_F.subcategory_id="";
     buildAelFilters();renderAllExpenses();return;}
   var clr=e.target.closest("[data-clr]");
-  if(clr){AEL_F[clr.dataset.clr]="";buildAelFilters();renderAllExpenses();return;}
+  if(clr){
+    AEL_F[clr.dataset.clr]="";
+    // Clearing category also clears sub-category
+    if(clr.dataset.clr==="category_id")AEL_F.subcategory_id="";
+    buildAelFilters();renderAllExpenses();return;
+  }
 });
 
 function methodIcon(m){const a='width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"';const k=(m||"").toLowerCase();let p;if(k==="card"||k==="zaggle")p='<rect x="2.5" y="5" width="19" height="14" rx="2.5"/><path d="M2.5 10h19"/>';else if(k==="cash")p='<rect x="2.5" y="6" width="19" height="12" rx="2"/><circle cx="12" cy="12" r="2.6"/>';else if(k==="upi")p='<rect x="7" y="2.5" width="10" height="19" rx="2.2"/><path d="M10.5 18.5h3"/>';else if(k.indexOf("bank")>-1)p='<path d="M3 9.5 12 4l9 5.5"/><path d="M5 10.5V19M19 10.5V19M9.5 10.5V19M14.5 10.5V19M3.5 19h17"/>';else p='<circle cx="12" cy="12" r="8"/>';return `<svg ${a}>${p}</svg>`;}
