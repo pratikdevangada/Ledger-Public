@@ -4,6 +4,9 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
 <script>try{var _t=localStorage.getItem('ledger-theme');if(!_t){_t=(window.matchMedia&&window.matchMedia('(prefers-color-scheme: light)').matches)?'light':'dark';}document.documentElement.setAttribute('data-theme',_t);}catch(e){document.documentElement.setAttribute('data-theme','dark');}</script>
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+<link rel="preconnect" href="https://eoacbspokedsxlgstljr.supabase.co" crossorigin>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#0B1410" id="themeColorMeta">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
@@ -1916,6 +1919,45 @@
       <button data-d="" class="pin-blank"></button><button data-d="0">0</button><button data-d="del" class="pin-del">&#x232B;</button>
     </div>
   </div>
+
+<script>
+/* EARLY PIN — paints and works before any library loads */
+(function(){
+  try{
+    var PH=localStorage.getItem("kharcha-pin");
+    if(!PH)return;
+    var lock=document.getElementById("pinLock");
+    lock.classList.remove("hide");
+    var buf="";
+    var dots=document.getElementById("pinDots");
+    var err=document.getElementById("pinError");
+    function hash(p){var x=0;for(var i=0;i<p.length;i++){x=((x<<5)-x)+p.charCodeAt(i);x|=0;}return String(x);}
+    function paint(){for(var i=0;i<4;i++)dots.children[i].classList.toggle("filled",i<buf.length);}
+    function done(){
+      window._pinPassed=true;
+      lock.style.transition="opacity .3s ease, transform .3s ease";
+      lock.style.opacity="0";lock.style.transform="scale(1.04)";
+      setTimeout(function(){lock.classList.add("hide");lock.style.cssText="";
+        if(window._pendingSession&&typeof showApp==="function"){var s=window._pendingSession;window._pendingSession=null;showApp(s);}
+      },320);
+    }
+    function entry(){
+      if(hash(buf)===PH){done();}
+      else{err.textContent="Wrong passcode";buf="";dots.classList.add("shake");
+        setTimeout(function(){dots.classList.remove("shake");paint();},500);}
+    }
+    document.getElementById("pinPad").addEventListener("click",function(e){
+      var b=e.target.closest("[data-d]");if(!b)return;
+      if(navigator.vibrate){try{navigator.vibrate(4)}catch(_){}}
+      var d=b.dataset.d;
+      if(d==="del"){buf=buf.slice(0,-1);paint();return;}
+      if(d===""||buf.length>=4)return;
+      buf+=d;paint();
+      if(buf.length===4)setTimeout(entry,180);
+    });
+  }catch(e){}
+})();
+</script>
 </div>
 
 <div id="pinSetupModal" class="modal hide" onclick="if(event.target===this)closePinSetup()">
@@ -2337,8 +2379,8 @@
   </div>
 </div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
-<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4" defer onload="window._initChartDefaults&&_initChartDefaults()"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" defer></script>
 <script>
 /* ============================================================
    CONFIG — EDIT THESE FOUR LINES
@@ -2394,7 +2436,8 @@ async function processRecurring(){const now=new Date();const ym=now.getFullYear(
 let TICK="#88988C",GRID="rgba(245,242,236,.06)",SEG="#14211A",CINK="#EDEBE3";const GFONT={family:"Inter",size:11};
 function cssv(n){return getComputedStyle(document.documentElement).getPropertyValue(n).trim();}
 function refreshChartTheme(){TICK=cssv('--chart-tick')||TICK;GRID=cssv('--chart-grid')||GRID;SEG=cssv('--chart-seg')||SEG;CINK=cssv('--chart-ink')||CINK;if(window.Chart){Chart.defaults.color=TICK;Object.assign(Chart.defaults.plugins.tooltip,{backgroundColor:cssv('--chart-tip-bg')||"#1B2A22",borderColor:cssv('--chart-tip-border')||"rgba(245,242,236,.14)",titleColor:cssv('--chart-tip-title')||"#F4F2EC",bodyColor:cssv('--chart-tip-body')||"#C9C6BE"});}}
-Chart.defaults.font.family="Inter";Chart.defaults.maintainAspectRatio=false;Chart.defaults.responsive=true;Object.assign(Chart.defaults.plugins.tooltip,{borderWidth:1,cornerRadius:10,padding:11,boxPadding:5,titleFont:{family:"Inter",size:12,weight:"600"},bodyFont:{family:"Inter",size:12.5},usePointStyle:true});refreshChartTheme();
+function _initChartDefaults(){if(!window.Chart)return;Chart.defaults.font.family="Inter";Chart.defaults.maintainAspectRatio=false;Chart.defaults.responsive=true;Object.assign(Chart.defaults.plugins.tooltip,{borderWidth:1,cornerRadius:10,padding:11,boxPadding:5,titleFont:{family:"Inter",size:12,weight:"600"},bodyFont:{family:"Inter",size:12.5},usePointStyle:true});refreshChartTheme();}
+_initChartDefaults();
 const centerText=(big,small)=>({id:'ct',afterDraw(ch){const a=ch.chartArea;if(!a)return;const x=(a.left+a.right)/2,y=(a.top+a.bottom)/2,c=ch.ctx;c.save();c.textAlign="center";c.textBaseline="middle";c.fillStyle=CINK;c.font="600 19px Inter";c.fillText(big,x,y-7);c.fillStyle=TICK;c.font="500 10.5px Inter";c.fillText(small,x,y+12);c.restore();}});
 const SUN='<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M6.3 17.7l-1.4 1.4M19.1 4.9l-1.4 1.4"/></svg>';
 const MOON='<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3 7 7 0 0 0 21 12.8z"/></svg>';
@@ -3050,7 +3093,7 @@ function showGate(){$("app").classList.add("hide");$("gate").classList.remove("h
 function fatalLoad(msg){if($("loadErr"))return;document.body.insertAdjacentHTML("beforeend",`<div id="loadErr" style="position:fixed;inset:0;z-index:500;display:grid;place-items:center;padding:24px;background:rgba(8,8,9,.92);backdrop-filter:blur(5px)"><div style="max-width:430px;text-align:center;padding:30px;border:1px solid var(--line);border-radius:16px;background:var(--surface)"><div style="font-weight:600;font-size:18px;margin-bottom:9px">Couldn't load your data</div><div style="color:var(--ink-soft);font-size:14px;line-height:1.55;margin-bottom:20px">${esc(msg||"")}</div><button class="primary" onclick="location.reload()">Reload</button></div></div>`);}
 async function showApp(session){if(window._appReady)return;
   $("gate").classList.add("hide");
-  if(hasPinLock()&&!window._pinPassed){window._pendingSession=session;showPinLock();return;}
+  if(hasPinLock()&&!window._pinPassed){window._pendingSession=session;$("pinLock").classList.remove("hide");return;}
   window._pinPassed=false;$("bootLoader").classList.remove("hide");$("app").classList.remove("hide");$("app").style.visibility="hidden";window._uid=session.user.id;
   try{
     await Promise.all([loadMeta(),loadExpenses(),loadBudgets(),loadIncome(),loadCards(),loadInvest(),loadInvestSnap(),loadRecurring()]);
@@ -3073,8 +3116,6 @@ const CFG_OK=SUPABASE_URL&&SUPABASE_ANON_KEY&&!/PASTE_/.test(SUPABASE_URL)&&!/PA
 window.addEventListener("error",ev=>{if(!$("app")||$("app").classList.contains("hide")){const m=ev.message&&ev.message!=="Script error."?ev.message:"A library failed to load. Check your connection/ad-blocker and the Supabase URL/key.";gateMsg("Error: "+m,"err");}});
 if(!CFG_OK){showGate();gateMsg("Setup needed: paste your Supabase Project URL and anon public key into the four CONFIG lines near the top of this file, then reload. (Supabase → Project Settings → API.)","info");$("authBtn").disabled=true;}
 else{try{sb=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);}catch(e){showGate();gateMsg("Couldn't start: "+e.message,"err");}if(sb){
-  // paint PIN lock immediately — before any network work
-  if(hasPinLock())showPinLock();
   sb.auth.onAuthStateChange((_e,s)=>{if(s){if(!window._appReady)showApp(s);}else{window._appReady=false;showGate();}});
   sb.auth.getSession().then(({data})=>{data.session?showApp(data.session):showGate();}).catch(e=>{showGate();gateMsg("Couldn\u2019t reach Supabase: "+e.message,"err");});
 }}
@@ -3207,13 +3248,6 @@ function onSetupDigit(d){
 function closePinSetup(){$("pinSetupModal").classList.add("hide");}
 function updatePinMenuLabel(){var l=$("pmPinLabel");if(l)l.textContent=hasPinLock()?"Remove passcode":"Set passcode";}
 
-// wire the lock-screen pad
-$("pinPad").addEventListener("click",function(e){
-  var btn=e.target.closest("[data-d]");
-  if(!btn)return;
-  if(typeof haptic==="function")haptic(4);
-  onPinDigit(btn.dataset.d);
-});
 
 // update menu label on boot
 try{updatePinMenuLabel();}catch(e){}
