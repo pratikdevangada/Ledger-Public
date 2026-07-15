@@ -1718,9 +1718,25 @@
   #cardTxnModal .ael td{padding:12px 8px}
   #cardTxnModal .rec-row{cursor:pointer}
   #cardTxnModal .rec-row:active td{background:rgba(199,165,87,.10)}
+  
+
+  /* ================================================================
+     CARD TXN SHEET — swipe-to-dismiss bottom sheet
+     ================================================================ */
+  #cardTxnModal{transition:opacity .28s ease}
+  .cardtxn-sheet{
+    max-height:85vh;display:flex;flex-direction:column;
+    will-change:transform;touch-action:pan-y;
+  }
+  .sheet-handle{width:36px;height:5px;border-radius:3px;margin:0 auto 14px;
+    background:rgba(255,255,255,.22);cursor:grab;flex:none;touch-action:none}
+  .sheet-handle:active{cursor:grabbing;background:rgba(255,255,255,.40)}
+  [data-theme="light"] .sheet-handle{background:rgba(0,0,0,.14)}
+  [data-theme="light"] .sheet-handle:active{background:rgba(0,0,0,.28)}
   @media(max-width:760px){
-    #cardTxnModal .modal-card{position:fixed;bottom:0;left:0;right:0;width:100%;
-      border-radius:20px 20px 0 0;max-height:85vh;padding-bottom:calc(16px + env(safe-area-inset-bottom,0px))}
+    .cardtxn-sheet{position:fixed;bottom:0;left:0;right:0;width:100%;
+      border-radius:20px 20px 0 0;max-height:85vh;
+      padding-bottom:calc(16px + env(safe-area-inset-bottom,0px))}
   }
 </style>
 </head>
@@ -2066,15 +2082,16 @@
     </div>
   </div>
 </div>
-<div id="cardTxnModal" class="modal hide">
-  <div class="modal-card" style="max-height:85vh;display:flex;flex-direction:column">
+<div id="cardTxnModal" class="modal hide" onclick="if(event.target===this)closeCardTxn()">
+  <div class="modal-card cardtxn-sheet" id="cardTxnSheet">
+    <div class="sheet-handle" id="cardTxnHandle"></div>
     <div class="modal-title" id="cardTxnTitle">Card transactions</div>
     <div class="modal-sub" id="cardTxnSub"></div>
     <div style="overflow-y:auto;flex:1;margin:12px -6px 0;padding:0 6px">
       <table class="ael" id="cardTxnTable"><thead><tr><th>Date</th><th>Category</th><th class="r">Amount</th></tr></thead><tbody id="cardTxnBody"></tbody></table>
       <div id="cardTxnEmpty" class="empty hide" style="padding:24px 4px">No transactions found for this card.</div>
     </div>
-    <div style="text-align:right;margin-top:14px"><button class="ghost" onclick="document.getElementById('cardTxnModal').classList.add('hide')">Close</button></div>
+    
   </div>
 </div>
 
@@ -2251,8 +2268,65 @@ function openCardTxn(cardId){
       var sn=subName(e.subcategory_id);
       return '<tr class="rec-row" onclick="document.getElementById(\'cardTxnModal\').classList.add(\'hide\');openEditModal(\''+e.id+'\')"><td class="muted num">'+new Date(e.spent_on).toLocaleDateString(LOCALE,{day:"2-digit",month:"short"})+'</td><td><span class="chip" style="background:'+colorOf(e.category_id)+'">'+esc(nameOf(e.category_id))+'</span>'+(sn?'<span class="subtag"><span class="dot" style="background:'+subColor(e.subcategory_id)+'"></span>'+esc(sn)+'</span>':"")+'</td><td class="amt" style="text-align:right">'+money2(e.amount)+'</td></tr>';
     }).join("");}
-  $("cardTxnModal").classList.remove("hide");
+  openCardTxnSheet();
 }
+
+function openCardTxnSheet(){
+  var modal=$("cardTxnModal"), sheet=$("cardTxnSheet");
+  modal.classList.remove("hide");
+  modal.style.opacity="0";
+  sheet.style.transform="translateY(100%)";
+  requestAnimationFrame(function(){
+    modal.style.transition="opacity .28s ease";
+    modal.style.opacity="1";
+    sheet.style.transition="transform .36s cubic-bezier(.22,.68,.18,1.02)";
+    sheet.style.transform="translateY(0)";
+  });
+  initCardTxnDrag();
+}
+function closeCardTxn(){
+  var modal=$("cardTxnModal"), sheet=$("cardTxnSheet");
+  modal.style.transition="opacity .22s ease";
+  modal.style.opacity="0";
+  sheet.style.transition="transform .28s cubic-bezier(.36,.66,.04,1)";
+  sheet.style.transform="translateY(100%)";
+  setTimeout(function(){modal.classList.add("hide");modal.style.transition="";modal.style.opacity="";sheet.style.transition="";sheet.style.transform="";},300);
+}
+function initCardTxnDrag(){
+  var sheet=$("cardTxnSheet"), handle=$("cardTxnHandle");
+  var startY=0,currentY=0,dragging=false;
+  function onStart(e){
+    // only drag from handle or top 60px of sheet
+    var t=e.target,rect=sheet.getBoundingClientRect();
+    var clientY=e.touches?e.touches[0].clientY:e.clientY;
+    if(t!==handle&&t!==sheet&&(clientY-rect.top)>60)return;
+    dragging=true;startY=clientY;currentY=0;
+    sheet.style.transition="none";
+    $("cardTxnModal").style.transition="none";
+  }
+  function onMove(e){
+    if(!dragging)return;
+    var clientY=e.touches?e.touches[0].clientY:e.clientY;
+    currentY=Math.max(0,clientY-startY);
+    sheet.style.transform="translateY("+currentY+"px)";
+    var opacity=Math.max(0,1-currentY/400);
+    $("cardTxnModal").style.opacity=String(opacity);
+  }
+  function onEnd(){
+    if(!dragging)return;dragging=false;
+    if(currentY>120){closeCardTxn();}
+    else{sheet.style.transition="transform .28s cubic-bezier(.22,.68,.18,1.02)";sheet.style.transform="translateY(0)";
+      $("cardTxnModal").style.transition="opacity .2s";$("cardTxnModal").style.opacity="1";}
+  }
+  handle.addEventListener("touchstart",onStart,{passive:true});
+  handle.addEventListener("mousedown",onStart);
+  sheet.addEventListener("touchstart",onStart,{passive:true});
+  document.addEventListener("touchmove",onMove,{passive:false});
+  document.addEventListener("mousemove",onMove);
+  document.addEventListener("touchend",onEnd);
+  document.addEventListener("mouseup",onEnd);
+}
+
 
 // ---- By-card chart (breakdown tab) ----
 var CT_CARD="doughnut";
