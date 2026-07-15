@@ -1683,6 +1683,27 @@
   /* ---- motion: screens arrive, nothing jumps ---- */
   @keyframes screenIn{from{opacity:0;transform:translateY(7px)}to{opacity:1;transform:none}}
   #screen-dash:not(.hide),#screen-add:not(.hide),#screen-budgets:not(.hide){animation:screenIn .26s cubic-bezier(.22,.9,.3,1) both}
+
+  /* ================================================================
+     QA ROUND 1 FIXES — tap targets + consistency
+     ================================================================ */
+  /* A: details toggle is a primary control — give it a real tap area */
+  .exp-more-btn{min-height:42px;padding:8px 4px;margin:-4px 0 -6px}
+  /* B: money tabs meet 44px in BOTH themes */
+  .moneytabs .mtab{min-height:44px}
+  /* C: "Data & backup" link opens a modal — make it tappable */
+  .backup-link button,.backup-link .linklike,.linklike{min-height:42px;padding:10px 14px;display:inline-flex;align-items:center;justify-content:center;border-radius:12px}
+  /* E: edit modal amount matches the Add screen's brass hero field */
+  .editform .amt-wrap{background:rgba(199,165,87,.06) !important;border:1px solid rgba(231,207,147,.20) !important;border-radius:14px !important;overflow:hidden}
+  .editform .amt-wrap:focus-within{border-color:rgba(199,165,87,.6) !important;box-shadow:0 0 0 4px rgba(199,165,87,.13)}
+  .editform .amt-wrap .cur{background:none !important;border-right:none !important;color:var(--brass-2);
+    font-family:var(--serif);font-weight:560;font-size:22px;padding:0 2px 0 16px;position:static}
+  .editform .amt-wrap input{height:54px !important;font-size:24px !important;font-weight:600;
+    font-family:var(--serif);font-variation-settings:"opsz" 60;
+    font-variant-numeric:lining-nums tabular-nums;border:none !important;background:transparent !important;
+    box-shadow:none !important;padding-left:6px !important}
+  [data-theme="light"] .editform .amt-wrap{background:rgba(199,165,87,.07) !important;border-color:rgba(154,126,52,.30) !important}
+  [data-theme="light"] .editform .amt-wrap .cur{color:#8A701F}
 </style>
 </head>
 <body>
@@ -2593,7 +2614,7 @@ if(!CFG_OK){showGate();gateMsg("Setup needed: paste your Supabase Project URL an
 else{try{sb=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);}catch(e){showGate();gateMsg("Couldn't start: "+e.message,"err");}if(sb){sb.auth.onAuthStateChange((_e,s)=>{if(s){if(!window._appReady)showApp(s);}else{window._appReady=false;showGate();}});sb.auth.getSession().then(({data})=>{data.session?showApp(data.session):showGate();}).catch(e=>{showGate();gateMsg("Couldn't reach Supabase: "+e.message,"err");});}}
 </script>
 <script>if("serviceWorker" in navigator){window.addEventListener("load",function(){navigator.serviceWorker.register("sw.js").catch(function(){});});}
-try{setTimeout(initCollapsibles,80);}catch(e){}
+try{setTimeout(initCollapsibles,80);}catch(e){}try{setTimeout(function(){["budgets","cards","invest"].forEach(function(mt){var c=document.querySelector('#screen-budgets .card.collapsible[data-mtab="'+mt+'"]');if(c)c.classList.remove("collapsed");});},140);}catch(e){}
 </script>
 </body>
 </html>
