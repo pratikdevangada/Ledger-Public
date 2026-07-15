@@ -1671,6 +1671,16 @@ box-shadow:0 20px 60px -12px rgba(199,165,87,.7);opacity:0;transform:scale(.4)}
   </div>
 </div>
 
+<div id="investedDiag" class="modal hide" onclick="if(event.target===this)closeInvestedDiag()">
+  <div class="modal-card" style="max-height:80vh;display:flex;flex-direction:column">
+    <div class="sheet-handle" style="margin-bottom:10px"></div>
+    <div class="modal-title">This month's investments</div>
+    <div class="modal-sub" id="investedDiagSub" style="margin-bottom:14px"></div>
+    <div id="investedDiagList" style="overflow-y:auto;flex:1;margin:0 -6px;padding:0 6px"></div>
+    <div style="text-align:right;margin-top:14px"><button class="ghost" onclick="closeInvestedDiag()">Close</button></div>
+  </div>
+</div>
+
 <div id="successBurst" class="success-burst hide"><div class="sb-circle"><svg viewBox="0 0 24 24" fill="none" stroke="#241B07" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5l5 5L20 6.5"/></svg></div></div>
 
 <div id="bootLoader" class="boot-loader hide">
@@ -1709,7 +1719,7 @@ box-shadow:0 20px 60px -12px rgba(199,165,87,.7);opacity:0;transform:scale(.4)}
         <div class="ghero-barcap"><span id="barLeft"></span><span id="barBudget"></span></div>
         <div class="gtiles">
           <button class="gtile" id="tileIncome" type="button" onclick="goScreen('budgets')"><span class="gtl">Income</span><span class="gtv">—</span></button>
-          <button class="gtile" id="tileInvested" type="button" onclick="goInvest()"><span class="gtl">Invested</span><span class="gtv">—</span></button>
+          <button class="gtile" id="tileInvested" type="button" onclick="openInvestedDiag()"><span class="gtl">Invested</span><span class="gtv">—</span></button>
           <button class="gtile" id="tileSaved" type="button" onclick="goScreen('budgets')"><span class="gtl">Remaining</span><span class="gtv">—</span></button>
         </div>
         <div class="gactions">
@@ -2447,6 +2457,33 @@ function _sumAmt(l){return l.reduce(function(s,e){return s+Number(e.amount);},0)
 function _periodLabel(from,to){var f=new Date(from),t=new Date(to),now=new Date();var sameM=f.getMonth()===t.getMonth()&&f.getFullYear()===t.getFullYear();if(sameM&&f.getMonth()===now.getMonth()&&f.getFullYear()===now.getFullYear())return "this month";if(sameM)return f.toLocaleDateString(LOCALE,{month:"long"});return f.toLocaleDateString(LOCALE,{day:"numeric",month:"short"})+" \u2013 "+t.toLocaleDateString(LOCALE,{day:"numeric",month:"short"});}
 function _moneyShort(n){n=Number(n)||0;var s=n<0?"-":"";n=Math.abs(n);if(n>=1e7)return s+"\u20B9"+(n/1e7).toFixed(2).replace(/\.?0+$/,"")+"Cr";if(n>=1e5)return s+"\u20B9"+(n/1e5).toFixed(2).replace(/\.?0+$/,"")+"L";return s+"\u20B9"+Math.round(n).toLocaleString(LOCALE);}
 function _setTile(id,label,val,cls){var el=$(id);if(!el)return;var lv=el.querySelector(".gtl"),vv=el.querySelector(".gtv");if(lv)lv.textContent=label;if(vv){vv.textContent=_moneyShort(val);vv.className="gtv"+(cls?(" "+cls):"");}}
+function openInvestedDiag(){
+  var m=$("investedDiag");if(!m)return;
+  var range=(typeof LASTR!=="undefined"&&LASTR)?LASTR:[null,null];
+  var from=range[0], to=range[1];
+  var rows=EXP.filter(function(e){
+    if(from&&(e.spent_on<from||e.spent_on>to))return false;
+    return spendExcluded(e);
+  }).sort(function(a,b){return b.spent_on<a.spent_on?-1:1;});
+  var total=rows.reduce(function(s,e){return s+Number(e.amount);},0);
+  $("investedDiagSub").textContent=rows.length+" entr"+(rows.length===1?"y":"ies")+" \u00b7 "+money2(total)+" total \u00b7 tap any to edit";
+  var list=$("investedDiagList");
+  if(!rows.length){list.innerHTML='<div class="empty" style="padding:24px 4px">No investment entries this period.</div>';}
+  else{
+    list.innerHTML='<table class="ael" style="width:100%"><tbody>'+rows.map(function(e){
+      var sn=subName(e.subcategory_id);
+      var cn=nameOf(e.category_id);
+      return '<tr class="rec-row" onclick="$(\'investedDiag\').classList.add(\'hide\');openEditModal(\''+e.id+'\')">'+
+        '<td class="muted num" style="padding:10px 8px">'+new Date(e.spent_on).toLocaleDateString(LOCALE,{day:"2-digit",month:"short"})+'</td>'+
+        '<td style="padding:10px 8px"><span class="chip" style="background:'+colorOf(e.category_id)+'">'+esc(cn)+'</span>'+(sn?'<span class="subtag"><span class="dot" style="background:'+subColor(e.subcategory_id)+'"></span>'+esc(sn)+'</span>':'')+(e.note?'<div class="muted" style="font-size:12px;margin-top:2px">'+esc(e.note)+'</div>':'')+'</td>'+
+        '<td class="amt" style="text-align:right;padding:10px 8px">'+money2(e.amount)+'</td>'+
+        '</tr>';
+    }).join("")+'</tbody></table>';
+  }
+  m.classList.remove("hide");
+}
+function closeInvestedDiag(){$("investedDiag").classList.add("hide");}
+
 function renderHomeHero(F,from,to){
   if(!$("ringNum"))return;
   var hr=new Date().getHours();
