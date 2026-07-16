@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -1443,14 +1442,25 @@ font-variation-settings:"opsz" 20;letter-spacing:.01em}
 .exp-more-btn{min-height:42px;padding:8px 4px;margin:-4px 0 -6px}
 .moneytabs .mtab{min-height:44px}
 .backup-link button,.backup-link .linklike,.linklike{min-height:42px;padding:10px 14px;display:inline-flex;align-items:center;justify-content:center;border-radius:12px}
-.editform .amt-wrap{background:rgba(199,165,87,.06) !important;border:1px solid rgba(231,207,147,.20) !important;border-radius:14px !important;overflow:hidden}
-.editform .amt-wrap:focus-within{border-color:rgba(199,165,87,.6) !important;box-shadow:0 0 0 4px rgba(199,165,87,.13)}
-.editform .amt-wrap .cur{background:none !important;border-right:none !important;color:var(--brass-2);
-font-family:var(--serif);font-weight:560;font-size:22px;padding:0 2px 0 16px;position:static}
-.editform .amt-wrap input{height:54px !important;font-size:24px !important;font-weight:600;
-font-family:var(--serif);font-variation-settings:"opsz" 60;
-font-variant-numeric:lining-nums tabular-nums;border:none !important;background:transparent !important;
-box-shadow:none !important;padding-left:6px !important}
+/* Amount fields — calm default everywhere; hero treatment only on the expense modal */
+.editform .amt-wrap{background:rgba(199,165,87,.06) !important;border:1px solid rgba(231,207,147,.20) !important;border-radius:12px !important;overflow:hidden;height:46px}
+.editform .amt-wrap:focus-within{border-color:rgba(199,165,87,.6) !important;box-shadow:0 0 0 3px rgba(199,165,87,.12)}
+.editform .amt-wrap .cur,
+.editform .ef .amt-wrap .cur{background:none !important;border-right:none !important;color:var(--brass-2);
+font-family:var(--sans);font-weight:600;font-size:15px;
+flex:0 0 auto !important;width:auto !important;min-width:max-content !important;
+padding:0 1px 0 13px !important;justify-content:flex-start !important;position:static !important;
+overflow:visible !important;white-space:nowrap}
+.editform .amt-wrap input{height:44px !important;font-size:16px !important;font-weight:600;
+font-family:var(--sans);font-variant-numeric:lining-nums tabular-nums;
+border:none !important;background:transparent !important;box-shadow:none !important;
+padding-left:7px !important;padding-right:12px !important}
+.editform .amt-wrap input::placeholder{color:var(--ink-faint);font-weight:500}
+/* the expense amount is the primary field — keep it a touch larger and in the ledger serif */
+#editModal .editform .amt-wrap{border-radius:14px !important;height:54px}
+#editModal .editform .amt-wrap .cur{font-family:var(--serif);font-weight:560;font-size:19px;padding:0 1px 0 15px !important;min-width:max-content !important}
+#editModal .editform .amt-wrap input{height:52px !important;font-size:21px !important;
+font-family:var(--serif);font-variation-settings:"opsz" 60}
 [data-theme="light"] .editform .amt-wrap{background:rgba(199,165,87,.07) !important;border-color:rgba(154,126,52,.30) !important}
 [data-theme="light"] .editform .amt-wrap .cur{color:#8A701F}
 .cardtxn{font-weight:650 !important;color:var(--brass-2) !important;border-color:rgba(231,207,147,.22) !important}
@@ -1651,6 +1661,27 @@ box-shadow:0 20px 60px -12px rgba(199,165,87,.7);opacity:0;transform:scale(.4)}
   .rec-stat-l{display:block;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--ink-faint);margin-top:5px}
   .inc-onetime{display:flex;align-items:center;gap:9px;font-size:13.5px;color:var(--ink-soft);padding:6px 2px;cursor:pointer}
   .inc-onetime input{width:17px;height:17px;accent-color:#C7A557}
+
+  .inv-io{display:flex;align-items:center;justify-content:center;gap:4px;margin-top:10px}
+  .inv-io .linklike{background:none;border:none;color:var(--brass-2);font-weight:600;font-size:13px;
+    padding:8px 10px;min-height:40px;cursor:pointer;border-radius:10px}
+  .inv-io .linklike:hover{background:rgba(199,165,87,.08)}
+  .inv-io-dot{width:3px;height:3px;border-radius:50%;background:var(--ink-faint);flex:none}
+  [data-theme="light"] .inv-io .linklike{color:#8A701F}
+
+  /* Investment Excel export / import — proper buttons */
+  .inv-io{display:flex !important;align-items:stretch;justify-content:stretch;gap:9px !important;margin-top:11px}
+  .inv-io-btn{flex:1 1 0;min-width:0;height:44px;border-radius:12px;
+    display:inline-flex;align-items:center;justify-content:center;gap:7px;
+    font-size:13px;font-weight:650;padding:0 10px;white-space:nowrap;
+    background:rgba(199,165,87,.07);border:1px solid rgba(231,207,147,.20);color:var(--brass-2);
+    cursor:pointer;-webkit-tap-highlight-color:transparent;transition:background .14s,transform .1s}
+  .inv-io-btn svg{width:15px;height:15px;flex:none}
+  .inv-io-btn:active{transform:scale(.97)}
+  .inv-io-btn:hover{background:rgba(199,165,87,.13)}
+  [data-theme="light"] .inv-io-btn{background:rgba(154,126,52,.07);border-color:rgba(154,126,52,.26);color:#8A701F}
+  [data-theme="light"] .inv-io-btn:hover{background:rgba(154,126,52,.12)}
+  @media(max-width:360px){.inv-io-btn{font-size:12px;gap:5px;padding:0 6px}}
 </style>
 </head>
 <body>
@@ -1974,6 +2005,11 @@ box-shadow:0 20px 60px -12px rgba(199,165,87,.7);opacity:0;transform:scale(.4)}
       <div id="investChartWrap" style="display:none;height:180px;margin:2px 0 16px"><canvas id="investChart"></canvas></div>
       <div id="investList"></div>
       <button class="ghost addbtn" id="addInvestBtn">+ Add investment</button>
+      <input id="investBulkFile" type="file" accept=".csv,.xlsx,.xls" class="hide">
+      <div class="inv-io">
+        <button class="ghost inv-io-btn" id="invDownloadBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7.5 10.5 12 15l4.5-4.5"/><path d="M4 17.5V19a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-1.5"/></svg>Export Excel</button>
+        <button class="ghost inv-io-btn" id="invUploadBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V3M7.5 7.5 12 3l4.5 4.5"/><path d="M4 17.5V19a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-1.5"/></svg>Import Excel</button>
+      </div>
     </section>
     <section class="card collapsible" id="recurCard" data-mtab="budgets" style="margin-top:16px">
       <div class="chead"><h2 class="ctitle">Recurring <span class="soft">— auto-added each month</span></h2></div>
@@ -2037,6 +2073,19 @@ box-shadow:0 20px 60px -12px rgba(199,165,87,.7);opacity:0;transform:scale(.4)}
   </div>
 </div>
 
+
+<div id="invBulkModal" class="modal hide" onclick="if(event.target===this)closeInvBulk()">
+  <div class="modal-card" style="max-height:86vh;display:flex;flex-direction:column">
+    <div class="sheet-handle" style="margin-bottom:10px"></div>
+    <div class="modal-title">Review changes</div>
+    <div class="modal-sub">Nothing is saved until you confirm. Rows missing from the file are left untouched.</div>
+    <div id="invBulkBody" style="overflow-y:auto;flex:1;margin:14px -6px 0;padding:0 6px"></div>
+    <div class="modal-actions" style="margin-top:16px">
+      <button class="ghost" onclick="closeInvBulk()">Cancel</button>
+      <button class="primary" id="invBulkApply">Apply</button>
+    </div>
+  </div>
+</div>
 
 <div id="investModal" class="modal hide">
   <div class="modal-card">
@@ -2523,6 +2572,216 @@ function closeInvestModal(){$("investModal").classList.add("hide");}
 $("addInvestBtn").onclick=function(){openInvestModal(null);};
 $("investCancel").onclick=closeInvestModal;
 $("investModal").addEventListener("click",function(e){if(e.target.id==="investModal")closeInvestModal();});
+
+/* ---- Investments: download / update round-trip ---- */
+var INVBULK=null;
+var INV_SHEET_COLS=["ID","Name","Type","Value (INR)","Updated on"];
+function _invTypeCode(s){
+  s=String(s||"").trim().toLowerCase();
+  if(!s)return "";
+  for(var k in INV_TYPEL){if(k===s||String(INV_TYPEL[k]).toLowerCase()===s)return k;}
+  if(/mutual|\bmf\b/.test(s))return "mf";
+  if(/^us\b|us stock|foreign/.test(s))return "us";
+  if(/stock|equity|share/.test(s))return "stocks";
+  if(/nps/.test(s))return "nps";
+  if(/epf|\bpf\b|provident/.test(s))return "epf";
+  if(/cash|bank|savings|\bfd\b|deposit/.test(s))return "cash";
+  if(/loan|debt|emi|mortgage/.test(s))return "loan";
+  return "";
+}
+function _invNum(v){
+  if(typeof v==="number")return v;
+  var s=String(v==null?"":v).replace(/[^0-9.\-]/g,"");
+  return s===""?NaN:parseFloat(s);
+}
+function downloadInvestSheet(){
+  if(typeof XLSX==="undefined"){showToast("Export library still loading — try again");return;}
+  var rows=(INVEST||[]).slice().sort(function(a,b){return Number(b.value)-Number(a.value);}).map(function(v){
+    var o={};
+    o["ID"]=v.id; o["Name"]=v.name||"";
+    o["Type"]=INV_TYPEL[v.type||"other"]||"Other";
+    o["Value (INR)"]=Math.round(Number(v.value)||0);
+    o["Updated on"]=v.updated_on||"";
+    return o;
+  });
+  if(!rows.length){var e={};e["ID"]="";e["Name"]="";e["Type"]="Stocks";e["Value (INR)"]=0;e["Updated on"]=todayStr();rows=[e];}
+  var wb=XLSX.utils.book_new();
+  var ws=XLSX.utils.json_to_sheet(rows,{header:INV_SHEET_COLS});
+  ws["!cols"]=[{wch:38},{wch:28},{wch:14},{wch:14},{wch:13}];
+  XLSX.utils.book_append_sheet(wb,ws,"Investments");
+  var total=(INVEST||[]).reduce(function(s,v){return s+Number(v.value||0);},0);
+  var guide=[
+    ["Devangada Kharcha — investments sheet"],
+    [""],
+    ["Exported on: "+new Date().toLocaleDateString(LOCALE,{day:"numeric",month:"long",year:"numeric"})],
+    ["Holdings in this file: "+(INVEST||[]).length],
+    ["Total portfolio value: INR "+Math.round(total).toLocaleString("en-IN")],
+    [""],
+    ["HOW TO UPDATE"],
+    ["1. Edit the 'Value (INR)' column on the Investments sheet. That is usually all you need."],
+    ["2. To add a holding, add a new row and leave the ID blank."],
+    ["3. Save the file, then in the app: Money > Investments > Update from file."],
+    ["4. The app shows you every change for review before anything is saved."],
+    [""],
+    ["RULES"],
+    ["Do not edit or delete the ID column — it is how the app matches rows back."],
+    ["Deleting a row here does NOT delete it in the app. Delete holdings in the app itself."],
+    ["Value must be a plain number in rupees. No symbols, no commas needed."],
+    ["Allowed Type values: "+Object.keys(INV_TYPEL).map(function(k){return INV_TYPEL[k];}).join(", ")],
+    ["Use Type 'Loans' for money you owe — it is subtracted from net worth."],
+    [""],
+    ["IF YOU ARE ASKING CLAUDE (OR ANOTHER ASSISTANT) FOR HELP"],
+    ["This sheet lists what the household owns and owes, valued in Indian rupees."],
+    ["Type meanings: Stocks = direct equity. Mutual funds = domestic MF/SIP. US stocks = foreign equity."],
+    ["NPS and EPF = retirement, locked until retirement age. Cash & bank = liquid savings and FDs."],
+    ["Loans = outstanding debt. Other = anything else."],
+    ["Net worth = everything except Loans, minus Loans."],
+    ["Note: this file covers investments only. Monthly income and spending are exported separately"],
+    ["from the Add tab (Download a month)."]
+  ];
+  var gs=XLSX.utils.aoa_to_sheet(guide);
+  gs["!cols"]=[{wch:104}];
+  XLSX.utils.book_append_sheet(wb,gs,"Read me");
+  XLSX.writeFile(wb,"Kharcha_Investments_"+todayStr()+".xlsx");
+  haptic(12);showToast("Sheet downloaded");
+}
+function buildInvestBulkPlan(rows){
+  var plan={updates:[],inserts:[],unchanged:0,skipped:[]};
+  var byId={},byKey={};
+  (INVEST||[]).forEach(function(v){
+    byId[String(v.id)]=v;
+    byKey[String(v.name||"").trim().toLowerCase()+"|"+(v.type||"other")]=v;
+  });
+  rows.forEach(function(r,i){
+    var pick=function(names){
+      for(var n=0;n<names.length;n++)for(var k in r){
+        if(String(k).trim().toLowerCase()===names[n])return r[k];
+      }
+      return "";
+    };
+    var id=String(pick(["id"])||"").trim();
+    var name=String(pick(["name"])||"").trim();
+    var typeRaw=pick(["type"]);
+    var valRaw=pick(["value (inr)","value (\u20b9)","value","amount","current value"]);
+    if(!id&&!name&&String(valRaw||"").trim()==="")return;
+    if(!name){plan.skipped.push({row:i+2,why:"no name"});return;}
+    var val=_invNum(valRaw);
+    if(!isFinite(val)||val<0){plan.skipped.push({row:i+2,why:"value is not a number"});return;}
+    var type=_invTypeCode(typeRaw);
+    var guessed=!type; if(!type)type="other";
+    var ex=(id&&byId[id])||byKey[name.toLowerCase()+"|"+type]||null;
+    val=Math.round(val);
+    if(ex){
+      var same=Math.round(Number(ex.value))===val&&(ex.type||"other")===type&&String(ex.name||"").trim()===name;
+      if(same){plan.unchanged++;return;}
+      plan.updates.push({id:ex.id,name:name,type:type,before:Math.round(Number(ex.value)||0),after:val,
+        renamed:String(ex.name||"").trim()!==name,retyped:(ex.type||"other")!==type,
+        usd:/^usd:/i.test(String(ex.note||"")),guessed:guessed});
+    }else{
+      plan.inserts.push({name:name,type:type,value:val,guessed:guessed});
+    }
+  });
+  return plan;
+}
+function openInvBulk(plan){
+  INVBULK=plan;
+  var host=$("invBulkBody");
+  var n=plan.updates.length+plan.inserts.length;
+  var html="";
+  html+='<div class="rec-stats">';
+  html+='<div class="rec-stat"><span class="rec-stat-v">'+plan.updates.length+'</span><span class="rec-stat-l">Updated</span></div>';
+  html+='<div class="rec-stat"><span class="rec-stat-v">'+plan.inserts.length+'</span><span class="rec-stat-l">New</span></div>';
+  html+='<div class="rec-stat"><span class="rec-stat-v">'+plan.unchanged+'</span><span class="rec-stat-l">Unchanged</span></div>';
+  html+='</div>';
+  if(!n){
+    html+='<div class="empty" style="padding:20px 4px">Nothing to change — the file matches what is already saved.</div>';
+  }
+  if(plan.updates.length){
+    var net=plan.updates.reduce(function(s,u){return s+(u.after-u.before);},0);
+    html+='<div class="rec-sep-lg"></div><div class="rec-heading">Value changes</div>';
+    plan.updates.forEach(function(u){
+      var d=u.after-u.before;
+      html+='<div class="rec-line"><span class="rec-lbl">'+esc(u.name)+'</span><span class="rec-val '+(d>=0?"pos":"neg")+'">'+(d>=0?"+":"\u2212")+money2(Math.abs(d))+'</span></div>';
+      var bits=[money2(u.before)+" \u2192 "+money2(u.after)];
+      if(u.renamed)bits.push("renamed");
+      if(u.retyped)bits.push("type \u2192 "+(INV_TYPEL[u.type]||u.type));
+      if(u.usd)bits.push("USD reference left unchanged");
+      html+='<div class="rec-detail">'+bits.join(" \u00b7 ")+'</div>';
+    });
+    html+='<div class="rec-line rec-total"><span class="rec-lbl">Net change</span><span class="rec-val '+(net>=0?"pos":"neg")+'">'+(net>=0?"+":"\u2212")+money2(Math.abs(net))+'</span></div>';
+  }
+  if(plan.inserts.length){
+    html+='<div class="rec-sep-lg"></div><div class="rec-heading">New holdings</div>';
+    plan.inserts.forEach(function(x){
+      html+='<div class="rec-line"><span class="rec-lbl">'+esc(x.name)+'</span><span class="rec-val">'+money2(x.value)+'</span></div>';
+      html+='<div class="rec-detail">'+(INV_TYPEL[x.type]||x.type)+(x.guessed?' \u00b7 <span class="brass-hint">type not recognised, filed under Other</span>':"")+'</div>';
+    });
+  }
+  if(plan.skipped.length){
+    html+='<div class="rec-sep-lg"></div><div class="rec-heading">Skipped rows</div>';
+    html+='<div class="rec-detail">'+plan.skipped.slice(0,8).map(function(s){return "Row "+s.row+" \u2014 "+s.why;}).join("<br/>")+'</div>';
+  }
+  host.innerHTML=html;
+  $("invBulkApply").disabled=!n;
+  $("invBulkModal").classList.remove("hide");
+}
+function closeInvBulk(){$("invBulkModal").classList.add("hide");INVBULK=null;}
+async function applyInvestBulk(){
+  if(!INVBULK)return;
+  if(!requireOnline("You're offline — investments need a connection"))return;
+  var btn=$("invBulkApply");btn.disabled=true;
+  try{
+    for(var i=0;i<INVBULK.updates.length;i++){
+      var u=INVBULK.updates[i];
+      var r=await sb.from("investments").update({name:u.name,type:u.type,value:u.after,updated_on:todayStr()}).eq("id",u.id);
+      if(r.error)throw r.error;
+    }
+    if(INVBULK.inserts.length){
+      var r2=await sb.from("investments").insert(INVBULK.inserts.map(function(x){
+        return {name:x.name,type:x.type,value:x.value,updated_on:todayStr()};
+      }));
+      if(r2.error)throw r2.error;
+    }
+    var done=INVBULK.updates.length+INVBULK.inserts.length;
+    closeInvBulk();
+    await loadInvest();
+    renderInvest();renderNetWorth();renderInvestChart();applyFilters();
+    try{snapshotInvest();}catch(_){}
+    haptic(14);
+    if(typeof showSuccessBurst==="function")showSuccessBurst();
+    showToast("Updated "+done+" holding"+(done!==1?"s":""));
+  }catch(e){
+    btn.disabled=false;
+    alert((e&&e.message)||"Couldn't update investments");
+  }
+}
+if($("invDownloadBtn"))$("invDownloadBtn").onclick=downloadInvestSheet;
+if($("invUploadBtn"))$("invUploadBtn").onclick=function(){
+  if(typeof XLSX==="undefined"){showToast("Import library still loading — try again");return;}
+  $("investBulkFile").click();
+};
+if($("invBulkApply"))$("invBulkApply").onclick=applyInvestBulk;
+$("investBulkFile").onchange=function(ev){
+  var file=ev.target.files[0];if(!file)return;
+  var rd=new FileReader();
+  rd.onload=function(e){
+    try{
+      var wb=XLSX.read(e.target.result,{type:"binary"});
+      var nm=wb.SheetNames.indexOf("Investments")>=0?"Investments":wb.SheetNames[0];
+      var rows=XLSX.utils.sheet_to_json(wb.Sheets[nm],{defval:""});
+      if(!rows.length){showToast("That sheet is empty");return;}
+      var plan=buildInvestBulkPlan(rows);
+      if(!plan.updates.length&&!plan.inserts.length&&!plan.unchanged&&!plan.skipped.length){
+        showToast("Couldn't find Name / Value columns");return;
+      }
+      openInvBulk(plan);
+    }catch(err){
+      alert("Couldn't read that file. Use the sheet downloaded from this app, or a CSV with Name, Type and Value columns.");
+    }
+  };
+  rd.readAsBinaryString(file);
+  ev.target.value="";
+};
 $("investFile").onchange=function(ev){var file=ev.target.files[0];if(!file)return;var rd=new FileReader();rd.onload=function(e){try{var wb=XLSX.read(e.target.result,{type:"binary"});INV.wb=wb;selectInvSheet(pickSheet(wb,INV.type));}catch(err){alert("Couldn\u2019t read that file.");}};rd.readAsBinaryString(file);ev.target.value="";};
 function selectInvSheet(sheetName){if(!INV.wb)return;var pr=sheetToRows(INV.wb,sheetName);var g=guessCols(pr.cols,pr.rows);var pref=invMapPref(INV.type);var nc=(pref&&pr.cols.indexOf(pref.n)>-1)?pref.n:g.nameCol;var vc=(pref&&(pref.v==="__COMPUTE__"||pr.cols.indexOf(pref.v)>-1))?pref.v:g.valueCol;INV.parse={rows:pr.rows,cols:pr.cols,nameCol:nc,valueCol:vc,qtyCol:g.qtyCol,priceCol:g.priceCol,hasCompute:g.hasCompute,sheet:sheetName,sheets:INV.wb.SheetNames};INV.pending=null;renderInvestForm();}
 $("investSave").onclick=async function(){var name=(INV.name||"").trim();if(!name){alert("Enter a name.");return;}var staged=(INV.pending&&INV.pending.length)?INV.pending:null;var payload;if(INV.type==="us"&&!staged){var _usd=parseFloat(INV.usd)||0;var _rate=parseFloat(INV.rate)||getUsdRate();setUsdRate(_rate);payload={name:name,type:"us",value:Math.round(_usd*_rate),updated_on:INV.date||todayStr(),note:"usd:"+_usd};}else{var val=staged?staged.reduce(function(s,x){return s+x.value;},0):(INV.value||0);payload={name:name,type:INV.type||"other",value:Math.round(val),updated_on:INV.date||todayStr()};}$("investSave").disabled=true;var invId=INV.id,r;if(INV.id){r=await sb.from("investments").update(payload).eq("id",INV.id);}else{r=await sb.from("investments").insert(payload).select();if(r&&!r.error&&r.data&&r.data[0])invId=r.data[0].id;}if(r&&r.error){$("investSave").disabled=false;alert(r.error.message);return;}if(staged&&invId){try{await sb.from("investment_holdings").delete().eq("investment_id",invId);await sb.from("investment_holdings").insert(staged.map(function(x){return{investment_id:invId,name:x.name,value:Math.round(x.value)};}));}catch(e){}}$("investSave").disabled=false;closeInvestModal();await loadInvest();await snapshotInvest();await loadInvestSnap();renderInvest();haptic(12);showToast("Saved");};
