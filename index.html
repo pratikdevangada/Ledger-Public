@@ -1608,6 +1608,50 @@ box-shadow:0 20px 60px -12px rgba(199,165,87,.7);opacity:0;transform:scale(.4)}
 70%{opacity:1;transform:scale(1)}
 100%{opacity:0;transform:scale(1.1)}
 }
+
+  /* Money Health reconciliation */
+  #reconcileModal .modal-card{border-radius:20px;max-width:520px;width:calc(100% - 24px)}
+  #reconcileModal .modal-title{font-family:var(--serif);font-variation-settings:"opsz" 40;font-weight:600}
+  #reconcileModal .modal-sub{font-size:13px;color:var(--ink-soft);margin-top:4px}
+  .rec-line{display:flex;justify-content:space-between;align-items:baseline;padding:12px 4px;font-size:14.5px}
+  .rec-in .rec-lbl{font-weight:650}
+  .rec-lbl{color:var(--ink)}
+  .rec-lbl.pos-lbl{color:var(--pos);font-weight:600;font-size:13px}
+  .rec-lbl.warn-lbl{color:#E5B15C;font-weight:600;font-size:13px}
+  [data-theme="light"] .rec-lbl.warn-lbl{color:#B48530}
+  .rec-val{font-family:var(--serif);font-variation-settings:"opsz" 40;font-weight:600;font-variant-numeric:tabular-nums;font-size:16px}
+  .rec-val.pos{color:var(--pos)}
+  .rec-val.neg{color:var(--red)}
+  .rec-total{border-top:1px solid var(--line-2);padding-top:14px;margin-top:6px}
+  .rec-total .rec-lbl{font-weight:650}
+  .rec-total .rec-val{font-size:20px}
+  .rec-detail{font-size:12.5px;color:var(--ink-soft);padding:0 4px 8px;line-height:1.5}
+  .rec-note{font-size:12.5px;color:var(--ink-soft);padding:4px 4px 8px;font-style:italic}
+  .rec-note b{color:var(--brass-2);font-style:normal;font-weight:650}
+  [data-theme="light"] .rec-note b{color:#8A701F}
+  .rec-sep{height:1px;background:var(--line);margin:4px 0}
+  .rec-sep-lg{height:1px;background:var(--line-2);margin:22px 0 16px}
+  .rec-heading{font-family:var(--serif);font-variation-settings:"opsz" 40;font-weight:600;font-size:17px;margin-bottom:6px;color:var(--ink)}
+  .rec-bar{height:5px;background:rgba(231,207,147,.12);border-radius:3px;overflow:hidden;margin:6px 4px 12px}
+  .rec-bar span{display:block;height:100%;background:linear-gradient(90deg,#EDD8A0,#C7A557);transition:width .8s cubic-bezier(.4,0,.2,1)}
+  @media(max-width:760px){
+    #reconcileModal .modal-card{position:fixed;bottom:0;left:0;right:0;width:100%;border-radius:20px 20px 0 0;max-height:88vh;padding-bottom:calc(16px + env(safe-area-inset-bottom,0px))}
+  }
+
+  .brass-hint{color:var(--brass-2);font-weight:600;font-style:italic}
+  [data-theme="light"] .brass-hint{color:#8A701F}
+
+  .gts{display:block;font-size:10.5px;font-weight:600;color:var(--ink-faint);margin-top:2px;letter-spacing:.02em}
+  [data-theme="light"] .gts{color:#75857A}
+  .rec-stats{display:flex;gap:10px;margin:10px 0 4px}
+  .rec-stat{flex:1;background:rgba(231,207,147,.06);border:1px solid rgba(231,207,147,.12);border-radius:14px;padding:12px 10px;text-align:center}
+  [data-theme="light"] .rec-stat{background:rgba(31,60,49,.04);border-color:rgba(31,60,49,.10)}
+  .rec-stat-v{display:block;font-family:var(--serif);font-variation-settings:"opsz" 40;font-weight:600;font-size:17px;font-variant-numeric:tabular-nums;color:var(--ink)}
+  .rec-stat-v.pos{color:var(--pos)}
+  .rec-stat-v.neg{color:var(--red)}
+  .rec-stat-l{display:block;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--ink-faint);margin-top:5px}
+  .inc-onetime{display:flex;align-items:center;gap:9px;font-size:13.5px;color:var(--ink-soft);padding:6px 2px;cursor:pointer}
+  .inc-onetime input{width:17px;height:17px;accent-color:#C7A557}
 </style>
 </head>
 <body>
@@ -1695,6 +1739,16 @@ box-shadow:0 20px 60px -12px rgba(199,165,87,.7);opacity:0;transform:scale(.4)}
   </div>
 </div>
 
+<div id="reconcileModal" class="modal hide" onclick="if(event.target===this)closeReconcile()">
+  <div class="modal-card recon-sheet" id="reconcileSheet" style="max-height:88vh;display:flex;flex-direction:column">
+    <div class="sheet-handle" style="margin-bottom:10px"></div>
+    <div class="modal-title">Money Health · <span id="reconPeriod"></span></div>
+    <div class="modal-sub">Full breakdown of where your money went this period.</div>
+    <div style="overflow-y:auto;flex:1;margin:14px -6px 0;padding:0 6px" id="reconBody"></div>
+    <div style="text-align:right;margin-top:14px"><button class="ghost" onclick="closeReconcile()">Close</button></div>
+  </div>
+</div>
+
 <div id="investedDiag" class="modal hide" onclick="if(event.target===this)closeInvestedDiag()">
   <div class="modal-card" style="max-height:80vh;display:flex;flex-direction:column">
     <div class="sheet-handle" style="margin-bottom:10px"></div>
@@ -1742,9 +1796,9 @@ box-shadow:0 20px 60px -12px rgba(199,165,87,.7);opacity:0;transform:scale(.4)}
         <div class="ghero-bar"><div class="ghero-bar-fill" id="barFill"></div></div>
         <div class="ghero-barcap"><span id="barLeft"></span><span id="barBudget"></span></div>
         <div class="gtiles">
-          <button class="gtile" id="tileIncome" type="button" onclick="goScreen('budgets')"><span class="gtl">Income</span><span class="gtv">—</span></button>
+          <button class="gtile" id="tileIncome" type="button" onclick="openReconcile()"><span class="gtl">Income</span><span class="gtv">—</span></button>
           <button class="gtile" id="tileInvested" type="button" onclick="openInvestedDiag()"><span class="gtl">Invested</span><span class="gtv">—</span></button>
-          <button class="gtile" id="tileSaved" type="button" onclick="goScreen('budgets')"><span class="gtl">Remaining</span><span class="gtv">—</span></button>
+          <button class="gtile" id="tileSaved" type="button" onclick="openReconcile()"><span class="gtl">Remaining</span><span class="gtv">—</span></button>
         </div>
         <div class="gactions">
           <button class="gact primary" type="button" onclick="goScreen('add')">+ Add expense</button>
@@ -2152,7 +2206,7 @@ $("syncClose").onclick=closeSyncMenu;
 $("syncmenu").addEventListener("click",function(e){if(e.target.id==="syncmenu")closeSyncMenu();});
 $("syncNow").onclick=function(){closeSyncMenu();if(!navigator.onLine){showToast("You are offline \u2014 it will sync automatically when back online");return;}flushQueue();};
 $("syncDiscard").onclick=async function(){var n=loadQueue().length;if(!n){closeSyncMenu();return;}if(!confirm("Discard "+n+" unsynced expense"+(n>1?"s":"")+"? This cannot be undone.")){return;}saveQueue([]);closeSyncMenu();await loadExpenses();renderAddRecent();applyFilters();showToast("Discarded "+n+" unsynced");};
-async function loadExpenses(){var real=[];try{var r=await sb.from("expenses").select("id,amount,spent_on,paid_by,note,category_id,subcategory_id,method,card_id").order("spent_on",{ascending:false}).limit(5000);if(r.error)throw r.error;real=r.data||[];cacheExpenses(real);}catch(e){real=loadCache();}EXP=pendingItems().concat(real);updateSync();}
+async function loadExpenses(){var real=[];try{var r=await sb.from("expenses").select("id,amount,spent_on,paid_by,note,category_id,subcategory_id,method,card_id,interest_pct").order("spent_on",{ascending:false}).limit(5000);if(r.error)throw r.error;real=r.data||[];cacheExpenses(real);}catch(e){real=loadCache();}EXP=pendingItems().concat(real);updateSync();}
 let RECUR=[];const METHODS=["UPI","Card","Cash","Bank transfer","Other"];
 async function loadRecurring(){try{const{data}=await sb.from("recurring").select("*").order("day_of_month",{ascending:true});RECUR=data||[];}catch(e){RECUR=[];}}
 async function processRecurring(){
@@ -2182,7 +2236,7 @@ async function processRecurring(){
         try{await sb.from("recurring").update({last_added:ym}).eq("id",r.id);r.last_added=ym;}catch(_){}
         continue;
       }
-      const{error}=await sb.from("expenses").insert({amount:r.amount,category_id:r.category_id,subcategory_id:r.subcategory_id||null,spent_on:spent_on,paid_by:r.paid_by||null,method:r.method||null,card_id:r.card_id||null,note:(r.note?r.note+" ":"")+"(recurring)"});
+      const{error}=await sb.from("expenses").insert({amount:r.amount,category_id:r.category_id,subcategory_id:r.subcategory_id||null,spent_on:spent_on,paid_by:r.paid_by||null,method:r.method||null,card_id:r.card_id||null,interest_pct:(r.interest_pct!=null?r.interest_pct:null),note:(r.note?r.note+" ":"")+"(recurring)"});
       if(!error){
         await sb.from("recurring").update({last_added:ym}).eq("id",r.id);
         r.last_added=ym;
@@ -2415,13 +2469,13 @@ var _monthSelBuilt=false;
 function availableMonths(){var set={};EXP.forEach(function(e){if(e._pending)return;var d=new Date(e.spent_on);if(isNaN(d))return;var ym=d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0");if(!set[ym])set[ym]={y:d.getFullYear(),m:d.getMonth(),ym:ym,label:d.toLocaleDateString(LOCALE,{month:"long",year:"numeric"})};});return Object.keys(set).sort().reverse().map(function(k){return set[k];});}
 function renderMonthDownload(){var card=$("monthDownloadCard"),host=$("monthSelect");if(!card||!host)return;var months=availableMonths();if(!months.length){card.style.display="none";return;}card.style.display="";var opts=months.map(function(mo){return{value:mo.ym,label:mo.label};});if(!_monthSelBuilt){buildSelect(host,{options:opts,value:months[0].ym,placeholder:"Select month"});_monthSelBuilt=true;}else{host.setOptions(opts);if(!host.value||!months.some(function(m){return m.ym===host.value;}))host.value=months[0].ym;}}
 $("monthDlBtn").onclick=function(){var host=$("monthSelect"),ym=host&&host.value;if(!ym){showToast("Pick a month first");return;}var p=ym.split("-");downloadMonths([{y:+p[0],m:+p[1]-1,ym:ym}]);};
-function renderIncome(){var host=$("incomeSummary");if(!host)return;var now=new Date(),y=now.getFullYear(),m=now.getMonth();var inc=(INCOME||[]).filter(function(e){var d=new Date(e.received_on);return d.getFullYear()===y&&d.getMonth()===m;}).reduce(function(s,e){return s+Number(e.amount);},0);var spent=EXP.filter(function(e){var d=new Date(e.spent_on);return d.getFullYear()===y&&d.getMonth()===m&&!spendExcluded(e);}).reduce(function(s,e){return s+Number(e.amount);},0);var invested=EXP.filter(function(e){var d=new Date(e.spent_on);return d.getFullYear()===y&&d.getMonth()===m&&spendExcluded(e);}).reduce(function(s,e){return s+Number(e.amount);},0);var saved=inc-spent-invested;var rate=inc>0?Math.round((inc-spent)/inc*100):0;var scls=saved>=0?"incpos":"incneg";host.innerHTML='<div class="incgrid"><div class="incstat"><span class="incl">Income</span><span class="incv">'+money2(inc)+'</span></div><div class="incstat"><span class="incl">Spent</span><span class="incv">'+money2(spent)+'</span></div><div class="incstat"><span class="incl">Invested</span><span class="incv">'+money2(invested)+'</span></div><div class="incstat"><span class="incl">Saved</span><span class="incv '+scls+'">'+money2(saved)+'</span></div></div>'+(inc>0?'<div class="incnote">Saved or invested <b>'+rate+'%</b> of income \u00b7 Income = Spent + Invested + Saved</div>':'');}
+function renderIncome(){var host=$("incomeSummary");if(!host)return;var now=new Date(),y=now.getFullYear(),m=now.getMonth();var inc=_sumIncome((INCOME||[]).filter(function(e){var d=new Date(e.received_on);return d.getFullYear()===y&&d.getMonth()===m;}));var spent=EXP.filter(function(e){var d=new Date(e.spent_on);return d.getFullYear()===y&&d.getMonth()===m&&!spendExcluded(e);}).reduce(function(s,e){return s+Number(e.amount);},0);var invested=EXP.filter(function(e){var d=new Date(e.spent_on);return d.getFullYear()===y&&d.getMonth()===m&&spendExcluded(e);}).reduce(function(s,e){return s+Number(e.amount);},0);var saved=inc-spent-invested;var rate=inc>0?Math.round((inc-spent)/inc*100):0;var scls=saved>=0?"incpos":"incneg";host.innerHTML='<div class="incgrid"><div class="incstat"><span class="incl">Income</span><span class="incv">'+money2(inc)+'</span></div><div class="incstat"><span class="incl">Spent</span><span class="incv">'+money2(spent)+'</span></div><div class="incstat"><span class="incl">Invested</span><span class="incv">'+money2(invested)+'</span></div><div class="incstat"><span class="incl">Saved</span><span class="incv '+scls+'">'+money2(saved)+'</span></div></div>'+(inc>0?'<div class="incnote">Saved or invested <b>'+rate+'%</b> of income \u00b7 Income = Spent + Invested + Saved</div>':'');}
 var _incRB=null;
-function openIncomeModal(){if(!requireOnline("You\u2019re offline \u2014 income needs a connection"))return;var f=$("incomeForm");f.innerHTML='<div class="ef f-amt"><label>Amount</label><div class="amt-wrap"><span class="cur">\u20b9</span><input id="incAmt" type="text" inputmode="decimal" placeholder="0.00" autocomplete="off"></div></div><div class="ef"><label>Date</label><input id="incDate" type="date" value="'+todayStr()+'"></div><div class="ef"><label>Received by</label><div id="incRBCell"></div></div><div class="ef"><label>Source</label><input id="incSource" type="text" placeholder="Salary, freelance\u2026" autocomplete="off"></div>';numFilter($("incAmt"));_incRB=document.createElement("div");$("incRBCell").appendChild(_incRB);buildSelect(_incRB,{options:paidOpts(),value:window._me||"",placeholder:"Received by"});$("incomeModal").classList.remove("hide");}
+function openIncomeModal(){if(!requireOnline("You\u2019re offline \u2014 income needs a connection"))return;var f=$("incomeForm");f.innerHTML='<div class="ef f-amt"><label>Amount</label><div class="amt-wrap"><span class="cur">\u20b9</span><input id="incAmt" type="text" inputmode="decimal" placeholder="0.00" autocomplete="off"></div></div><div class="ef"><label>Date</label><input id="incDate" type="date" value="'+todayStr()+'"></div><div class="ef"><label>Received by</label><div id="incRBCell"></div></div><div class="ef"><label>Source</label><input id="incSource" type="text" placeholder="Salary, freelance\u2026" autocomplete="off"></div>'+'<div class="ef f-toggle"><button type="button" id="incNetToggle" style="background:none;border:none;color:var(--brass-2);font-weight:600;padding:8px 4px;cursor:pointer;font-size:13.5px">Add deductions (TDS, PF, PT) \u25be</button></div><div class="ef f-amt inc-net-wrap hide" id="incNetWrap"><label>Net take-home (received in bank)</label><div class="amt-wrap"><span class="cur">\u20b9</span><input id="incNet" type="text" inputmode="decimal" placeholder="e.g. 105000" autocomplete="off"></div><div class="muted" style="font-size:12px;margin-top:6px;line-height:1.5">Enter what actually credited to your bank after TDS, PF and professional tax. Leave blank if the amount above is already your net.</div></div><label class="inc-onetime"><input type="checkbox" id="incOneTime"> One-time / windfall (bonus, gift, refund)</label>';numFilter($("incAmt"));try{numFilter($("incNet"));}catch(_){}try{document.getElementById("incNetToggle").onclick=function(){var w=document.getElementById("incNetWrap");if(w){w.classList.toggle("hide");this.innerHTML=w.classList.contains("hide")?"Add deductions (TDS, PF, PT) \u25be":"Hide deductions \u25b4";}};}catch(_){}_incRB=document.createElement("div");$("incRBCell").appendChild(_incRB);buildSelect(_incRB,{options:paidOpts(),value:window._me||"",placeholder:"Received by"});$("incomeModal").classList.remove("hide");}
 function closeIncomeModal(){$("incomeModal").classList.add("hide");}
 $("addIncomeBtn").onclick=openIncomeModal;$("incomeCancel").onclick=closeIncomeModal;
 $("incomeModal").addEventListener("click",function(e){if(e.target.id==="incomeModal")closeIncomeModal();});
-$("incomeSave").onclick=async function(){var amt=parseFloat($("incAmt").value);if(!amt||amt<=0){alert("Enter a valid amount.");return;}$("incomeSave").disabled=true;var r=await sb.from("income").insert({amount:amt,received_on:$("incDate").value||todayStr(),received_by:(_incRB&&_incRB.value)||null,source:($("incSource").value||"").trim()||null});$("incomeSave").disabled=false;if(r.error){alert(r.error.message);return;}closeIncomeModal();await loadIncome();renderIncome();applyFilters();haptic(12);showToast("Income added");};
+$("incomeSave").onclick=async function(){var amt=parseFloat($("incAmt").value);if(!amt||amt<=0){alert("Enter a valid amount.");return;}$("incomeSave").disabled=true;var r=await sb.from("income").insert({amount:amt,net_amount:(function(){var n=parseFloat(($("incNet")||{}).value);return(n&&n>0&&n<amt)?n:null;})(),one_time:($("incOneTime")&&$("incOneTime").checked)?true:null,received_on:$("incDate").value||todayStr(),received_by:(_incRB&&_incRB.value)||null,source:($("incSource").value||"").trim()||null});$("incomeSave").disabled=false;if(r.error){alert(r.error.message);return;}closeIncomeModal();await loadIncome();renderIncome();applyFilters();haptic(12);showToast("Income added");};
 function parseMethod(mv){if(mv&&mv.indexOf("card:")===0)return{method:"Card",card_id:mv.slice(5)};return{method:mv||null,card_id:null};}
 function methodOpts(){var o=[{value:"UPI",label:"UPI"},{value:"Cash",label:"Cash"},{value:"Bank transfer",label:"Bank transfer"},{value:"Zaggle",label:"Zaggle"},{value:"Card",label:"Credit card"}];(CARDS||[]).forEach(function(c){o.push({value:"card:"+c.id,label:c.name});});return o;}
 function cardName(id){var c=(CARDS||[]).find(function(x){return x.id===id;});return c?c.name:"Card";}
@@ -2478,12 +2532,12 @@ function goInvest(){goScreen("budgets");if(typeof setMoneyTab==="function")setMo
 function renderNetWorth(){var card=$("nwCard");if(!card)return;if(!(INVEST||[]).length){card.style.display="none";return;}var loans=0,assets=0,invested=0;var INVSET=["stocks","mf","us","nps","epf","other"];(INVEST||[]).forEach(function(e){var v=Number(e.value);if(e.type==="loan")loans+=v;else assets+=v;if(INVSET.indexOf(e.type)>=0)invested+=v;});var hasNW=(assets>invested)||loans>0;card.style.display="";var vEl=$("nwValue");if(vEl)vEl.textContent=money2(hasNW?(assets-loans):invested);var lbl=card.querySelector(".nwl");if(lbl)lbl.textContent=hasNW?"Net worth":"Total invested";}
 function renderRecurring(){var host=$("recurList");if(!host)return;if(!(RECUR||[]).length){host.innerHTML='<div class="empty" style="padding:14px 2px">No recurring items yet. Add rent, SIPs, EMIs or subscriptions \u2014 they post automatically each month.</div>';return;}host.innerHTML=RECUR.slice().sort(function(a,b){return (a.day_of_month||1)-(b.day_of_month||1);}).map(function(r){var nm=r.note||nameOf(r.category_id)||"Recurring";var sub=(nameOf(r.category_id)||"")+(r.subcategory_id?" \u00b7 "+subName(r.subcategory_id):"");return '<div class="recur-row'+(r.active===false?" off":"")+'" onclick="openRecurModal(\''+r.id+'\')" style="cursor:pointer"><div class="recmeta"><span class="recn">'+esc(nm)+'</span><span class="recs">'+esc(sub)+' \u00b7 day '+(r.day_of_month||1)+(r.active===false?" \u00b7 paused":"")+'</span></div><span class="reca">'+money2(r.amount)+'</span></div>';}).join("");}
 var EDIT_RECUR=null,_rcCat=null,_rcSub=null,_rcPaid=null,_rcMethod=null;
-function openRecurModal(id){if(!requireOnline("You\u2019re offline \u2014 recurring needs a connection"))return;EDIT_RECUR=id||null;var r=id?RECUR.find(function(x){return x.id===id;}):null;$("recurModalTitle").textContent=r?"Edit recurring":"Add recurring";var f=$("recurForm");f.innerHTML='<div class="ef f-amt"><label>Description</label><input id="rcNote" type="text" placeholder="e.g. Rent, Netflix, SIP" value="'+(r&&r.note?esc(r.note):"")+'"></div><div class="ef f-amt"><label>Amount</label><div class="amt-wrap"><span class="cur">\u20b9</span><input id="rcAmt" type="text" inputmode="decimal" placeholder="0.00" value="'+(r?r.amount:"")+'"></div></div><div class="ef"><label>Category</label><div id="rcCatCell"></div></div><div class="ef"><label>Sub-category</label><div id="rcSubCell"></div></div><div class="ef"><label>Paid by</label><div id="rcPaidCell"></div></div><div class="ef"><label>Method</label><div id="rcMethodCell"></div></div><div class="ef f-amt"><label>Day of month (1\u201328)</label><input id="rcDay" type="number" min="1" max="28" value="'+((r&&r.day_of_month)||1)+'"></div><div class="ef f-amt"><label class="rcactive"><input type="checkbox" id="rcActive" '+((!r||r.active!==false)?"checked":"")+'> Active \u2014 auto-add each month</label></div>';numFilter($("rcAmt"));_rcCat=document.createElement("div");$("rcCatCell").appendChild(_rcCat);buildSelect(_rcCat,{options:rowCatOpts(),value:(r&&r.category_id)||"",placeholder:"Category\u2026",onChange:function(){if(_rcSub&&_rcSub.setOptions)_rcSub.setOptions(rowSubOpts(_rcCat.value));}});_rcSub=document.createElement("div");$("rcSubCell").appendChild(_rcSub);buildSelect(_rcSub,{options:rowSubOpts((r&&r.category_id)||""),value:(r&&r.subcategory_id)||"",placeholder:"\u2014 none \u2014"});_rcPaid=document.createElement("div");$("rcPaidCell").appendChild(_rcPaid);buildSelect(_rcPaid,{options:paidOpts(),value:(r&&r.paid_by)||window._me||"",placeholder:"Paid by"});_rcMethod=document.createElement("div");$("rcMethodCell").appendChild(_rcMethod);buildSelect(_rcMethod,{options:methodOpts(),value:(r&&r.method)||"UPI",placeholder:"Method"});$("recurDelete").style.display=r?"":"none";$("recurModal").classList.remove("hide");}
+function openRecurModal(id){if(!requireOnline("You\u2019re offline \u2014 recurring needs a connection"))return;EDIT_RECUR=id||null;var r=id?RECUR.find(function(x){return x.id===id;}):null;$("recurModalTitle").textContent=r?"Edit recurring":"Add recurring";var f=$("recurForm");f.innerHTML='<div class="ef f-amt"><label>Description</label><input id="rcNote" type="text" placeholder="e.g. Rent, Netflix, SIP" value="'+(r&&r.note?esc(r.note):"")+'"></div><div class="ef f-amt"><label>Amount</label><div class="amt-wrap"><span class="cur">\u20b9</span><input id="rcAmt" type="text" inputmode="decimal" placeholder="0.00" value="'+(r?r.amount:"")+'"></div></div><div class="ef"><label>Category</label><div id="rcCatCell"></div></div><div class="ef"><label>Sub-category</label><div id="rcSubCell"></div></div><div class="ef"><label>Paid by</label><div id="rcPaidCell"></div></div><div class="ef"><label>Method</label><div id="rcMethodCell"></div></div><div class="ef f-amt"><label>Day of month (1\u201328)</label><input id="rcDay" type="number" min="1" max="28" value="'+((r&&r.day_of_month)||1)+'"></div><div class="ef f-amt"><label>Interest portion % <span class="muted" style="font-weight:400;font-size:11.5px">(only for home/vehicle loan EMI)</span></label><input id="rcIntPct" type="number" min="0" max="100" step="1" placeholder="e.g. 80 for home loan EMI" value="'+((r&&r.interest_pct!=null)?r.interest_pct:"")+'"></div><div class="ef f-amt"><label class="rcactive"><input type="checkbox" id="rcActive" '+((!r||r.active!==false)?"checked":"")+'> Active \u2014 auto-add each month</label></div>';numFilter($("rcAmt"));_rcCat=document.createElement("div");$("rcCatCell").appendChild(_rcCat);buildSelect(_rcCat,{options:rowCatOpts(),value:(r&&r.category_id)||"",placeholder:"Category\u2026",onChange:function(){if(_rcSub&&_rcSub.setOptions)_rcSub.setOptions(rowSubOpts(_rcCat.value));}});_rcSub=document.createElement("div");$("rcSubCell").appendChild(_rcSub);buildSelect(_rcSub,{options:rowSubOpts((r&&r.category_id)||""),value:(r&&r.subcategory_id)||"",placeholder:"\u2014 none \u2014"});_rcPaid=document.createElement("div");$("rcPaidCell").appendChild(_rcPaid);buildSelect(_rcPaid,{options:paidOpts(),value:(r&&r.paid_by)||window._me||"",placeholder:"Paid by"});_rcMethod=document.createElement("div");$("rcMethodCell").appendChild(_rcMethod);buildSelect(_rcMethod,{options:methodOpts(),value:(r&&r.method)||"UPI",placeholder:"Method"});$("recurDelete").style.display=r?"":"none";$("recurModal").classList.remove("hide");}
 function closeRecurModal(){$("recurModal").classList.add("hide");}
 $("addRecurBtn").onclick=function(){openRecurModal(null);};
 $("recurCancel").onclick=closeRecurModal;
 $("recurModal").addEventListener("click",function(e){if(e.target.id==="recurModal")closeRecurModal();});
-$("recurSave").onclick=async function(){var amt=parseFloat($("rcAmt").value);if(!amt||amt<=0){alert("Enter a valid amount.");return;}if(!(_rcCat&&_rcCat.value)){alert("Pick a category.");return;}var pm=parseMethod((_rcMethod&&_rcMethod.value)||"UPI");var payload={amount:amt,category_id:_rcCat.value,subcategory_id:(_rcSub&&_rcSub.value)||null,paid_by:(_rcPaid&&_rcPaid.value)||null,method:pm.method,note:($("rcNote").value||"").trim()||null,day_of_month:parseInt($("rcDay").value)||1,active:$("rcActive").checked};$("recurSave").disabled=true;var res=EDIT_RECUR?await sb.from("recurring").update(payload).eq("id",EDIT_RECUR):await sb.from("recurring").insert(payload);$("recurSave").disabled=false;if(res.error){alert(res.error.message);return;}closeRecurModal();await loadRecurring();renderRecurring();haptic(12);showToast("Saved");};
+$("recurSave").onclick=async function(){var amt=parseFloat($("rcAmt").value);if(!amt||amt<=0){alert("Enter a valid amount.");return;}if(!(_rcCat&&_rcCat.value)){alert("Pick a category.");return;}var pm=parseMethod((_rcMethod&&_rcMethod.value)||"UPI");var payload={amount:amt,category_id:_rcCat.value,subcategory_id:(_rcSub&&_rcSub.value)||null,paid_by:(_rcPaid&&_rcPaid.value)||null,method:pm.method,note:($("rcNote").value||"").trim()||null,day_of_month:parseInt($("rcDay").value)||1,active:$("rcActive").checked,interest_pct:(function(){var v=parseFloat($("rcIntPct").value);return(isFinite(v)&&v>=0&&v<=100)?v:null;})()};$("recurSave").disabled=true;var res=EDIT_RECUR?await sb.from("recurring").update(payload).eq("id",EDIT_RECUR):await sb.from("recurring").insert(payload);$("recurSave").disabled=false;if(res.error){alert(res.error.message);return;}closeRecurModal();await loadRecurring();renderRecurring();haptic(12);showToast("Saved");};
 $("recurDelete").onclick=async function(){if(!EDIT_RECUR)return;if(!confirm("Delete this recurring item?"))return;var res=await sb.from("recurring").delete().eq("id",EDIT_RECUR);if(res.error){alert(res.error.message);return;}closeRecurModal();await loadRecurring();renderRecurring();showToast("Deleted");};
 var SPLIT_LINES=[],_spPaid=null,_spMethod=null;
 function _catOpts(sel){return '<option value="">Category\u2026</option>'+(CATS||[]).map(function(c){return '<option value="'+c.id+'"'+(c.id===sel?" selected":"")+'>'+esc(c.name)+'</option>';}).join("");}
@@ -2517,9 +2571,139 @@ function _monthExp(back){var n=new Date();var y=n.getFullYear(),m=n.getMonth()-(
 function renderTrends(){var host=$("trendsBody");if(!host)return;var cur=_monthExp(0),prev=_monthExp(1);var T=function(l){return l.reduce(function(s,e){return s+Number(e.amount);},0);};var ct=T(cur),pt=T(prev);if(ct===0&&pt===0){host.innerHTML='<div class="empty" style="padding:12px 2px">No spending yet to compare.</div>';return;}var html="";if(pt>0){var dp=Math.round((ct-pt)/pt*100),up=dp>=0;html+='<div class="trend-head"><span class="trend-pill '+(up?"up":"down")+'">'+(up?"\u2191":"\u2193")+" "+Math.abs(dp)+'%</span><span class="trend-sub">'+money2(ct)+" this month vs "+money2(pt)+" last</span></div>";}else{html+='<div class="trend-head"><span class="trend-sub">'+money2(ct)+" spent so far this month</span></div>";}var cc={},pc={};cur.forEach(function(e){cc[e.category_id]=(cc[e.category_id]||0)+Number(e.amount);});prev.forEach(function(e){pc[e.category_id]=(pc[e.category_id]||0)+Number(e.amount);});var ids={};Object.keys(cc).forEach(function(k){ids[k]=1;});Object.keys(pc).forEach(function(k){ids[k]=1;});var movers=Object.keys(ids).map(function(id){return{id:id,d:(cc[id]||0)-(pc[id]||0)};}).filter(function(x){return Math.abs(x.d)>=1;});movers.sort(function(a,b){return Math.abs(b.d)-Math.abs(a.d);});var top=movers.slice(0,3);if(top.length){var maxAbs=Math.max.apply(null,top.map(function(x){return Math.abs(x.d);}));html+='<div class="mover-list">'+top.map(function(x){var up=x.d>=0,w=maxAbs>0?Math.round(Math.abs(x.d)/maxAbs*100):0;return '<div class="mover"><span class="mv-dot" style="background:'+colorOf(x.id)+'"></span><span class="mv-name">'+esc(nameOf(x.id))+'</span><span class="mv-bar"><span class="mv-fill '+(up?"up":"down")+'" style="width:'+w+'%"></span></span><span class="mv-amt '+(up?"up":"down")+'">'+(up?"+":"\u2212")+money2(Math.abs(x.d))+"</span></div>";}).join("")+"</div>";}host.innerHTML=html;}
 function renderPace(){var host=$("paceBody");if(!host)return;var totBud=CATS.reduce(function(s,c){return s+(BUD[c.id]||0);},0);if(totBud<=0){host.innerHTML='<div class="empty" style="padding:12px 2px">Set category budgets in the Money tab to see your pace.</div>';return;}var n=new Date(),y=n.getFullYear(),m=n.getMonth();var daysIn=new Date(y,m+1,0).getDate(),day=n.getDate(),frac=day/daysIn;var act=monthActuals();var totAct=0;CATS.forEach(function(c){totAct+=(act[c.id]||0);});var proj=frac>0?Math.round(totAct/frac):totAct;var projCls=proj>totBud?"over":"ok";var html='<div class="pace-top"><div class="pace-day">Day '+day+" of "+daysIn+" \u00b7 "+Math.round(frac*100)+'% through the month</div><div class="pace-proj">Projected month-end: <b class="'+projCls+'">'+money2(proj)+'</b> <span class="pace-budg">of '+money2(totBud)+" budget</span></div></div>";var actPct=totBud>0?Math.min(100,Math.round(totAct/totBud*100)):0,expPct=Math.round(frac*100);html+='<div class="pace-bar"><span class="pace-fill '+(totAct>totBud*frac*1.05?"warn":"")+'" style="width:'+actPct+'%"></span><span class="pace-mark" style="left:'+expPct+'%"></span></div>';html+='<div class="pace-legend"><span>Spent '+money2(totAct)+" ("+actPct+'%)</span><span class="pace-exp">\u25b2 pace = today</span></div>';var overs=CATS.filter(function(c){return(BUD[c.id]||0)>0;}).map(function(c){var a=act[c.id]||0,b=BUD[c.id],p=frac>0?a/frac:a;return{c:c,a:a,b:b,proj:p};}).filter(function(x){return x.proj>x.b*1.02;}).sort(function(a,b){return(b.proj-b.b)-(a.proj-a.b);}).slice(0,4);if(overs.length){html+='<div class="pace-warns">'+overs.map(function(x){return '<div class="pw"><span class="pw-dot" style="background:'+colorOf(x.c.id)+'"></span><span class="pw-name">'+esc(x.c.name)+'</span><span class="pw-txt">'+money2(x.a)+" of "+money2(x.b)+" \u00b7 on track for <b>"+money2(Math.round(x.proj))+"</b></span></div>";}).join("")+"</div>";}else{html+='<div class="pace-ok">\u2713 Every category is on pace.</div>';}host.innerHTML=html;}
 function _sumAmt(l){return l.reduce(function(s,e){return s+Number(e.amount);},0);}
+function _sumIncome(l){return l.reduce(function(s,e){return s+Number((e.net_amount!=null&&Number(e.net_amount)>0)?e.net_amount:e.amount);},0);}
+function _emiSplit(e){var pct=Number(e.interest_pct);if(!isFinite(pct)||pct<0||pct>100)pct=100;var amt=Number(e.amount);return{expense:amt*pct/100,saved:amt*(100-pct)/100};}
+function _pendingRecurAmt(ym){return (RECUR||[]).filter(function(r){return r.active!==false&&r.last_added!==ym;}).reduce(function(s,r){return s+Number(r.amount||0);},0);}
+function _monthlyNet(y,m){
+  var mm=String(m+1).padStart(2,"0"),from=y+"-"+mm+"-01",to=y+"-"+mm+"-31";
+  var inc=_sumIncome((INCOME||[]).filter(function(e){return e.received_on>=from&&e.received_on<=to;}));
+  var spent=0,invested=0,principal=0;
+  (EXP||[]).forEach(function(e){
+    if(e.spent_on<from||e.spent_on>to)return;
+    if(spendExcluded(e)){invested+=Number(e.amount);return;}
+    if(e.interest_pct!=null){var sp=_emiSplit(e);spent+=sp.expense;principal+=sp.saved;}
+    else spent+=Number(e.amount);
+  });
+  return{income:inc,net:inc-spent-invested-principal,active:(inc>0||spent>0||invested>0)};
+}
 function _periodLabel(from,to){var f=new Date(from),t=new Date(to),now=new Date();var sameM=f.getMonth()===t.getMonth()&&f.getFullYear()===t.getFullYear();if(sameM&&f.getMonth()===now.getMonth()&&f.getFullYear()===now.getFullYear())return "this month";if(sameM)return f.toLocaleDateString(LOCALE,{month:"long"});return f.toLocaleDateString(LOCALE,{day:"numeric",month:"short"})+" \u2013 "+t.toLocaleDateString(LOCALE,{day:"numeric",month:"short"});}
 function _moneyShort(n){n=Number(n)||0;var s=n<0?"-":"";n=Math.abs(n);if(n>=1e7)return s+"\u20B9"+(n/1e7).toFixed(2).replace(/\.?0+$/,"")+"Cr";if(n>=1e5)return s+"\u20B9"+(n/1e5).toFixed(2).replace(/\.?0+$/,"")+"L";return s+"\u20B9"+Math.round(n).toLocaleString(LOCALE);}
 function _setTile(id,label,val,cls){var el=$(id);if(!el)return;var lv=el.querySelector(".gtl"),vv=el.querySelector(".gtv");if(lv)lv.textContent=label;if(vv){vv.textContent=_moneyShort(val);vv.className="gtv"+(cls?(" "+cls):"");}}
+function openReconcile(){
+  var m=$("reconcileModal");if(!m)return;
+  var range=(typeof LASTR!=="undefined"&&LASTR)?LASTR:[null,null];
+  var from=range[0], to=range[1];
+  $("reconPeriod").textContent=_periodLabel(from,to);
+  var inMonth=function(e){return e.spent_on>=from&&e.spent_on<=to;};
+  var monthExp=EXP.filter(inMonth);
+  var income=_sumIncome((INCOME||[]).filter(function(e){return e.received_on>=from&&e.received_on<=to;}));
+  var invExp=monthExp.filter(function(e){return spendExcluded(e);});
+  var regExp=monthExp.filter(function(e){return !spendExcluded(e);});
+  // Detect EMI/Loan buckets separately from regular expenses for clarity
+  var emiRx=/\b(emi|loan|repay|credit.?card|debt)\b/i;
+  var isEmi=function(e){
+    var cn=nameOf(e.category_id)||"";
+    var sn=subName(e.subcategory_id)||"";
+    return emiRx.test(cn)||emiRx.test(sn);
+  };
+  var emiExp=regExp.filter(isEmi);
+  var dailyExp=regExp.filter(function(e){return !isEmi(e);});
+  var invested=invExp.reduce(function(s,e){return s+Number(e.amount);},0);
+  var emiTotalRaw=emiExp.reduce(function(s,e){return s+Number(e.amount);},0);
+  var emiInterest=emiExp.reduce(function(s,e){if(e.interest_pct!=null)return s+_emiSplit(e).expense;return s+Number(e.amount);},0);
+  var emiPrincipal=emiTotalRaw-emiInterest;
+  var dailyTotal=dailyExp.reduce(function(s,e){return s+Number(e.amount);},0);
+  var spent=dailyTotal+emiInterest;
+  var remaining=income-spent-invested-emiPrincipal;
+  // Recurring commitments status
+  var recurRows=(RECUR||[]).filter(function(r){return r.active!==false;});
+  var recurTotal=recurRows.reduce(function(s,r){return s+Number(r.amount||0);},0);
+  var ym=(from||"").slice(0,7);
+  var recurLanded=recurRows.filter(function(r){return r.last_added===ym;});
+  var recurPending=recurRows.filter(function(r){return r.last_added!==ym;});
+  var recurLandedAmt=recurLanded.reduce(function(s,r){return s+Number(r.amount||0);},0);
+  var recurPendingAmt=recurPending.reduce(function(s,r){return s+Number(r.amount||0);},0);
+  // Salary usage %
+  var salaryUsedPct=income>0?Math.round((spent+invested)/income*100):0;
+  // ---- Build the reconciliation body ----
+  var pillClass=remaining>=0?"pos":"neg";
+  var html='';
+  html+='<div class="rec-line rec-in"><span class="rec-lbl">Income received</span><span class="rec-val pos">'+money2(income)+'</span></div>';
+  if(income>0){
+    var _oneT=(INCOME||[]).filter(function(e){return e.one_time&&e.received_on>=from&&e.received_on<=to;}).reduce(function(s,e){return s+Number((e.net_amount!=null&&Number(e.net_amount)>0)?e.net_amount:e.amount);},0);
+    html+='<div class="rec-note">You\u2019ve used <b>'+salaryUsedPct+'%</b> of your income so far this period'+(_oneT>0?' (incl. '+money2(_oneT)+' one-time)':'')+'.</div>';
+    html+='<div class="rec-bar"><span style="width:'+Math.min(100,salaryUsedPct)+'%"></span></div>';
+  }
+  html+='<div class="rec-sep"></div>';
+  html+='<div class="rec-line"><span class="rec-lbl">Daily spending</span><span class="rec-val">\u2212 '+money2(dailyTotal)+'</span></div>';
+  html+='<div class="rec-detail">'+dailyExp.length+' expense'+(dailyExp.length!==1?"s":"")+' \u00b7 groceries, meals, transport, bills</div>';
+  if(emiTotalRaw>0){
+    if(emiPrincipal>0){
+      html+='<div class="rec-line"><span class="rec-lbl">EMI \u2014 Interest (expense)</span><span class="rec-val">\u2212 '+money2(emiInterest)+'</span></div>';
+      html+='<div class="rec-detail">'+emiExp.length+' repayment'+(emiExp.length!==1?"s":"")+' \u00b7 interest is a real expense</div>';
+      html+='<div class="rec-line"><span class="rec-lbl">EMI \u2014 Principal (asset build-up)</span><span class="rec-val pos">'+money2(emiPrincipal)+'</span></div>';
+      html+='<div class="rec-detail">Principal reduces your loan \u2014 not lost, but not spendable</div>';
+    } else {
+      html+='<div class="rec-line"><span class="rec-lbl">EMI / Loan repayments</span><span class="rec-val">\u2212 '+money2(emiTotalRaw)+'</span></div>';
+      html+='<div class="rec-detail">'+emiExp.length+' repayment'+(emiExp.length!==1?"s":"")+' \u00b7 <span class="brass-hint">Edit the recurring rule to set interest % \u2192 principal will show as asset build-up</span></div>';
+    }
+  }
+  html+='<div class="rec-line"><span class="rec-lbl">Investments made</span><span class="rec-val">\u2212 '+money2(invested)+'</span></div>';
+  if(invested>0)html+='<div class="rec-detail">'+invExp.length+' entry \u00b7 SIP, MF, stocks or similar</div>';
+  html+='<div class="rec-sep"></div>';
+  html+='<div class="rec-line rec-total"><span class="rec-lbl">Money left</span><span class="rec-val '+pillClass+'">'+money2(remaining)+'</span></div>';
+  html+='<div class="rec-note">= Income (net) \u2212 Daily spending \u2212 EMI interest \u2212 EMI principal \u2212 Investments</div>';
+  // Recurring status card
+  if(recurRows.length){
+    html+='<div class="rec-sep-lg"></div>';
+    html+='<div class="rec-heading">Recurring commitments</div>';
+    html+='<div class="rec-note">Total monthly commitments: <b>'+money2(recurTotal)+'</b></div>';
+    html+='<div class="rec-line"><span class="rec-lbl pos-lbl">\u2713 Auto-added this month</span><span class="rec-val">'+money2(recurLandedAmt)+'</span></div>';
+    html+='<div class="rec-detail">'+recurLanded.length+' of '+recurRows.length+' commitments have posted</div>';
+    if(recurPendingAmt>0){
+      html+='<div class="rec-line"><span class="rec-lbl warn-lbl">\u26a0 Pending / not yet due</span><span class="rec-val">'+money2(recurPendingAmt)+'</span></div>';
+      html+='<div class="rec-detail">';
+      recurPending.slice(0,5).forEach(function(r){
+        html+='\u00b7 '+esc(nameOf(r.category_id)||"?")+' \u2014 '+money2(r.amount||0)+' on day '+(r.day_of_month||1)+'<br/>';
+      });
+      html+='</div>';
+    }
+    // Reserve check: does the remaining money cover pending recurring?
+    if(recurPendingAmt>0){
+      var afterRecur=remaining-recurPendingAmt;
+      var covers=afterRecur>=0;
+      html+='<div class="rec-line rec-total"><span class="rec-lbl">Money left after pending recurring</span><span class="rec-val '+(covers?'pos':'neg')+'">'+money2(afterRecur)+'</span></div>';
+      html+='<div class="rec-note">'+(covers?'\u2713 You have enough to cover all pending recurring.':'\u26a0 Not enough to cover pending recurring \u2014 short by '+money2(Math.abs(afterRecur))+'.')+'</div>';
+    }
+  }
+  // ---- Over time (compact) ----
+  (function(){
+    var now=new Date(),months=[],cum=0;
+    for(var b=23;b>=0;b--){
+      var d=new Date(now.getFullYear(),now.getMonth()-b,1);
+      var mn=_monthlyNet(d.getFullYear(),d.getMonth());
+      if(mn.active){months.push(mn);cum+=mn.net;}
+    }
+    if(months.length>1){
+      var full=months.slice(0,-1); // exclude current partial month from averages
+      var last3=full.slice(-3),last12=full.slice(-12);
+      var avg=function(l){return l.length?l.reduce(function(s,m){return s+m.net;},0)/l.length:0;};
+      var typInc=(function(){var l=(INCOME||[]).filter(function(e){return !e.one_time;});var byM={};l.forEach(function(e){var k=String(e.received_on).slice(0,7);byM[k]=(byM[k]||0)+Number((e.net_amount!=null&&Number(e.net_amount)>0)?e.net_amount:e.amount);});var ks=Object.keys(byM);return ks.length?ks.reduce(function(s,k){return s+byM[k];},0)/ks.length:0;})();
+      html+='<div class="rec-sep-lg"></div>';
+      html+='<div class="rec-heading">Over time</div>';
+      html+='<div class="rec-stats">';
+      html+='<div class="rec-stat"><span class="rec-stat-v '+(cum>=0?"pos":"neg")+'">'+_moneyShort(cum)+'</span><span class="rec-stat-l">Saved all-time</span></div>';
+      html+='<div class="rec-stat"><span class="rec-stat-v">'+_moneyShort(avg(last3))+'</span><span class="rec-stat-l">Avg / mo (3 mo)</span></div>';
+      html+='<div class="rec-stat"><span class="rec-stat-v">'+_moneyShort(avg(last12))+'</span><span class="rec-stat-l">Avg / mo (12 mo)</span></div>';
+      html+='</div>';
+      if(typInc>0)html+='<div class="rec-note">Typical monthly income \u2248 <b>'+money2(typInc)+'</b> (one-time amounts excluded).</div>';
+    }
+  })();
+  $("reconBody").innerHTML=html;
+  m.classList.remove("hide");
+}
+function closeReconcile(){$("reconcileModal").classList.add("hide");}
+
 function openInvestedDiag(){
   var m=$("investedDiag");if(!m)return;
   var range=(typeof LASTR!=="undefined"&&LASTR)?LASTR:[null,null];
@@ -2555,10 +2739,11 @@ function renderHomeHero(F,from,to){
   if(nm)nm=nm.charAt(0).toUpperCase()+nm.slice(1);
   if($("greetLine"))$("greetLine").textContent=g+(nm?", "+nm:"");
   if($("greetDate"))$("greetDate").textContent=new Date().toLocaleDateString(LOCALE,{weekday:"long",day:"numeric",month:"long"});
-  var spent=sum(F);
+  var spent=F.reduce(function(s,e){if(e.interest_pct!=null){return s+_emiSplit(e).expense;}return s+Number(e.amount);},0);
   var invested=_sumAmt(EXP.filter(function(e){return e.spent_on>=from&&e.spent_on<=to&&spendExcluded(e);}));
-  var income=_sumAmt((INCOME||[]).filter(function(e){return e.received_on>=from&&e.received_on<=to;}));
-  var saved=income-spent-invested;
+  var income=_sumIncome((INCOME||[]).filter(function(e){return e.received_on>=from&&e.received_on<=to;}));
+  var _emiPrincipal=EXP.filter(function(e){return e.spent_on>=from&&e.spent_on<=to&&e.interest_pct!=null;}).reduce(function(s,e){return s+_emiSplit(e).saved;},0);
+  var saved=income-spent-invested-_emiPrincipal;
   var totBud=(CATS||[]).reduce(function(s,c){return s+(BUD[c.id]||0);},0);
   var haveBud=totBud>0, over=haveBud&&spent>totBud;
   var pct=haveBud?Math.min(1,spent/totBud):(spent>0?1:0);
@@ -2572,7 +2757,13 @@ function renderHomeHero(F,from,to){
   if($("pheroDelta")){if(prev>0){var dp=Math.round((spent-prev)/prev*100);$("pheroDelta").innerHTML='<span class="pill '+(dp>0?"up":"down")+'">'+(dp>0?"\u2191":"\u2193")+' '+Math.abs(dp)+'%</span> vs last month';}else{$("pheroDelta").innerHTML='<span class="gmuted">First month on record</span>';}}
   _setTile("tileIncome","Income",income,"");
   _setTile("tileInvested","Invested",invested,"");
-  _setTile("tileSaved","Remaining",saved,"");
+  var _tNow=new Date(),_tYm=_tNow.getFullYear()+"-"+String(_tNow.getMonth()+1).padStart(2,"0"),_tToday=todayStr();
+  var _coversToday=from&&to&&_tToday>=from&&_tToday<=to;
+  var _pend=_coversToday?_pendingRecurAmt(_tYm):0;
+  _setTile("tileSaved",_coversToday?"Available":"Remaining",saved-_pend,"");
+  (function(){var el=$("tileSaved");if(!el)return;var sub=el.querySelector(".gts");
+    if(_pend>0){if(!sub){sub=document.createElement("span");sub.className="gts";el.appendChild(sub);}sub.textContent=_moneyShort(_pend)+" committed";}
+    else if(sub){sub.remove();}})();
 }
 function closeProfile(){var m=$("profileMenu"),bd=$("profileBackdrop");if(m)m.classList.remove("open");if(bd)bd.classList.remove("on");}function toggleProfile(){var m=$("profileMenu"),btn=$("profileBtn"),bd=$("profileBackdrop");if(!m)return;if(m.classList.contains("open")){closeProfile();return;}if(btn){var r=btn.getBoundingClientRect();m.style.top=(r.bottom+8)+"px";m.style.right=Math.max(12,(window.innerWidth-r.right))+"px";}m.classList.add("open");if(bd)bd.classList.add("on");if(typeof haptic==="function")haptic(6);}function syncProfile(email){var init=((window._me||"?").trim().charAt(0)||"?").toUpperCase();var a=$("avatarInitial");if(a)a.textContent=init;var b=$("pmAv");if(b)b.textContent=init;if(email!==undefined){var e=$("pmEmail");if(e)e.textContent=email;}}function toggleFilter(){var p=$("filterPanel"),btn=$("filterToggle"),bd=$("filterBackdrop");if(!p)return;var willOpen=!p.classList.contains("open");if(willOpen){if(btn){var r=btn.getBoundingClientRect();var pw=Math.min(342,window.innerWidth-24);var rt=Math.max(12,window.innerWidth-r.right);rt=Math.max(12,Math.min(rt,window.innerWidth-12-pw));p.style.top=(r.bottom+8)+"px";p.style.right=rt+"px";p.style.left="auto";}p.classList.add("open");if(bd)bd.classList.add("on");if(btn)btn.classList.add("on");}else{p.classList.remove("open");if(bd)bd.classList.remove("on");if(btn)btn.classList.remove("on");}if(typeof haptic==="function")haptic(6);}
 function renderInsights(){const host=$("insights");if(!host)return;const now=new Date();const inM=(e,b)=>{const d=new Date(e.spent_on),t=new Date(now.getFullYear(),now.getMonth()-b,1);return d.getFullYear()===t.getFullYear()&&d.getMonth()===t.getMonth();};const cur=EXP.filter(e=>inM(e,0)&&!spendExcluded(e)),prev=EXP.filter(e=>inM(e,1)&&!spendExcluded(e));const T=l=>l.reduce((s,e)=>s+Number(e.amount),0);const ct=T(cur),pt=T(prev);const items=[];if(pt>0){const dp=Math.round((ct-pt)/pt*100);items.push(`Total spending is <b>${dp>=0?"up":"down"} ${Math.abs(dp)}%</b> vs last month — ${money2(ct)} vs ${money2(pt)}.`);}else if(ct>0){items.push(`You have spent <b>${money2(ct)}</b> so far this month.`);}const cc={},pc={};cur.forEach(e=>cc[e.category_id]=(cc[e.category_id]||0)+Number(e.amount));prev.forEach(e=>pc[e.category_id]=(pc[e.category_id]||0)+Number(e.amount));const ids=new Set([...Object.keys(cc),...Object.keys(pc)]);let up=null,dn=null;ids.forEach(id=>{const d=(cc[id]||0)-(pc[id]||0);if(up===null||d>up.d)up={id,d};if(dn===null||d<dn.d)dn={id,d};});if(up&&up.d>0)items.push(`Biggest rise: <b>${esc(nameOf(up.id))}</b> +${money2(up.d)}.`);if(dn&&dn.d<0)items.push(`Biggest drop: <b>${esc(nameOf(dn.id))}</b> −${money2(Math.abs(dn.d))}.`);const topc=Object.entries(cc).sort((a,b)=>b[1]-a[1])[0];if(topc)items.push(`Top category this month: <b>${esc(nameOf(topc[0]))}</b> at ${money2(topc[1])}.`);const act=monthActuals();const over=CATS.filter(c=>BUD[c.id]>0&&(act[c.id]||0)>BUD[c.id]);if(over.length)items.push(`Over budget: <b>${over.map(c=>esc(c.name)).join(", ")}</b>.`);host.innerHTML=items.length?`<ul class="insightlist">${items.map(i=>`<li>${i}</li>`).join("")}</ul>`:`<div class="empty" style="padding:12px 2px">Not enough history yet for insights.</div>`;}
