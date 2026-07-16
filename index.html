@@ -990,7 +990,7 @@ background:linear-gradient(135deg,#E7CF93,#C7A557);color:#2A1F0E;
 :root:not([data-theme="light"]) .moneytabs{background:rgba(255,255,255,.06);border:1px solid var(--line);border-radius:15px;padding:4px}
 :root:not([data-theme="light"]) .mtab{border-radius:11px;min-height:42px}
 .topbar .brand .name{font-size:15px}
-#screen-dash,#screen-add,#screen-budgets{padding-bottom:132px}
+#screen-dash,#screen-add,#screen-budgets{padding-bottom:calc(148px + env(safe-area-inset-bottom,0px))}
 .gtile{min-width:0;overflow:hidden}
 .gtv{font-size:14.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
 :root:not([data-theme="light"]) .amt-wrap input{background:transparent!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important;border:none!important;border-radius:0!important;box-shadow:none!important}
@@ -1552,7 +1552,7 @@ animation:bl-bounce 1.4s ease-in-out infinite both;opacity:.5}
 [data-theme="light"] select{color-scheme:light}
 .cardrow{
 display:flex;flex-direction:column;align-items:stretch;gap:14px;
-padding:18px 18px 16px;margin-top:14px;border-top:none !important;
+padding:14px 15px 13px;margin-top:12px;border-top:none !important;
 border-radius:18px;position:relative;overflow:hidden;
 background:linear-gradient(135deg,#24493B 0%,#152E24 55%,#0F221A 100%);
 border:1px solid rgba(231,207,147,.18);
@@ -1560,22 +1560,20 @@ box-shadow:0 20px 44px -24px rgba(0,0,0,.6), inset 0 1px 0 rgba(255,255,255,.08)
 }
 .cardrow::before{content:"";position:absolute;inset:0;pointer-events:none;
 background:radial-gradient(90% 120% at 100% 0%,rgba(199,165,87,.16),transparent 55%)}
-.cardrow::after{content:"";position:absolute;top:18px;right:18px;width:30px;height:22px;
-border-radius:5px;background:linear-gradient(150deg,#EDD8A0,#C7A557 60%,#9A7E34);
-box-shadow:inset 0 1px 0 rgba(255,255,255,.5), inset 0 -1px 0 rgba(0,0,0,.2);opacity:.9}
+.cardrow::after{content:none}
 .cardrow:first-child{margin-top:4px}
-.cardname{font-family:var(--serif);font-size:18px;font-weight:600;
+.cardname{font-family:var(--serif);font-size:15.5px;font-weight:600;
 font-variation-settings:"opsz" 40;letter-spacing:.01em;color:#F6F2E6}
-.card4{font-size:13px;font-weight:600;color:rgba(231,207,147,.75);letter-spacing:.12em}
+.card4{font-size:11.5px;font-weight:600;color:rgba(231,207,147,.7);letter-spacing:.1em}
 .cardkind{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.14em;
 padding:3px 8px;border-radius:9px;background:rgba(231,207,147,.14);
 color:var(--brass-2);vertical-align:2px;margin-left:6px}
 .cardspent{font-family:var(--serif);font-variation-settings:"opsz" 60;
-font-size:24px;font-weight:560;color:#F8F4E8;font-variant-numeric:lining-nums tabular-nums;
+font-size:19px;font-weight:560;color:#F8F4E8;font-variant-numeric:lining-nums tabular-nums;
 display:block;margin-top:8px}
 .carddue{margin-top:4px}
 .cardacts{display:flex;gap:8px;position:relative;z-index:1}
-.cardacts .ghost{flex:1;height:42px;background:rgba(231,207,147,.07);
+.cardacts .ghost{flex:1;height:38px;font-size:13px;background:rgba(231,207,147,.07);
 border-color:rgba(231,207,147,.16)}
 [data-theme="light"] .cardrow{
 background:linear-gradient(135deg,#2C5343 0%,#1A3529 55%,#122820 100%);
