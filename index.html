@@ -3,6 +3,27 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+<style id="__instantPaint">
+:root{--ip-bg-dark:linear-gradient(170deg,#1B3A2E 0%,#10241C 46%,#0A1511 100%);--ip-bg-light:linear-gradient(170deg,#F4F4EC 0%,#E9EADF 100%);}
+html,body{margin:0;padding:0;height:100%;background:#0A1511;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;-webkit-font-smoothing:antialiased}
+html[data-theme="light"],html[data-theme="light"] body{background:#F4F4EC}
+#__splash{position:fixed;inset:0;z-index:9999;display:grid;place-items:center;background:var(--ip-bg-dark);background-attachment:fixed;transition:opacity .3s ease}
+html[data-theme="light"] #__splash{background:var(--ip-bg-light)}
+#__splash.__hide{opacity:0;pointer-events:none}
+.__sp-inner{text-align:center}
+.__sp-mark{display:inline-block;width:56px;height:56px;border-radius:17px;background:linear-gradient(150deg,#EDD8A0,#C7A557 58%,#9A7E34);position:relative;box-shadow:0 8px 24px rgba(199,165,87,.32);margin-bottom:20px;animation:__sp-pulse 1.8s ease-in-out infinite}
+.__sp-mark::before,.__sp-mark::after{content:"";position:absolute;left:13px;right:13px;height:3.5px;border-radius:3px;background:#241B07}
+.__sp-mark::before{top:19px}.__sp-mark::after{top:31px;right:24px}
+@keyframes __sp-pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.06)}}
+.__sp-wm{font-size:22px;font-weight:600;color:#F4F2EC;letter-spacing:.005em;margin-bottom:18px}
+html[data-theme="light"] .__sp-wm{color:#16241C}
+.__sp-wm em{font-style:italic;font-weight:500;color:#E7CF93}
+html[data-theme="light"] .__sp-wm em{color:#8A701F}
+.__sp-dots{display:flex;justify-content:center;gap:8px}
+.__sp-dots span{width:7px;height:7px;border-radius:50%;background:#C7A557;opacity:.5;animation:__sp-bounce 1.4s ease-in-out infinite both}
+.__sp-dots span:nth-child(1){animation-delay:-.32s}.__sp-dots span:nth-child(2){animation-delay:-.16s}
+@keyframes __sp-bounce{0%,80%,100%{transform:scale(.6);opacity:.4}40%{transform:scale(1);opacity:1}}
+</style>
 <script>try{var _t=localStorage.getItem('ledger-theme');if(!_t){_t=(window.matchMedia&&window.matchMedia('(prefers-color-scheme: light)').matches)?'light':'dark';}document.documentElement.setAttribute('data-theme',_t);}catch(e){document.documentElement.setAttribute('data-theme','dark');}</script>
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
 <link rel="preconnect" href="https://eoacbspokedsxlgstljr.supabase.co" crossorigin>
@@ -18,7 +39,7 @@
 <title>DevangadaKharcha</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Fraunces:ital,opsz,wght@0,9..144,400..700;1,9..144,400..700&display=swap" rel="stylesheet">
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Fraunces:ital,opsz,wght@0,9..144,400..700;1,9..144,400..700&display=swap" onload="this.onload=null;this.rel='stylesheet'"><noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Fraunces:ital,opsz,wght@0,9..144,400..700;1,9..144,400..700&display=swap"></noscript>
 <style>
 :root{
 --bg:#0B1410;--surface:#14211A;--surface-2:#1B2A22;--field:#16241D;
@@ -1590,6 +1611,7 @@ box-shadow:0 20px 60px -12px rgba(199,165,87,.7);opacity:0;transform:scale(.4)}
 </style>
 </head>
 <body>
+<div id="__splash"><div class="__sp-inner"><span class="__sp-mark"></span><div class="__sp-wm">Devangada <em>Kharcha</em></div><div class="__sp-dots"><span></span><span></span><span></span></div></div></div>
 <div class="grain"></div>
 
 
@@ -1618,6 +1640,8 @@ box-shadow:0 20px 60px -12px rgba(199,165,87,.7);opacity:0;transform:scale(.4)}
     if(!PH)return;
     var lock=document.getElementById("pinLock");
     lock.classList.remove("hide");
+    // Hand off from generic splash to PIN screen with a fade
+    requestAnimationFrame(function(){var sp=document.getElementById("__splash");if(sp){sp.classList.add("__hide");setTimeout(function(){sp&&sp.parentNode&&sp.parentNode.removeChild(sp);},350);}});
     var buf="";
     var dots=document.getElementById("pinDots");
     var err=document.getElementById("pinError");
@@ -2879,14 +2903,13 @@ $("switchBtn").onclick=()=>{setMode(!signingUp);gateMsg("");};
 $("authBtn").onclick=async()=>{if(!sb){gateMsg("Add your Supabase URL and key to the config lines, then reload.","info");return;}const email=$("email").value.trim(),password=$("password").value;if(!email||!password){gateMsg("Enter an email and password.","err");return;}$("authBtn").disabled=true;try{if(signingUp){const{error}=await sb.auth.signUp({email,password});if(error)throw error;gateMsg("Account created — sign in now.","ok");setMode(false);}else{const{error}=await sb.auth.signInWithPassword({email,password});if(error)throw error;}}catch(e){gateMsg(e.message||"Something went wrong.","err");}$("authBtn").disabled=false;};
 ["email","password"].forEach(id=>$(id).addEventListener("keydown",e=>{if(e.key==="Enter")$("authBtn").click();}));
 $("signout").onclick=()=>sb&&sb.auth.signOut();
-function showGate(){$("app").classList.add("hide");$("gate").classList.remove("hide");}
+function showGate(){$("app").classList.add("hide");$("gate").classList.remove("hide");try{var __sp3=document.getElementById("__splash");if(__sp3){__sp3.classList.add("__hide");setTimeout(function(){__sp3&&__sp3.parentNode&&__sp3.parentNode.removeChild(__sp3);},350);}}catch(_){}}
 function fatalLoad(msg){if($("loadErr"))return;document.body.insertAdjacentHTML("beforeend",`<div id="loadErr" style="position:fixed;inset:0;z-index:500;display:grid;place-items:center;padding:24px;background:rgba(8,8,9,.92);backdrop-filter:blur(5px)"><div style="max-width:430px;text-align:center;padding:30px;border:1px solid var(--line);border-radius:16px;background:var(--surface)"><div style="font-weight:600;font-size:18px;margin-bottom:9px">Couldn't load your data</div><div style="color:var(--ink-soft);font-size:14px;line-height:1.55;margin-bottom:20px">${esc(msg||"")}</div><button class="primary" onclick="location.reload()">Reload</button></div></div>`);}
-async function showApp(session){if(window._appReady)return;
-  $("gate").classList.add("hide");
-  if(hasPinLock()&&!window._pinPassed){window._pendingSession=session;$("pinLock").classList.remove("hide");return;}
-  window._pinPassed=false;$("bootLoader").classList.remove("hide");$("app").classList.remove("hide");$("app").style.visibility="hidden";window._uid=session.user.id;
-  /* INSTANT BOOT — paint from last snapshot, refresh silently after */
-  window._cacheRendered=false;
+async function prefetchApp(session){
+  // Silent parallel data fetch during PIN entry. Data lands in the same arrays
+  // showApp would populate — so when user unlocks, everything's already there.
+  window._uid=session.user.id;
+  // Hydrate from cache immediately if available (feeds arrays without any UI touch)
   try{
     var _bm=JSON.parse(localStorage.getItem("kharcha-meta")||"null");
     var _bx=loadCache();
@@ -2896,27 +2919,86 @@ async function showApp(session){if(window._appReady)return;
       EXP=pendingItems().concat(_bx);
       BUD=_bb.BUD||{};INCOME=_bb.INCOME||[];CARDS=_bb.CARDS||[];INVEST=_bb.INVEST||[];INVSNAP=_bb.INVSNAP||[];RECUR=_bb.RECUR||[];
       window._me=_bb.me||session.user.email.split("@")[0];
+      window._prefetchCacheHit=true;
+    }
+  }catch(e){}
+  // Fire network in background — result populates same arrays; result stored for showApp to await if needed
+  window._prefetchPromise=(async function(){
+    try{
+      await Promise.all([loadMeta(),loadExpenses(),loadBudgets(),loadIncome(),loadCards(),loadInvest(),loadInvestSnap(),loadRecurring()]);
+      processRecurring().catch(function(){});
+      window._prefetchNetworkDone=true;
+    }catch(e){window._prefetchError=e;}
+  })();
+  // Profile fetch also parallel
+  window._prefetchProfile=sb.from("profiles").select("name").eq("id",session.user.id).maybeSingle().then(function(r){
+    if(!r.error&&r.data&&r.data.name)window._me=r.data.name;
+    PROF_OK=!r.error;
+  }).catch(function(){PROF_OK=false;});
+  loadUsers().catch(function(){});
+}
+async function showApp(session){if(window._appReady)return;
+  $("gate").classList.add("hide");
+  if(hasPinLock()&&!window._pinPassed){
+    window._pendingSession=session;
+    $("pinLock").classList.remove("hide");
+    // Kick off prefetch so data is warm by the time they finish typing
+    if(!window._prefetchStarted){window._prefetchStarted=true;prefetchApp(session);}
+    return;
+  }
+  window._pinPassed=false;$("bootLoader").classList.remove("hide");$("app").classList.remove("hide");$("app").style.visibility="hidden";window._uid=session.user.id;
+  /* INSTANT BOOT — paint from last snapshot, refresh silently after */
+  window._cacheRendered=false;
+  try{
+    // If prefetch primed the cache during PIN entry, arrays are already populated
+    if(window._prefetchCacheHit&&EXP&&EXP.length){
       $("whoName").textContent=window._me;syncProfile(session.user.email);
       initFilters();$("rows").innerHTML="";addRow();renderAddRecent();applyFilters();updateSync();renderReports();
       window._cacheRendered=true;
       $("app").style.visibility="";
+      try{var __sp2=document.getElementById("__splash");if(__sp2){__sp2.classList.add("__hide");setTimeout(function(){__sp2&&__sp2.parentNode&&__sp2.parentNode.removeChild(__sp2);},350);}}catch(_){}
       var _bl0=$("bootLoader");if(_bl0){_bl0.style.opacity="0";setTimeout(function(){_bl0.classList.add("hide");_bl0.style.opacity="";},250);}
+    } else {
+      var _bm=JSON.parse(localStorage.getItem("kharcha-meta")||"null");
+      var _bx=loadCache();
+      var _bb=JSON.parse(localStorage.getItem(BOOT_KEY)||"null");
+      if(_bm&&_bm.c&&_bm.c.length&&_bx&&_bx.length&&_bb&&_bb.v===1&&_bb.uid===session.user.id){
+        CATS=_bm.c;SUBS=_bm.s||[];computeColors();
+        EXP=pendingItems().concat(_bx);
+        BUD=_bb.BUD||{};INCOME=_bb.INCOME||[];CARDS=_bb.CARDS||[];INVEST=_bb.INVEST||[];INVSNAP=_bb.INVSNAP||[];RECUR=_bb.RECUR||[];
+        window._me=_bb.me||session.user.email.split("@")[0];
+        $("whoName").textContent=window._me;syncProfile(session.user.email);
+        initFilters();$("rows").innerHTML="";addRow();renderAddRecent();applyFilters();updateSync();renderReports();
+        window._cacheRendered=true;
+        $("app").style.visibility="";
+        try{var __sp2b=document.getElementById("__splash");if(__sp2b){__sp2b.classList.add("__hide");setTimeout(function(){__sp2b&&__sp2b.parentNode&&__sp2b.parentNode.removeChild(__sp2b);},350);}}catch(_){}
+        var _bl0b=$("bootLoader");if(_bl0b){_bl0b.style.opacity="0";setTimeout(function(){_bl0b.classList.add("hide");_bl0b.style.opacity="";},250);}
+      }
     }
   }catch(e){window._cacheRendered=false;}
   try{
-    await Promise.all([loadMeta(),loadExpenses(),loadBudgets(),loadIncome(),loadCards(),loadInvest(),loadInvestSnap(),loadRecurring()]);
-    processRecurring().catch(function(){});
+    // If prefetch already ran the network loaders, await its completion instead of re-firing
+    if(window._prefetchPromise){await window._prefetchPromise;}
+    else{
+      await Promise.all([loadMeta(),loadExpenses(),loadBudgets(),loadIncome(),loadCards(),loadInvest(),loadInvestSnap(),loadRecurring()]);
+      processRecurring().catch(function(){});
+    }
   }
   catch(e){fatalLoad("Couldn't reach the database. Check your connection and try again. If this keeps happening, your free Supabase project may have paused — open your Supabase dashboard and resume it. ("+(e&&e.message||e)+")");return;}
   let nm="";PROF_OK=true;
-  var _profP=sb.from("profiles").select("name").eq("id",session.user.id).maybeSingle().then(function(r){if(r.error)PROF_OK=false;else nm=(r.data&&r.data.name)?r.data.name:"";}).catch(function(){PROF_OK=false;});
-  await Promise.all([_profP, loadUsers()]);
-  window._me=nm||session.user.email.split("@")[0];$("whoName").textContent=window._me;syncProfile(session.user.email);$("whoName").title=session.user.email+" — click to edit your name";
+  if(window._prefetchProfile){
+    try{await window._prefetchProfile;}catch(_){}
+    nm=window._me||"";
+  } else {
+    var _profP=sb.from("profiles").select("name").eq("id",session.user.id).maybeSingle().then(function(r){if(r.error)PROF_OK=false;else nm=(r.data&&r.data.name)?r.data.name:"";}).catch(function(){PROF_OK=false;});
+    await Promise.all([_profP, loadUsers()]);
+  }
+  window._me=nm||window._me||session.user.email.split("@")[0];$("whoName").textContent=window._me;syncProfile(session.user.email);$("whoName").title=session.user.email+" — click to edit your name";
   try{
     if(window._cacheRendered){renderAddRecent();applyFilters();updateSync();if(navigator.onLine)flushQueue();renderReports();fetchUsdRate();}
     else{initFilters();$("rows").innerHTML="";addRow();renderAddRecent();applyFilters();updateSync();if(navigator.onLine)flushQueue();renderReports();fetchUsdRate();}
   }catch(e){fatalLoad("Something went wrong while drawing the dashboard. ("+(e&&e.message||e)+")");return;}
-  window._appReady=true;_saveBootCache();const _le=$("loadErr");if(_le)_le.remove();
+  window._appReady=true;_saveBootCache();const _le=$("loadErr");if(_le)_le.remove();try{var __sp=document.getElementById("__splash");if(__sp){__sp.classList.add("__hide");setTimeout(function(){__sp&&__sp.parentNode&&__sp.parentNode.removeChild(__sp);},350);}}catch(_){}
   var _bl=$("bootLoader");if(_bl){_bl.style.opacity="0";setTimeout(function(){_bl.classList.add("hide");_bl.style.opacity="";},250);}
   $("app").style.visibility="";
   
@@ -2927,9 +3009,11 @@ const CFG_OK=SUPABASE_URL&&SUPABASE_ANON_KEY&&!/PASTE_/.test(SUPABASE_URL)&&!/PA
 window.addEventListener("error",ev=>{if(!$("app")||$("app").classList.contains("hide")){const m=ev.message&&ev.message!=="Script error."?ev.message:"A library failed to load. Check your connection/ad-blocker and the Supabase URL/key.";gateMsg("Error: "+m,"err");}});
 if(!CFG_OK){showGate();gateMsg("Setup needed: paste your Supabase Project URL and anon public key into the four CONFIG lines near the top of this file, then reload. (Supabase → Project Settings → API.)","info");$("authBtn").disabled=true;}
 else{try{sb=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);}catch(e){showGate();gateMsg("Couldn't start: "+e.message,"err");}if(sb){
-  sb.auth.onAuthStateChange((_e,s)=>{if(s){if(!window._appReady)showApp(s);}else{window._appReady=false;showGate();}});
-  sb.auth.getSession().then(({data})=>{data.session?showApp(data.session):showGate();}).catch(e=>{showGate();gateMsg("Couldn\u2019t reach Supabase: "+e.message,"err");});
+  var _kickPrefetch=function(s){if(window._pinShowing&&!window._prefetchStarted&&s){window._prefetchStarted=true;try{prefetchApp(s);}catch(e){}}};
+  sb.auth.onAuthStateChange((_e,s)=>{if(s){_kickPrefetch(s);if(!window._appReady)showApp(s);}else{window._appReady=false;showGate();}});
+  sb.auth.getSession().then(({data})=>{if(data.session){_kickPrefetch(data.session);showApp(data.session);}else{showGate();}}).catch(e=>{showGate();gateMsg("Couldn’t reach Supabase: "+e.message,"err");});
 }}
+
 
 // ================================================================
 // 4-DIGIT PASSCODE LOCK
