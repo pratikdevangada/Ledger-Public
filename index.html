@@ -714,7 +714,7 @@ tr.rec-row.pending td{background:rgba(201,176,90,.07)}
 #screen-budgets .backup-link{display:none}
 #screen-budgets.mt-budgets .backup-link{display:block}
 .backup-link{text-align:center;margin:22px 0 6px}
-.backup-link button{background:none;border:none;color:var(--ink-faint);font-size:12.5px;font-family:var(--sans);cursor:pointer;padding:6px 10px;opacity:.7;transition:.15s}
+.backup-link button{background:rgba(231,207,147,.05);border:1px solid rgba(231,207,147,.13);color:var(--ink-soft);font-size:12.5px;font-weight:600;font-family:var(--sans);cursor:pointer;padding:6px 16px;opacity:1;transition:.15s}
 .backup-link button:hover{opacity:1;color:var(--ink-soft)}
 *{-webkit-tap-highlight-color:transparent}
 html{-webkit-text-size-adjust:100%}
@@ -1682,6 +1682,11 @@ box-shadow:0 20px 60px -12px rgba(199,165,87,.7);opacity:0;transform:scale(.4)}
   [data-theme="light"] .inv-io-btn{background:rgba(154,126,52,.07);border-color:rgba(154,126,52,.26);color:#8A701F}
   [data-theme="light"] .inv-io-btn:hover{background:rgba(154,126,52,.12)}
   @media(max-width:360px){.inv-io-btn{font-size:12px;gap:5px;padding:0 6px}}
+
+  [data-theme="light"] .backup-link button{background:rgba(31,60,49,.04);border-color:rgba(31,60,49,.14);color:#5A6B60}
+
+  /* align Monthly reports title with the modpanel-wrapped sections */
+  #screen-dash #reportCard{padding-left:33px !important;padding-right:33px !important}
 </style>
 </head>
 <body>
@@ -2017,7 +2022,7 @@ box-shadow:0 20px 60px -12px rgba(199,165,87,.7);opacity:0;transform:scale(.4)}
       <div id="recurList"></div>
       <button class="ghost addbtn" id="addRecurBtn">+ Add recurring</button>
     </section>
-    <div class="backup-link" data-mtab="budgets"><button id="backupBtn">Data &amp; backup</button></div>
+    <div class="backup-link" data-mtab="budgets"><button id="backupBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;margin-right:7px;flex:none"><path d="M12 3a7.5 7.5 0 0 0-7.4 6.3A4.5 4.5 0 0 0 6 18h12a4 4 0 0 0 .6-7.96A7.5 7.5 0 0 0 12 3Z"/><path d="M12 10v6M9.3 13.3 12 16l2.7-2.7"/></svg>Data &amp; backup</button></div>
   </div>
   <div id="toast" class="toast"></div>
   <div id="syncmenu" class="syncmenu hide"><div class="syncmenu-card"><div class="syncmenu-title">Unsynced changes</div><div class="syncmenu-sub" id="syncmenuSub"></div><button class="primary" id="syncNow">Sync now</button><button class="del-btn" id="syncDiscard">Discard unsynced</button><button class="ghost" id="syncClose">Cancel</button></div></div>
@@ -3271,7 +3276,7 @@ function renderBudgets(){const act=monthActuals(),mb=monthBounds();const totBud=
   $("budgetTotals").innerHTML=`<div class="bt"><span class="k">Total monthly budget</span><span class="v">${money(totBud)}</span></div><div class="bt"><span class="k">Spent in ${mb.label}</span><span class="v">${money(totAct)}</span></div><div class="bt"><span class="k">${totAct>totBud?"Over by":"Remaining"}</span><span class="v">${money(Math.abs(totBud-totAct))}</span></div>`;
   $("budgetList").innerHTML=CATS.map(c=>{const a=act[c.id]||0,b=BUD[c.id]||0;const sub=b>0?`${money2(a)} spent · ${b>=a?money2(b-a)+" left":money2(a-b)+" over"}`:(a>0?`${money2(a)} spent · no budget set`:"no budget set");
     let inputHtml,sec;
-    if(BUDGET_MODE==="amount"){const pct=totBud>0?b/totBud*100:0;sec=b>0?pctStr(pct)+" of budget":"—";inputHtml=`<div class="inp"><span class="cur">₹</span><input class="binp" data-cat="${c.id}" type="text" inputmode="decimal" autocomplete="off" value="${b>0?b:""}" placeholder="0"></div>`;}
+    if(BUDGET_MODE==="amount"){const pct=totBud>0?b/totBud*100:0;sec=b>0?pctStr(pct)+" of budget":"";inputHtml=`<div class="inp"><span class="cur">₹</span><input class="binp" data-cat="${c.id}" type="text" inputmode="decimal" autocomplete="off" value="${b>0?b:""}" placeholder="0"></div>`;}
     else{const pct=base>0?b/base*100:0;sec=`= ${money2(b)}`;inputHtml=`<div class="inp pct"><input class="binp" data-cat="${c.id}" type="text" inputmode="decimal" autocomplete="off" value="${b>0&&base>0?(pct<10?pct.toFixed(1):Math.round(pct)):""}" placeholder="0"><span class="suf">%</span></div>`;}
     return`<div class="budset"><div class="meta"><span class="chip" style="background:${colorOf(c.id)}">${esc(c.name)}</span><div class="sub">${sub}</div></div><div class="bcol">${inputHtml}<div class="sec">${sec}</div></div></div>`;}).join("");
   updateBudgetAlloc();
