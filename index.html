@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
 <style id="__instantPaint">
 :root{--ip-bg-dark:linear-gradient(170deg,#1B3A2E 0%,#10241C 46%,#0A1511 100%);--ip-bg-light:linear-gradient(170deg,#F4F4EC 0%,#E9EADF 100%);}
-html,body{margin:0;padding:0;height:100%;background:#0A1511;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;-webkit-font-smoothing:antialiased}
+html,body{margin:0;padding:0;min-height:100%;background:#0A1511;-webkit-font-smoothing:antialiased}
 html[data-theme="light"],html[data-theme="light"] body{background:#F4F4EC}
 #__splash{position:fixed;inset:0;z-index:9999;display:grid;place-items:center;background:var(--ip-bg-dark);background-attachment:fixed;transition:opacity .3s ease}
 html[data-theme="light"] #__splash{background:var(--ip-bg-light)}
@@ -720,7 +720,7 @@ tr.rec-row.pending td{background:rgba(201,176,90,.07)}
 html{-webkit-text-size-adjust:100%}
 button,a,.navitem,.chip,.qa-chip,.ivchip,.mtab,.csel-btn,.card,.cardrow{touch-action:manipulation}
 @media(max-width:760px){
-.wrap{padding-left:15px !important;padding-right:15px !important;padding-bottom:calc(96px + env(safe-area-inset-bottom,0px)) !important}
+.wrap{padding-left:15px !important;padding-right:15px !important;padding-bottom:calc(132px + env(safe-area-inset-bottom,0px)) !important}
 .botnav{padding:6px 8px calc(9px + env(safe-area-inset-bottom,0px))}
 .navitem{min-height:50px;justify-content:center;padding:5px 4px;gap:4px}
 .navitem svg{width:22px;height:22px}
@@ -1987,6 +1987,10 @@ box-shadow:0 20px 60px -12px rgba(199,165,87,.7);opacity:0;transform:scale(.4)}
       <div id="budgetAlloc" class="budalloc"></div>
       <div id="budgetList"></div>
       <button class="ghost addbtn" id="guidedBtn">+ Add per category</button>
+      <div class="inv-io">
+        <button class="ghost inv-io-btn" id="budDownloadBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7.5 10.5 12 15l4.5-4.5"/><path d="M4 17.5V19a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-1.5"/></svg>Export Excel</button>
+        <button class="ghost inv-io-btn" id="budUploadBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V3M7.5 7.5 12 3l4.5 4.5"/><path d="M4 17.5V19a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-1.5"/></svg>Import Excel</button>
+      </div>
     </section>
     <section class="card collapsible" id="incomeManageCard" data-mtab="budgets" style="margin-top:16px">
       <div class="chead"><h2 class="ctitle">Income <span class="soft">— log salary & other income</span></h2></div>
@@ -2005,11 +2009,8 @@ box-shadow:0 20px 60px -12px rgba(199,165,87,.7);opacity:0;transform:scale(.4)}
       <div id="investChartWrap" style="display:none;height:180px;margin:2px 0 16px"><canvas id="investChart"></canvas></div>
       <div id="investList"></div>
       <button class="ghost addbtn" id="addInvestBtn">+ Add investment</button>
-      <input id="investBulkFile" type="file" accept=".csv,.xlsx,.xls" class="hide">
-      <div class="inv-io">
-        <button class="ghost inv-io-btn" id="invDownloadBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7.5 10.5 12 15l4.5-4.5"/><path d="M4 17.5V19a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-1.5"/></svg>Export Excel</button>
-        <button class="ghost inv-io-btn" id="invUploadBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V3M7.5 7.5 12 3l4.5 4.5"/><path d="M4 17.5V19a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-1.5"/></svg>Import Excel</button>
-      </div>
+      <input id="budgetBulkFile" type="file" accept=".csv,.xlsx,.xls" class="hide">
+      
     </section>
     <section class="card collapsible" id="recurCard" data-mtab="budgets" style="margin-top:16px">
       <div class="chead"><h2 class="ctitle">Recurring <span class="soft">— auto-added each month</span></h2></div>
@@ -2074,15 +2075,15 @@ box-shadow:0 20px 60px -12px rgba(199,165,87,.7);opacity:0;transform:scale(.4)}
 </div>
 
 
-<div id="invBulkModal" class="modal hide" onclick="if(event.target===this)closeInvBulk()">
+<div id="budBulkModal" class="modal hide" onclick="if(event.target===this)closeBudBulk()">
   <div class="modal-card" style="max-height:86vh;display:flex;flex-direction:column">
     <div class="sheet-handle" style="margin-bottom:10px"></div>
     <div class="modal-title">Review changes</div>
     <div class="modal-sub">Nothing is saved until you confirm. Rows missing from the file are left untouched.</div>
-    <div id="invBulkBody" style="overflow-y:auto;flex:1;margin:14px -6px 0;padding:0 6px"></div>
+    <div id="budBulkBody" style="overflow-y:auto;flex:1;margin:14px -6px 0;padding:0 6px"></div>
     <div class="modal-actions" style="margin-top:16px">
-      <button class="ghost" onclick="closeInvBulk()">Cancel</button>
-      <button class="primary" id="invBulkApply">Apply</button>
+      <button class="ghost" onclick="closeBudBulk()">Cancel</button>
+      <button class="primary" id="budBulkApply">Apply</button>
     </div>
   </div>
 </div>
@@ -2574,83 +2575,85 @@ $("investCancel").onclick=closeInvestModal;
 $("investModal").addEventListener("click",function(e){if(e.target.id==="investModal")closeInvestModal();});
 
 /* ---- Investments: download / update round-trip ---- */
-var INVBULK=null;
-var INV_SHEET_COLS=["ID","Name","Type","Value (INR)","Updated on"];
-function _invTypeCode(s){
-  s=String(s||"").trim().toLowerCase();
-  if(!s)return "";
-  for(var k in INV_TYPEL){if(k===s||String(INV_TYPEL[k]).toLowerCase()===s)return k;}
-  if(/mutual|\bmf\b/.test(s))return "mf";
-  if(/^us\b|us stock|foreign/.test(s))return "us";
-  if(/stock|equity|share/.test(s))return "stocks";
-  if(/nps/.test(s))return "nps";
-  if(/epf|\bpf\b|provident/.test(s))return "epf";
-  if(/cash|bank|savings|\bfd\b|deposit/.test(s))return "cash";
-  if(/loan|debt|emi|mortgage/.test(s))return "loan";
-  return "";
-}
-function _invNum(v){
+var BUDBULK=null;
+var BUD_SHEET_COLS=["Category ID","Category","Budget (INR)","Avg spend last 3 mo (INR)"];
+
+function _budNum(v){
   if(typeof v==="number")return v;
   var s=String(v==null?"":v).replace(/[^0-9.\-]/g,"");
   return s===""?NaN:parseFloat(s);
 }
-function downloadInvestSheet(){
-  if(typeof XLSX==="undefined"){showToast("Export library still loading — try again");return;}
-  var rows=(INVEST||[]).slice().sort(function(a,b){return Number(b.value)-Number(a.value);}).map(function(v){
+function _avgSpend3(catId){
+  var now=new Date(),tot=0,n=0;
+  for(var b=1;b<=3;b++){
+    var d=new Date(now.getFullYear(),now.getMonth()-b,1);
+    var mm=String(d.getMonth()+1).padStart(2,"0");
+    var from=d.getFullYear()+"-"+mm+"-01",to=d.getFullYear()+"-"+mm+"-31";
+    var s=(EXP||[]).reduce(function(acc,e){
+      if(e.category_id!==catId)return acc;
+      if(e.spent_on<from||e.spent_on>to)return acc;
+      if(e.interest_pct!=null)return acc+_emiSplit(e).expense;
+      return acc+Number(e.amount);
+    },0);
+    tot+=s;n++;
+  }
+  return n?Math.round(tot/n):0;
+}
+function downloadBudgetSheet(){
+  if(typeof XLSX==="undefined"){showToast("Export library still loading \u2014 try again");return;}
+  var rows=(CATS||[]).slice().sort(function(a,b){return (Number(BUD[b.id])||0)-(Number(BUD[a.id])||0);}).map(function(c){
     var o={};
-    o["ID"]=v.id; o["Name"]=v.name||"";
-    o["Type"]=INV_TYPEL[v.type||"other"]||"Other";
-    o["Value (INR)"]=Math.round(Number(v.value)||0);
-    o["Updated on"]=v.updated_on||"";
+    o["Category ID"]=c.id;
+    o["Category"]=c.name||"";
+    o["Budget (INR)"]=Math.round(Number(BUD[c.id])||0);
+    o["Avg spend last 3 mo (INR)"]=_avgSpend3(c.id);
     return o;
   });
-  if(!rows.length){var e={};e["ID"]="";e["Name"]="";e["Type"]="Stocks";e["Value (INR)"]=0;e["Updated on"]=todayStr();rows=[e];}
+  if(!rows.length){showToast("No categories yet");return;}
   var wb=XLSX.utils.book_new();
-  var ws=XLSX.utils.json_to_sheet(rows,{header:INV_SHEET_COLS});
-  ws["!cols"]=[{wch:38},{wch:28},{wch:14},{wch:14},{wch:13}];
-  XLSX.utils.book_append_sheet(wb,ws,"Investments");
-  var total=(INVEST||[]).reduce(function(s,v){return s+Number(v.value||0);},0);
+  var ws=XLSX.utils.json_to_sheet(rows,{header:BUD_SHEET_COLS});
+  ws["!cols"]=[{wch:38},{wch:26},{wch:16},{wch:26}];
+  XLSX.utils.book_append_sheet(wb,ws,"Budgets");
+  var totalBud=rows.reduce(function(s,r){return s+r["Budget (INR)"];},0);
+  var totalAvg=rows.reduce(function(s,r){return s+r["Avg spend last 3 mo (INR)"];},0);
+  var inc=0;
+  try{
+    var now=new Date(),ms=[];
+    for(var b=1;b<=3;b++){var d=new Date(now.getFullYear(),now.getMonth()-b,1);ms.push(_monthlyNet(d.getFullYear(),d.getMonth()));}
+    var act=ms.filter(function(m){return m.active;});
+    inc=act.length?Math.round(act.reduce(function(s,m){return s+m.income;},0)/act.length):0;
+  }catch(_){}
   var guide=[
-    ["Devangada Kharcha — investments sheet"],
+    ["Devangada Kharcha \u2014 monthly budget sheet"],
     [""],
     ["Exported on: "+new Date().toLocaleDateString(LOCALE,{day:"numeric",month:"long",year:"numeric"})],
-    ["Holdings in this file: "+(INVEST||[]).length],
-    ["Total portfolio value: INR "+Math.round(total).toLocaleString("en-IN")],
+    ["Categories: "+rows.length],
+    ["Total budget now: INR "+totalBud.toLocaleString("en-IN")],
+    ["Avg actual spend (last 3 months): INR "+totalAvg.toLocaleString("en-IN")],
+    ["Typical monthly income: INR "+inc.toLocaleString("en-IN")],
     [""],
     ["HOW TO UPDATE"],
-    ["1. Edit the 'Value (INR)' column on the Investments sheet. That is usually all you need."],
-    ["2. To add a holding, add a new row and leave the ID blank."],
-    ["3. Save the file, then in the app: Money > Investments > Update from file."],
-    ["4. The app shows you every change for review before anything is saved."],
+    ["1. Edit only the 'Budget (INR)' column on the Budgets sheet."],
+    ["2. Keep the 'Category ID' and 'Category' columns exactly as they are."],
+    ["3. Do not add new rows \u2014 categories are managed inside the app."],
+    ["4. Save the file, then tap 'Import Excel' under Monthly budgets and review before applying."],
     [""],
-    ["RULES"],
-    ["Do not edit or delete the ID column — it is how the app matches rows back."],
-    ["Deleting a row here does NOT delete it in the app. Delete holdings in the app itself."],
-    ["Value must be a plain number in rupees. No symbols, no commas needed."],
-    ["Allowed Type values: "+Object.keys(INV_TYPEL).map(function(k){return INV_TYPEL[k];}).join(", ")],
-    ["Use Type 'Loans' for money you owe — it is subtracted from net worth."],
-    [""],
-    ["IF YOU ARE ASKING CLAUDE (OR ANOTHER ASSISTANT) FOR HELP"],
-    ["This sheet lists what the household owns and owes, valued in Indian rupees."],
-    ["Type meanings: Stocks = direct equity. Mutual funds = domestic MF/SIP. US stocks = foreign equity."],
-    ["NPS and EPF = retirement, locked until retirement age. Cash & bank = liquid savings and FDs."],
-    ["Loans = outstanding debt. Other = anything else."],
-    ["Net worth = everything except Loans, minus Loans."],
-    ["Note: this file covers investments only. Monthly income and spending are exported separately"],
-    ["from the Add tab (Download a month)."]
+    ["NOTE FOR AI ASSISTANTS"],
+    ["'Avg spend last 3 mo' is what actually happened \u2014 use it as the baseline."],
+    ["Return the same sheet with only 'Budget (INR)' changed. Keep every column and row."]
   ];
-  var gs=XLSX.utils.aoa_to_sheet(guide);
-  gs["!cols"]=[{wch:104}];
+  var gs=XLSX.utils.aoa_to_sheet(guide);gs["!cols"]=[{wch:96}];
   XLSX.utils.book_append_sheet(wb,gs,"Read me");
-  XLSX.writeFile(wb,"Kharcha_Investments_"+todayStr()+".xlsx");
-  haptic(12);showToast("Sheet downloaded");
+  XLSX.writeFile(wb,"kharcha-budgets-"+todayStr()+".xlsx");
+  haptic(10);
+  showToast("Budget sheet downloaded");
 }
-function buildInvestBulkPlan(rows){
-  var plan={updates:[],inserts:[],unchanged:0,skipped:[]};
-  var byId={},byKey={};
-  (INVEST||[]).forEach(function(v){
-    byId[String(v.id)]=v;
-    byKey[String(v.name||"").trim().toLowerCase()+"|"+(v.type||"other")]=v;
+function buildBudgetBulkPlan(rows){
+  var plan={updates:[],unchanged:0,skipped:[]};
+  var byId={},byName={};
+  (CATS||[]).forEach(function(c){
+    byId[String(c.id)]=c;
+    byName[String(c.name||"").trim().toLowerCase()]=c;
   });
   rows.forEach(function(r,i){
     var pick=function(names){
@@ -2659,124 +2662,98 @@ function buildInvestBulkPlan(rows){
       }
       return "";
     };
-    var id=String(pick(["id"])||"").trim();
-    var name=String(pick(["name"])||"").trim();
-    var typeRaw=pick(["type"]);
-    var valRaw=pick(["value (inr)","value (\u20b9)","value","amount","current value"]);
+    var id=String(pick(["category id","id"])||"").trim();
+    var name=String(pick(["category","name"])||"").trim();
+    var valRaw=pick(["budget (inr)","budget (\u20b9)","budget","monthly","amount"]);
     if(!id&&!name&&String(valRaw||"").trim()==="")return;
-    if(!name){plan.skipped.push({row:i+2,why:"no name"});return;}
-    var val=_invNum(valRaw);
-    if(!isFinite(val)||val<0){plan.skipped.push({row:i+2,why:"value is not a number"});return;}
-    var type=_invTypeCode(typeRaw);
-    var guessed=!type; if(!type)type="other";
-    var ex=(id&&byId[id])||byKey[name.toLowerCase()+"|"+type]||null;
+    var cat=(id&&byId[id])||byName[name.toLowerCase()]||null;
+    if(!cat){plan.skipped.push({row:i+2,why:name?("no category named \u201c"+name+"\u201d"):"no category"});return;}
+    var val=_budNum(valRaw);
+    if(!isFinite(val)||val<0){plan.skipped.push({row:i+2,why:"budget is not a number"});return;}
     val=Math.round(val);
-    if(ex){
-      var same=Math.round(Number(ex.value))===val&&(ex.type||"other")===type&&String(ex.name||"").trim()===name;
-      if(same){plan.unchanged++;return;}
-      plan.updates.push({id:ex.id,name:name,type:type,before:Math.round(Number(ex.value)||0),after:val,
-        renamed:String(ex.name||"").trim()!==name,retyped:(ex.type||"other")!==type,
-        usd:/^usd:/i.test(String(ex.note||"")),guessed:guessed});
-    }else{
-      plan.inserts.push({name:name,type:type,value:val,guessed:guessed});
-    }
+    var before=Math.round(Number(BUD[cat.id])||0);
+    if(before===val){plan.unchanged++;return;}
+    plan.updates.push({id:cat.id,name:cat.name,before:before,after:val});
   });
   return plan;
 }
-function openInvBulk(plan){
-  INVBULK=plan;
-  var host=$("invBulkBody");
-  var n=plan.updates.length+plan.inserts.length;
-  var html="";
+function openBudBulk(plan){
+  BUDBULK=plan;
+  var host=$("budBulkBody");
+  var n=plan.updates.length;
+  var beforeTot=plan.updates.reduce(function(s,u){return s+u.before;},0);
+  var afterTot=plan.updates.reduce(function(s,u){return s+u.after;},0);
+  var net=afterTot-beforeTot;
+  var html='';
   html+='<div class="rec-stats">';
-  html+='<div class="rec-stat"><span class="rec-stat-v">'+plan.updates.length+'</span><span class="rec-stat-l">Updated</span></div>';
-  html+='<div class="rec-stat"><span class="rec-stat-v">'+plan.inserts.length+'</span><span class="rec-stat-l">New</span></div>';
+  html+='<div class="rec-stat"><span class="rec-stat-v">'+n+'</span><span class="rec-stat-l">Changed</span></div>';
   html+='<div class="rec-stat"><span class="rec-stat-v">'+plan.unchanged+'</span><span class="rec-stat-l">Unchanged</span></div>';
+  html+='<div class="rec-stat"><span class="rec-stat-v '+(net>=0?"":"neg")+'">'+(net>=0?"+":"\u2212")+_moneyShort(Math.abs(net))+'</span><span class="rec-stat-l">Net change</span></div>';
   html+='</div>';
-  if(!n){
-    html+='<div class="empty" style="padding:20px 4px">Nothing to change — the file matches what is already saved.</div>';
-  }
-  if(plan.updates.length){
-    var net=plan.updates.reduce(function(s,u){return s+(u.after-u.before);},0);
-    html+='<div class="rec-sep-lg"></div><div class="rec-heading">Value changes</div>';
+  if(n){
+    html+='<div class="rec-sep-lg"></div><div class="rec-heading">Budget changes</div>';
     plan.updates.forEach(function(u){
       var d=u.after-u.before;
       html+='<div class="rec-line"><span class="rec-lbl">'+esc(u.name)+'</span><span class="rec-val '+(d>=0?"pos":"neg")+'">'+(d>=0?"+":"\u2212")+money2(Math.abs(d))+'</span></div>';
-      var bits=[money2(u.before)+" \u2192 "+money2(u.after)];
-      if(u.renamed)bits.push("renamed");
-      if(u.retyped)bits.push("type \u2192 "+(INV_TYPEL[u.type]||u.type));
-      if(u.usd)bits.push("USD reference left unchanged");
-      html+='<div class="rec-detail">'+bits.join(" \u00b7 ")+'</div>';
+      html+='<div class="rec-detail">'+money2(u.before)+' \u2192 '+money2(u.after)+'</div>';
     });
-    html+='<div class="rec-line rec-total"><span class="rec-lbl">Net change</span><span class="rec-val '+(net>=0?"pos":"neg")+'">'+(net>=0?"+":"\u2212")+money2(Math.abs(net))+'</span></div>';
-  }
-  if(plan.inserts.length){
-    html+='<div class="rec-sep-lg"></div><div class="rec-heading">New holdings</div>';
-    plan.inserts.forEach(function(x){
-      html+='<div class="rec-line"><span class="rec-lbl">'+esc(x.name)+'</span><span class="rec-val">'+money2(x.value)+'</span></div>';
-      html+='<div class="rec-detail">'+(INV_TYPEL[x.type]||x.type)+(x.guessed?' \u00b7 <span class="brass-hint">type not recognised, filed under Other</span>':"")+'</div>';
-    });
+    html+='<div class="rec-line rec-total"><span class="rec-lbl">New total budget</span><span class="rec-val">'+money2(afterTot+(function(){var s=0;(CATS||[]).forEach(function(c){if(!plan.updates.some(function(u){return u.id===c.id;}))s+=Math.round(Number(BUD[c.id])||0);});return s;})())+'</span></div>';
   }
   if(plan.skipped.length){
     html+='<div class="rec-sep-lg"></div><div class="rec-heading">Skipped rows</div>';
     html+='<div class="rec-detail">'+plan.skipped.slice(0,8).map(function(s){return "Row "+s.row+" \u2014 "+s.why;}).join("<br/>")+'</div>';
   }
+  if(!n&&!plan.skipped.length)html+='<div class="rec-note">Nothing to change \u2014 the file matches your current budgets.</div>';
   host.innerHTML=html;
-  $("invBulkApply").disabled=!n;
-  $("invBulkModal").classList.remove("hide");
+  $("budBulkApply").disabled=!n;
+  $("budBulkModal").classList.remove("hide");
 }
-function closeInvBulk(){$("invBulkModal").classList.add("hide");INVBULK=null;}
-async function applyInvestBulk(){
-  if(!INVBULK)return;
-  if(!requireOnline("You're offline — investments need a connection"))return;
-  var btn=$("invBulkApply");btn.disabled=true;
+function closeBudBulk(){$("budBulkModal").classList.add("hide");BUDBULK=null;}
+async function applyBudgetBulk(){
+  if(!BUDBULK)return;
+  if(!requireOnline("You\u2019re offline \u2014 budgets need a connection"))return;
+  var btn=$("budBulkApply");btn.disabled=true;
   try{
-    for(var i=0;i<INVBULK.updates.length;i++){
-      var u=INVBULK.updates[i];
-      var r=await sb.from("investments").update({name:u.name,type:u.type,value:u.after,updated_on:todayStr()}).eq("id",u.id);
+    for(var i=0;i<BUDBULK.updates.length;i++){
+      var u=BUDBULK.updates[i];
+      var r=await sb.from("budgets").upsert({category_id:u.id,monthly:u.after,updated_at:new Date().toISOString()});
       if(r.error)throw r.error;
+      BUD[u.id]=u.after;
     }
-    if(INVBULK.inserts.length){
-      var r2=await sb.from("investments").insert(INVBULK.inserts.map(function(x){
-        return {name:x.name,type:x.type,value:x.value,updated_on:todayStr()};
-      }));
-      if(r2.error)throw r2.error;
-    }
-    var done=INVBULK.updates.length+INVBULK.inserts.length;
-    closeInvBulk();
-    await loadInvest();
-    renderInvest();renderNetWorth();renderInvestChart();applyFilters();
-    try{snapshotInvest();}catch(_){}
+    var done=BUDBULK.updates.length;
+    try{localStorage.setItem("kharcha-bud",JSON.stringify(BUD));}catch(_){}
+    closeBudBulk();
+    renderBudgets();applyFilters();
     haptic(14);
     if(typeof showSuccessBurst==="function")showSuccessBurst();
-    showToast("Updated "+done+" holding"+(done!==1?"s":""));
+    showToast("Updated "+done+" budget"+(done!==1?"s":""));
   }catch(e){
     btn.disabled=false;
-    alert((e&&e.message)||"Couldn't update investments");
+    alert((e&&e.message)||"Couldn\u2019t update budgets");
   }
 }
-if($("invDownloadBtn"))$("invDownloadBtn").onclick=downloadInvestSheet;
-if($("invUploadBtn"))$("invUploadBtn").onclick=function(){
-  if(typeof XLSX==="undefined"){showToast("Import library still loading — try again");return;}
-  $("investBulkFile").click();
+if($("budDownloadBtn"))$("budDownloadBtn").onclick=downloadBudgetSheet;
+if($("budUploadBtn"))$("budUploadBtn").onclick=function(){
+  if(typeof XLSX==="undefined"){showToast("Import library still loading \u2014 try again");return;}
+  $("budgetBulkFile").click();
 };
-if($("invBulkApply"))$("invBulkApply").onclick=applyInvestBulk;
-$("investBulkFile").onchange=function(ev){
+if($("budBulkApply"))$("budBulkApply").onclick=applyBudgetBulk;
+$("budgetBulkFile").onchange=function(ev){
   var file=ev.target.files[0];if(!file)return;
   var rd=new FileReader();
   rd.onload=function(e){
     try{
       var wb=XLSX.read(e.target.result,{type:"binary"});
-      var nm=wb.SheetNames.indexOf("Investments")>=0?"Investments":wb.SheetNames[0];
+      var nm=wb.SheetNames.indexOf("Budgets")>=0?"Budgets":wb.SheetNames[0];
       var rows=XLSX.utils.sheet_to_json(wb.Sheets[nm],{defval:""});
       if(!rows.length){showToast("That sheet is empty");return;}
-      var plan=buildInvestBulkPlan(rows);
-      if(!plan.updates.length&&!plan.inserts.length&&!plan.unchanged&&!plan.skipped.length){
-        showToast("Couldn't find Name / Value columns");return;
+      var plan=buildBudgetBulkPlan(rows);
+      if(!plan.updates.length&&!plan.unchanged&&!plan.skipped.length){
+        showToast("Couldn\u2019t find Category / Budget columns");return;
       }
-      openInvBulk(plan);
+      openBudBulk(plan);
     }catch(err){
-      alert("Couldn't read that file. Use the sheet downloaded from this app, or a CSV with Name, Type and Value columns.");
+      alert("Couldn\u2019t read that file. Use the sheet exported from this app, or a CSV with Category and Budget columns.");
     }
   };
   rd.readAsBinaryString(file);
