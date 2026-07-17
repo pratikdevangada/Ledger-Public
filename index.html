@@ -1809,6 +1809,15 @@ box-shadow:0 20px 60px -12px rgba(199,165,87,.7);opacity:0;transform:scale(.4)}
   .fr-arrow{color:var(--brass-2);font-size:20px;flex:none;opacity:.55}
   .fr-step.done .fr-arrow{opacity:0}
   .fr-note{font-size:11.5px;color:var(--ink-faint);text-align:center;font-style:italic;margin-top:6px}
+
+  .err-details{margin-top:10px;text-align:left;font-size:12px;color:var(--ink-faint)}
+  .err-details summary{cursor:pointer;padding:4px 0;list-style:none;user-select:none}
+  .err-details summary::-webkit-details-marker{display:none}
+  .err-details summary::before{content:"▸ ";color:var(--brass-2);font-size:10px}
+  .err-details[open] summary::before{content:"▾ "}
+  .err-details code{display:block;margin-top:6px;padding:8px 10px;background:rgba(0,0,0,.20);border:1px solid var(--line);border-radius:8px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px;color:var(--ink-faint);word-break:break-word;line-height:1.45}
+  [data-theme="light"] .err-details code{background:rgba(0,0,0,.03)}
+  .gm-friendly{line-height:1.55}
 </style>
 </head>
 <body>
@@ -2624,6 +2633,37 @@ document.addEventListener("click",function(e){
 const BOOT_KEY="kharcha-boot";
 function _saveBootCache(){try{localStorage.setItem(BOOT_KEY,JSON.stringify({v:1,uid:window._uid||null,me:window._me||"",BUD:BUD,INCOME:INCOME,CARDS:CARDS,INVEST:INVEST,INVSNAP:(typeof INVSNAP!=="undefined"?INVSNAP:[]),RECUR:RECUR}));}catch(e){}}
 function applyFilters(){const[from,to]=rangeDates();LASTR=[from,to];const F=filtered();LASTF=F;renderHomeHero(F,from,to);renderStats(F,from,to);renderTrend(F,from,to);renderCat(F);renderSub(F);renderDow(F);renderWho(F);renderCardChart(F);renderSummary(F,from,to);renderCompare(F,from,to);renderBudgetVsActual();renderInsights();renderIncome();renderTrends();renderPace();renderNetWorth();renderRecent(F);if(window._appReady)_saveBootCache();try{_updateFirstRun();}catch(_){}}
+function _friendly(raw){
+  var m=String(raw||"").toLowerCase();
+  if(!m)return "Something went wrong. Please try again.";
+  if(/network|failed to fetch|fetch failed|networkerror|offline|dns|timeout|ec2|econn|abort/.test(m))return "Can’t reach the internet right now. Check your connection and try again.";
+  if(/invalid.*credential|invalid.*password|invalid.*email|user not found|wrong password|401|not authorized/.test(m))return "That email and password don’t match. Double-check and try again.";
+  if(/already.*regist|user.*exist|duplicate/.test(m))return "An account with that email already exists. Try signing in instead.";
+  if(/rate limit|too many/.test(m))return "Too many attempts in a row. Wait a minute, then try again.";
+  if(/paused|not available|503|502|500|server/.test(m))return "Our servers are having a moment. Please try again in a few minutes.";
+  if(/quota|limit exceeded/.test(m))return "You’ve reached a temporary usage limit. Try again in a bit.";
+  if(/no rows|not found|pgrst116/.test(m))return "That item couldn’t be found. It may have been removed.";
+  if(/permission|policy|rls|forbidden|403/.test(m))return "You don’t have permission for this action.";
+  return "Something went wrong. Please try again.";
+}
+function _errDetails(raw){
+  return raw?'<details class="err-details"><summary>Technical details</summary><code>'+esc(String(raw))+'</code></details>':'';
+}
+function gateMsgFriendly(userMsg, techMsg){
+  var el=document.getElementById("gateMsg");if(!el)return;
+  var friendly=userMsg||_friendly(techMsg);
+  el.innerHTML='<div class="gm-friendly">'+esc(friendly)+_errDetails(techMsg)+'</div>';
+  el.className="msg err";
+}
+function friendlyAlert(userMsg, techMsg){
+  var friendly=userMsg||_friendly(techMsg);
+  if(techMsg && String(techMsg).length && String(techMsg)!==friendly){
+    // fall back to alert for now — inline toast is preferable
+    showToast(friendly);
+  } else {
+    showToast(friendly);
+  }
+}
 function _hasAny(){return (typeof EXP!=="undefined"&&EXP&&EXP.length>0)||(typeof INCOME!=="undefined"&&INCOME&&INCOME.length>0)||(typeof BUD!=="undefined"&&Object.keys(BUD||{}).some(function(k){return Number(BUD[k])>0;}));}
 function _updateFirstRun(){
   var el=document.getElementById("firstRun");
@@ -2654,7 +2694,7 @@ function _ym(d){return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0"
 function lastNMonths(n){var out=[],now=new Date();for(var i=1;i<=n;i++){var d=new Date(now.getFullYear(),now.getMonth()-i,1);out.push({y:d.getFullYear(),m:d.getMonth(),label:d.toLocaleDateString(LOCALE,{month:"long",year:"numeric"}),ym:_ym(d)});}return out;}
 function _monthRows(y,m){return EXP.filter(function(e){if(e._pending)return false;var d=new Date(e.spent_on);return d.getFullYear()===y&&d.getMonth()===m&&!spendExcluded(e);}).sort(function(a,b){return a.spent_on<b.spent_on?-1:(a.spent_on>b.spent_on?1:0);});}
 function _buildSheet(wb,y,m){var rows=_monthRows(y,m),label=new Date(y,m,1).toLocaleDateString(LOCALE,{month:"long",year:"numeric"});var aoa=[["Kharcha \u2014 "+label],[],["Date","Category","Sub-category","Paid by","Method","Amount (INR)","Note"]];var total=0;rows.forEach(function(e){total+=Number(e.amount);aoa.push([new Date(e.spent_on),nameOf(e.category_id),subName(e.subcategory_id)||"",e.paid_by||"",e.method||"",Number(e.amount),e.note||""]);});aoa.push([]);aoa.push(["","","","","Total",total,""]);var ws=XLSX.utils.aoa_to_sheet(aoa);ws["!cols"]=[{wch:12},{wch:24},{wch:20},{wch:12},{wch:12},{wch:13},{wch:30}];XLSX.utils.book_append_sheet(wb,ws,label.slice(0,31));return label;}
-function downloadMonths(list){if(typeof XLSX==="undefined"){showToast("Export library not loaded");return;}if(!list.length){showToast("Pick at least one month");return;}var wb=XLSX.utils.book_new();var labels=list.map(function(mo){return _buildSheet(wb,mo.y,mo.m);});list.forEach(function(mo){markExported(mo.ym);});var fname=list.length===1?("Kharcha_"+labels[0].replace(/ /g,"_")):"Kharcha_Monthly_Reports";XLSX.writeFile(wb,fname+".xlsx");haptic(12);showToast("Downloaded "+list.length+" month"+(list.length>1?"s":""));renderReports();}
+function downloadMonths(list){if(typeof XLSX==="undefined"){showToast("Still loading — try again in a moment");return;}if(!list.length){showToast("Pick at least one month");return;}var wb=XLSX.utils.book_new();var labels=list.map(function(mo){return _buildSheet(wb,mo.y,mo.m);});list.forEach(function(mo){markExported(mo.ym);});var fname=list.length===1?("Kharcha_"+labels[0].replace(/ /g,"_")):"Kharcha_Monthly_Reports";XLSX.writeFile(wb,fname+".xlsx");haptic(12);showToast("Downloaded "+list.length+" month"+(list.length>1?"s":""));renderReports();}
 function openReportModal(preLast){var months=lastNMonths(3),exp=exportedMonths(),host=$("reportPickList");host.innerHTML=months.map(function(mo,idx){var cnt=_monthRows(mo.y,mo.m).length,done=exp.indexOf(mo.ym)>=0,chk=(preLast&&idx===0)?" checked":"";return '<label class="repick"><input type="checkbox" class="repchk" data-y="'+mo.y+'" data-m="'+mo.m+'" data-ym="'+mo.ym+'"'+chk+'><span class="repick-meta"><span class="repick-name">'+mo.label+'</span><span class="repick-sub">'+cnt+' expense'+(cnt!==1?"s":"")+(done?' \u00b7 downloaded':'')+'</span></span></label>';}).join("");$("reportSelectAll").textContent="Select all";$("reportModal").classList.remove("hide");}
 function closeReportModal(){$("reportModal").classList.add("hide");}
 function renderReports(){var rem=$("exportReminder");if(!rem)return;var now=new Date(),last=new Date(now.getFullYear(),now.getMonth()-1,1),lym=_ym(last),done=exportedMonths().indexOf(lym)>=0,lastLabel=last.toLocaleDateString(LOCALE,{month:"long",year:"numeric"});if(!done&&!_remDismissed){rem.innerHTML='<div class="rembar rembar-v2"><div class="remhead"><span class="remlabel">MONTH JUST ENDED</span><span class="remmonth">'+lastLabel+'</span></div><div class="remsub">Take a moment to see how it went.</div><div class="remact"><button class="primary rembtn">See recap</button><button class="ghost remlater">Not now</button></div></div>';rem.querySelector(".rembtn").onclick=function(){openMonthRecap(last.getFullYear(),last.getMonth());};rem.querySelector(".remlater").onclick=function(){_remDismissed=true;rem.innerHTML="";};}else rem.innerHTML="";}
@@ -3479,7 +3519,7 @@ async function undoDelete(e){if(!e)return;const{error}=await sb.from("expenses")
         await Promise.all([loadExpenses(),loadBudgets(),loadIncome(),loadCards(),loadInvest(),loadInvestSnap(),loadRecurring()]);
         applyFilters();
         if(typeof showToast==="function")showToast("Refreshed");
-      }catch(e){if(typeof showToast==="function")showToast("Refresh failed");}
+      }catch(e){if(typeof showToast==="function")showToast("Couldn’t refresh. Check your connection.");}
       finally{
         setTimeout(function(){
           ind.classList.remove("visible","ready","spinning");
@@ -3733,11 +3773,11 @@ let signingUp=false;
 function gateMsg(t,type){$("gateMsg").innerHTML=t?`<div class="msg ${type||'info'}">${esc(t)}</div>`:"";}
 function setMode(s){signingUp=s;$("authBtn").textContent=s?"Create account":"Sign in";$("switchText").textContent=s?"Already registered?":"First time here?";$("switchBtn").textContent=s?"Sign in instead":"Create an account";$("gateSub").textContent=s?"Create an account for you or your partner.":"Sign in to your shared expenses.";}
 $("switchBtn").onclick=()=>{setMode(!signingUp);gateMsg("");};
-$("authBtn").onclick=async()=>{if(!sb){gateMsg("Add your Supabase URL and key to the config lines, then reload.","info");return;}const email=$("email").value.trim(),password=$("password").value;if(!email||!password){gateMsg("Enter an email and password.","err");return;}$("authBtn").disabled=true;try{if(signingUp){const{error}=await sb.auth.signUp({email,password});if(error)throw error;gateMsg("Account created — sign in now.","ok");setMode(false);}else{const{error}=await sb.auth.signInWithPassword({email,password});if(error)throw error;}}catch(e){gateMsg(e.message||"Something went wrong.","err");}$("authBtn").disabled=false;};
+$("authBtn").onclick=async()=>{if(!sb){gateMsg("This copy of the app isn’t configured yet. Please contact whoever shared it with you.","info");return;}const email=$("email").value.trim(),password=$("password").value;if(!email||!password){gateMsg("Enter an email and password.","err");return;}$("authBtn").disabled=true;try{if(signingUp){const{error}=await sb.auth.signUp({email,password});if(error)throw error;gateMsg("Account created — sign in now.","ok");setMode(false);}else{const{error}=await sb.auth.signInWithPassword({email,password});if(error)throw error;}}catch(e){gateMsgFriendly(null, e.message);}$("authBtn").disabled=false;};
 ["email","password"].forEach(id=>$(id).addEventListener("keydown",e=>{if(e.key==="Enter")$("authBtn").click();}));
 $("signout").onclick=()=>sb&&sb.auth.signOut();
 function showGate(){$("app").classList.add("hide");$("gate").classList.remove("hide");try{var __sp3=document.getElementById("__splash");if(__sp3){__sp3.classList.add("__hide");setTimeout(function(){__sp3&&__sp3.parentNode&&__sp3.parentNode.removeChild(__sp3);},350);}}catch(_){}}
-function fatalLoad(msg){if($("loadErr"))return;document.body.insertAdjacentHTML("beforeend",`<div id="loadErr" style="position:fixed;inset:0;z-index:500;display:grid;place-items:center;padding:24px;background:rgba(8,8,9,.92);backdrop-filter:blur(5px)"><div style="max-width:430px;text-align:center;padding:30px;border:1px solid var(--line);border-radius:16px;background:var(--surface)"><div style="font-weight:600;font-size:18px;margin-bottom:9px">Couldn't load your data</div><div style="color:var(--ink-soft);font-size:14px;line-height:1.55;margin-bottom:20px">${esc(msg||"")}</div><button class="primary" onclick="location.reload()">Reload</button></div></div>`);}
+function fatalLoad(msg, tech){if($("loadErr"))return;var techBlock=tech?'<details class="err-details" style="margin-bottom:16px;text-align:left"><summary style="cursor:pointer;font-size:12px;color:var(--ink-faint)">Technical details</summary><code style="display:block;font-size:11px;color:var(--ink-faint);margin-top:6px;word-break:break-word">'+esc(String(tech))+'</code></details>':'';document.body.insertAdjacentHTML("beforeend",'<div id="loadErr" style="position:fixed;inset:0;z-index:500;display:grid;place-items:center;padding:24px;background:rgba(8,8,9,.92);backdrop-filter:blur(5px)"><div style="max-width:430px;text-align:center;padding:30px;border:1px solid var(--line);border-radius:16px;background:var(--surface)"><div style="font-weight:600;font-size:18px;margin-bottom:9px">Couldn\u2019t load your data</div><div style="color:var(--ink-soft);font-size:14px;line-height:1.55;margin-bottom:20px">'+esc(msg||"")+'</div>'+techBlock+'<button class="primary" onclick="location.reload()">Reload</button></div></div>');}
 async function prefetchApp(session){
   // Silent parallel data fetch during PIN entry. Data lands in the same arrays
   // showApp would populate — so when user unlocks, everything's already there.
@@ -3817,7 +3857,7 @@ async function showApp(session){if(window._appReady)return;
       processRecurring().catch(function(){});
     }
   }
-  catch(e){fatalLoad("Couldn't reach the database. Check your connection and try again. If this keeps happening, your free Supabase project may have paused — open your Supabase dashboard and resume it. ("+(e&&e.message||e)+")");return;}
+  catch(e){fatalLoad("Couldn’t reach the internet right now. Check your connection and try again.", e&&e.message||e);return;}
   let nm="";PROF_OK=true;
   if(window._prefetchProfile){
     try{await window._prefetchProfile;}catch(_){}
@@ -3830,7 +3870,7 @@ async function showApp(session){if(window._appReady)return;
   try{
     if(window._cacheRendered){renderAddRecent();applyFilters();updateSync();if(navigator.onLine)flushQueue();renderReports();fetchUsdRate();}
     else{initFilters();$("rows").innerHTML="";addRow();renderAddRecent();applyFilters();updateSync();if(navigator.onLine)flushQueue();renderReports();fetchUsdRate();}
-  }catch(e){fatalLoad("Something went wrong while drawing the dashboard. ("+(e&&e.message||e)+")");return;}
+  }catch(e){fatalLoad("Something went wrong while showing your dashboard. Please reload the app.", e&&e.message||e);return;}
   window._appReady=true;_saveBootCache();const _le=$("loadErr");if(_le)_le.remove();try{var __sp=document.getElementById("__splash");if(__sp){__sp.classList.add("__hide");setTimeout(function(){__sp&&__sp.parentNode&&__sp.parentNode.removeChild(__sp);},350);}}catch(_){}
   var _bl=$("bootLoader");if(_bl){_bl.style.opacity="0";setTimeout(function(){_bl.classList.add("hide");_bl.style.opacity="";},250);}
   $("app").style.visibility="";
@@ -3841,10 +3881,10 @@ async function showApp(session){if(window._appReady)return;
 const CFG_OK=SUPABASE_URL&&SUPABASE_ANON_KEY&&!/PASTE_/.test(SUPABASE_URL)&&!/PASTE_/.test(SUPABASE_ANON_KEY);
 window.addEventListener("error",ev=>{if(!$("app")||$("app").classList.contains("hide")){const m=ev.message&&ev.message!=="Script error."?ev.message:"A library failed to load. Check your connection/ad-blocker and the Supabase URL/key.";gateMsg("Error: "+m,"err");}});
 if(!CFG_OK){showGate();gateMsg("Setup needed: paste your Supabase Project URL and anon public key into the four CONFIG lines near the top of this file, then reload. (Supabase → Project Settings → API.)","info");$("authBtn").disabled=true;}
-else{try{sb=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);}catch(e){showGate();gateMsg("Couldn't start: "+e.message,"err");}if(sb){
+else{try{sb=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);}catch(e){showGate();gateMsgFriendly("Couldn’t start the app. Please close and reopen it.", e.message);}if(sb){
   var _kickPrefetch=function(s){if(window._pinShowing&&!window._prefetchStarted&&s){window._prefetchStarted=true;try{prefetchApp(s);}catch(e){}}};
   sb.auth.onAuthStateChange((_e,s)=>{if(s){_kickPrefetch(s);if(!window._appReady)showApp(s);}else{window._appReady=false;showGate();}});
-  sb.auth.getSession().then(({data})=>{if(data.session){_kickPrefetch(data.session);showApp(data.session);}else{showGate();}}).catch(e=>{showGate();gateMsg("Couldn’t reach Supabase: "+e.message,"err");});
+  sb.auth.getSession().then(({data})=>{if(data.session){_kickPrefetch(data.session);showApp(data.session);}else{showGate();}}).catch(e=>{showGate();gateMsgFriendly(null, e.message);});
 }}
 
 
