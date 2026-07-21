@@ -1882,6 +1882,17 @@ box-shadow:0 20px 60px -12px rgba(199,165,87,.7);opacity:0;transform:scale(.4)}
     height:44px;padding:0 12px;font-size:12.5px;font-weight:600;border-radius:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .alt-ico{font-size:14px;color:var(--brass-2);flex:none}
 
+
+  /* Insights master row — single entry point for all analysis */
+  #filterToggle{display:none !important}
+  .ins-master{display:flex;align-items:center;gap:6px;margin-top:16px;padding:4px 8px 4px 4px}
+  .ins-master .ins-main{flex:1;display:flex;align-items:center;justify-content:space-between;gap:10px;
+    background:none;border:none;padding:14px 8px 14px 16px;cursor:pointer;min-height:52px;text-align:left}
+  .ins-master .ins-title{margin:0;font-size:inherit}
+  .ins-chev{color:var(--brass-2);font-size:22px;line-height:1;flex:none;transition:transform .16s}
+  .ins-master.open .ins-chev{transform:translateY(2px)}
+  .ins-flt{flex:none;margin-right:6px}
+  .modwrap.hide{display:none}
 </style>
 </head>
 <body>
@@ -2041,7 +2052,11 @@ box-shadow:0 20px 60px -12px rgba(199,165,87,.7);opacity:0;transform:scale(.4)}
       <div class="nwhint">Tap to view your portfolio →</div>
     </section>
 
-    <div class="modwrap">
+    <section class="card ins-master" id="insMaster">
+      <button class="ins-main" type="button" onclick="toggleInsights()"><h2 class="ctitle ins-title">Insights &amp; charts</h2><span class="ins-chev" id="insChev">›</span></button>
+      <button class="hdr-icon ins-flt hide" id="insFilterBtn" type="button" onclick="toggleFilter(this)" aria-label="Filter and export"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 5h18l-7 8v6l-4-2v-4z"/></svg></button>
+    </section>
+    <div class="modwrap hide" id="modwrap">
     <div class="modbar" id="modbar">
       <button class="modtab on" data-mod="overview">Overview</button>
       <button class="modtab" data-mod="breakdown">Breakdown</button>
@@ -3583,7 +3598,19 @@ function renderHomeHero(F,from,to){
     if(_pend>0){if(!sub){sub=document.createElement("span");sub.className="gts";el.appendChild(sub);}sub.textContent=_moneyShort(_pend)+" committed";}
     else if(sub){sub.remove();}})();
 }
-function closeProfile(){var m=$("profileMenu"),bd=$("profileBackdrop");if(m)m.classList.remove("open");if(bd)bd.classList.remove("on");}function toggleProfile(){var m=$("profileMenu"),btn=$("profileBtn"),bd=$("profileBackdrop");if(!m)return;if(m.classList.contains("open")){closeProfile();return;}if(btn){var r=btn.getBoundingClientRect();m.style.top=(r.bottom+8)+"px";m.style.right=Math.max(12,(window.innerWidth-r.right))+"px";}m.classList.add("open");if(bd)bd.classList.add("on");if(typeof haptic==="function")haptic(6);}function syncProfile(email){var init=((window._me||"?").trim().charAt(0)||"?").toUpperCase();var a=$("avatarInitial");if(a)a.textContent=init;var b=$("pmAv");if(b)b.textContent=init;if(email!==undefined){var e=$("pmEmail");if(e)e.textContent=email;}}function toggleFilter(){var p=$("filterPanel"),btn=$("filterToggle"),bd=$("filterBackdrop");if(!p)return;var willOpen=!p.classList.contains("open");if(willOpen){if(btn){var r=btn.getBoundingClientRect();var pw=Math.min(342,window.innerWidth-24);var rt=Math.max(12,window.innerWidth-r.right);rt=Math.max(12,Math.min(rt,window.innerWidth-12-pw));p.style.top=(r.bottom+8)+"px";p.style.right=rt+"px";p.style.left="auto";}p.classList.add("open");if(bd)bd.classList.add("on");if(btn)btn.classList.add("on");}else{p.classList.remove("open");if(bd)bd.classList.remove("on");if(btn)btn.classList.remove("on");}if(typeof haptic==="function")haptic(6);}
+function closeProfile(){var m=$("profileMenu"),bd=$("profileBackdrop");if(m)m.classList.remove("open");if(bd)bd.classList.remove("on");}function toggleProfile(){var m=$("profileMenu"),btn=$("profileBtn"),bd=$("profileBackdrop");if(!m)return;if(m.classList.contains("open")){closeProfile();return;}if(btn){var r=btn.getBoundingClientRect();m.style.top=(r.bottom+8)+"px";m.style.right=Math.max(12,(window.innerWidth-r.right))+"px";}m.classList.add("open");if(bd)bd.classList.add("on");if(typeof haptic==="function")haptic(6);}function syncProfile(email){var init=((window._me||"?").trim().charAt(0)||"?").toUpperCase();var a=$("avatarInitial");if(a)a.textContent=init;var b=$("pmAv");if(b)b.textContent=init;if(email!==undefined){var e=$("pmEmail");if(e)e.textContent=email;}}function toggleInsights(){
+  var w=document.getElementById("modwrap"),chev=document.getElementById("insChev"),fb=document.getElementById("insFilterBtn"),m=document.getElementById("insMaster");
+  if(!w)return;
+  var opening=w.classList.contains("hide");
+  w.classList.toggle("hide");
+  if(m)m.classList.toggle("open",opening);
+  if(chev)chev.textContent=opening?"⌄":"›";
+  if(fb)fb.classList.toggle("hide",!opening);
+  if(opening){try{applyFilters();}catch(_){}}
+  else{var p=$("filterPanel");if(p&&p.classList.contains("open"))toggleFilter();}
+  if(typeof haptic==="function")haptic(8);
+}
+function toggleFilter(trigger){var p=$("filterPanel"),btn=(trigger&&trigger.getBoundingClientRect?trigger:$("filterToggle")),bd=$("filterBackdrop");if(!p)return;var willOpen=!p.classList.contains("open");if(willOpen){if(btn){var r=btn.getBoundingClientRect();var pw=Math.min(342,window.innerWidth-24);var rt=Math.max(12,window.innerWidth-r.right);rt=Math.max(12,Math.min(rt,window.innerWidth-12-pw));p.style.top=(r.bottom+8)+"px";p.style.right=rt+"px";p.style.left="auto";}p.classList.add("open");if(bd)bd.classList.add("on");if(btn)btn.classList.add("on");}else{p.classList.remove("open");if(bd)bd.classList.remove("on");if(btn)btn.classList.remove("on");}if(typeof haptic==="function")haptic(6);}
 function renderInsights(){const host=$("insights");if(!host)return;const now=new Date();const inM=(e,b)=>{const d=new Date(e.spent_on),t=new Date(now.getFullYear(),now.getMonth()-b,1);return d.getFullYear()===t.getFullYear()&&d.getMonth()===t.getMonth();};const cur=EXP.filter(e=>inM(e,0)&&!spendExcluded(e)),prev=EXP.filter(e=>inM(e,1)&&!spendExcluded(e));const T=l=>l.reduce((s,e)=>s+Number(e.amount),0);const ct=T(cur),pt=T(prev);const items=[];if(pt>0){const dp=Math.round((ct-pt)/pt*100);items.push(`Total spending is <b>${dp>=0?"up":"down"} ${Math.abs(dp)}%</b> vs last month — ${money2(ct)} vs ${money2(pt)}.`);}else if(ct>0){items.push(`You have spent <b>${money2(ct)}</b> so far this month.`);}const cc={},pc={};cur.forEach(e=>cc[e.category_id]=(cc[e.category_id]||0)+Number(e.amount));prev.forEach(e=>pc[e.category_id]=(pc[e.category_id]||0)+Number(e.amount));const ids=new Set([...Object.keys(cc),...Object.keys(pc)]);let up=null,dn=null;ids.forEach(id=>{const d=(cc[id]||0)-(pc[id]||0);if(up===null||d>up.d)up={id,d};if(dn===null||d<dn.d)dn={id,d};});if(up&&up.d>0)items.push(`Biggest rise: <b>${esc(nameOf(up.id))}</b> +${money2(up.d)}.`);if(dn&&dn.d<0)items.push(`Biggest drop: <b>${esc(nameOf(dn.id))}</b> −${money2(Math.abs(dn.d))}.`);const topc=Object.entries(cc).sort((a,b)=>b[1]-a[1])[0];if(topc)items.push(`Top category this month: <b>${esc(nameOf(topc[0]))}</b> at ${money2(topc[1])}.`);const act=monthActuals();const over=CATS.filter(c=>BUD[c.id]>0&&(act[c.id]||0)>BUD[c.id]);if(over.length)items.push(`Over budget: <b>${over.map(c=>esc(c.name)).join(", ")}</b>.`);host.innerHTML=items.length?`<ul class="insightlist">${items.map(i=>`<li>${i}</li>`).join("")}</ul>`:`<div class="empty" style="padding:12px 2px">Not enough history yet for insights.</div>`;}
 document.addEventListener('click',ev=>{
   const seg=ev.target.closest('.miniseg button');
