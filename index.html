@@ -1882,14 +1882,6 @@ box-shadow:0 20px 60px -12px rgba(199,165,87,.7);opacity:0;transform:scale(.4)}
     height:44px;padding:0 12px;font-size:12.5px;font-weight:600;border-radius:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .alt-ico{font-size:14px;color:var(--brass-2);flex:none}
 
-  .dash-collctl{display:flex;justify-content:flex-end;margin:2px 2px 10px}
-  .collctl-btn{display:inline-flex;align-items:center;gap:6px;min-height:44px;padding:7px 16px;border-radius:12px;
-    background:rgba(231,207,147,.06);border:1px solid rgba(231,207,147,.15);color:var(--brass-2);
-    font-size:12.5px;font-weight:650;font-family:var(--sans);cursor:pointer;transition:.14s;-webkit-tap-highlight-color:transparent}
-  .collctl-btn:hover{background:rgba(231,207,147,.12)}
-  .collctl-btn:active{transform:scale(.97)}
-  .collctl-btn .cc-ico{font-size:15px;line-height:1}
-  [data-theme="light"] .collctl-btn{background:rgba(154,126,52,.07);border-color:rgba(154,126,52,.22);color:#8A701F}
 </style>
 </head>
 <body>
@@ -2073,7 +2065,6 @@ box-shadow:0 20px 60px -12px rgba(199,165,87,.7);opacity:0;transform:scale(.4)}
         <h2 class="ctitle">Budget pace <span class="soft">— on track this month?</span></h2>
         <div id="paceBody"></div>
       </section>
-      <div class="dash-collctl" id="dashCollCtl"><button type="button" id="collapseAllBtn" class="collctl-btn"><span class="cc-ico">⊕</span> <span id="collctlLabel">Expand all</span></button></div>
       <section class="card full collapsible" id="trendChartCard" data-mod="overview" data-chart="trend">
         <div class="chead"><h2 class="ctitle">Spending over time</h2>
           <div class="ctools">
@@ -3325,30 +3316,8 @@ if($("backupFile"))$("backupFile").onchange=function(e){var f=e.target.files[0];
 function initCollapsibles(){document.querySelectorAll(".card.collapsible").forEach(function(card){if(card._collInit)return;card._collInit=true;var head=card.querySelector(".chead")||card.querySelector(".ctitle");if(!head)return;var key="kharcha-collapse-"+(card.id||(head.textContent||"").replace(/\s+/g," ").trim().slice(0,24));var chev=document.createElement("button");chev.type="button";chev.className="card-chev";chev.setAttribute("aria-label","Collapse or expand");chev.innerHTML='<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>';card.appendChild(chev);
 var _saved=null;try{_saved=localStorage.getItem(key);}catch(e){}
 if(_saved==="0")card.classList.remove("collapsed");else card.classList.add("collapsed");
-function toggle(){card.classList.toggle("collapsed");var c=card.classList.contains("collapsed");try{localStorage.setItem(key,c?"1":"0");}catch(e){}haptic&&haptic(8);}chev.addEventListener("click",function(e){e.stopPropagation();toggle();try{_syncCollctl();}catch(_){}});head.classList.add("coll-head");head.addEventListener("click",function(e){if(e.target.closest("button,input,select,.csel-btn,a"))return;toggle();try{_syncCollctl();}catch(_){}});});
-  var _cab=document.getElementById("collapseAllBtn");
-  if(_cab&&!_cab._wired){_cab._wired=true;_cab.addEventListener("click",toggleAllCards);}
-  try{_syncCollctl();}catch(_){}}
+function toggle(){card.classList.toggle("collapsed");var c=card.classList.contains("collapsed");try{localStorage.setItem(key,c?"1":"0");}catch(e){}haptic&&haptic(8);}chev.addEventListener("click",function(e){e.stopPropagation();toggle();});head.classList.add("coll-head");head.addEventListener("click",function(e){if(e.target.closest("button,input,select,.csel-btn,a"))return;toggle();});});}
 
-function _dashCards(){return [...document.querySelectorAll('#screen-dash .card.collapsible')].filter(function(c){return c.offsetParent!==null;});}
-function _syncCollctl(){
-  var lbl=document.getElementById("collctlLabel");if(!lbl)return;
-  var cards=_dashCards();if(!cards.length)return;
-  var anyOpen=cards.some(function(c){return !c.classList.contains("collapsed");});
-  lbl.textContent=anyOpen?"Collapse all":"Expand all";
-  var ico=document.querySelector("#collapseAllBtn .cc-ico");
-  if(ico)ico.textContent=anyOpen?"⊖":"⊕";
-}
-function toggleAllCards(){
-  var cards=[...document.querySelectorAll('#screen-dash .card.collapsible')];
-  var anyOpen=cards.some(function(c){return !c.classList.contains("collapsed");});
-  cards.forEach(function(c){
-    var key="kharcha-collapse-"+(c.id||((c.querySelector(".ctitle")||{}).textContent||"").replace(/\s+/g," ").trim().slice(0,24));
-    if(anyOpen){c.classList.add("collapsed");try{localStorage.setItem(key,"1");}catch(e){}}
-    else{c.classList.remove("collapsed");try{localStorage.setItem(key,"0");}catch(e){}}
-  });
-  haptic&&haptic(10);_syncCollctl();
-}
 function _monthExp(back){var n=new Date();var y=n.getFullYear(),m=n.getMonth()-(back||0);var f=new Date(y,m,1),l=new Date(y,m+1,0);var from=ymd(f),to=ymd(l);return EXP.filter(function(e){return e.spent_on>=from&&e.spent_on<=to&&!spendExcluded(e);});}
 function renderTrends(){var host=$("trendsBody");if(!host)return;var cur=_monthExp(0),prev=_monthExp(1);var T=function(l){return l.reduce(function(s,e){return s+Number(e.amount);},0);};var ct=T(cur),pt=T(prev);if(ct===0&&pt===0){host.innerHTML='<div class="empty" style="padding:12px 2px">No spending yet to compare.</div>';return;}var html="";if(pt>0){var dp=Math.round((ct-pt)/pt*100),up=dp>=0;html+='<div class="trend-head"><span class="trend-pill '+(up?"up":"down")+'">'+(up?"\u2191":"\u2193")+" "+Math.abs(dp)+'%</span><span class="trend-sub">'+money2(ct)+" this month vs "+money2(pt)+" last</span></div>";}else{html+='<div class="trend-head"><span class="trend-sub">'+money2(ct)+" spent so far this month</span></div>";}var cc={},pc={};cur.forEach(function(e){cc[e.category_id]=(cc[e.category_id]||0)+Number(e.amount);});prev.forEach(function(e){pc[e.category_id]=(pc[e.category_id]||0)+Number(e.amount);});var ids={};Object.keys(cc).forEach(function(k){ids[k]=1;});Object.keys(pc).forEach(function(k){ids[k]=1;});var movers=Object.keys(ids).map(function(id){return{id:id,d:(cc[id]||0)-(pc[id]||0)};}).filter(function(x){return Math.abs(x.d)>=1;});movers.sort(function(a,b){return Math.abs(b.d)-Math.abs(a.d);});var top=movers.slice(0,3);if(top.length){var maxAbs=Math.max.apply(null,top.map(function(x){return Math.abs(x.d);}));html+='<div class="mover-list">'+top.map(function(x){var up=x.d>=0,w=maxAbs>0?Math.round(Math.abs(x.d)/maxAbs*100):0;return '<div class="mover"><span class="mv-dot" style="background:'+colorOf(x.id)+'"></span><span class="mv-name">'+esc(nameOf(x.id))+'</span><span class="mv-bar"><span class="mv-fill '+(up?"up":"down")+'" style="width:'+w+'%"></span></span><span class="mv-amt '+(up?"up":"down")+'">'+(up?"+":"\u2212")+money2(Math.abs(x.d))+"</span></div>";}).join("")+"</div>";}host.innerHTML=html;}
 function renderPace(){var host=$("paceBody");if(!host)return;var totBud=CATS.reduce(function(s,c){return s+(BUD[c.id]||0);},0);if(totBud<=0){host.innerHTML='<div class="empty" style="padding:12px 2px">Set category budgets in the Money tab to see your pace.</div>';return;}var n=new Date(),y=n.getFullYear(),m=n.getMonth();var daysIn=new Date(y,m+1,0).getDate(),day=n.getDate(),frac=day/daysIn;var act=monthActuals();var totAct=0;CATS.forEach(function(c){totAct+=(act[c.id]||0);});var proj=frac>0?Math.round(totAct/frac):totAct;var projCls=proj>totBud?"over":"ok";var html='<div class="pace-top"><div class="pace-day">Day '+day+" of "+daysIn+" \u00b7 "+Math.round(frac*100)+'% through the month</div><div class="pace-proj">Projected month-end: <b class="'+projCls+'">'+money2(proj)+'</b> <span class="pace-budg">of '+money2(totBud)+" budget</span></div></div>";var actPct=totBud>0?Math.min(100,Math.round(totAct/totBud*100)):0,expPct=Math.round(frac*100);html+='<div class="pace-bar"><span class="pace-fill '+(totAct>totBud*frac*1.05?"warn":"")+'" style="width:'+actPct+'%"></span><span class="pace-mark" style="left:'+expPct+'%"></span></div>';html+='<div class="pace-legend"><span>Spent '+money2(totAct)+" ("+actPct+'%)</span><span class="pace-exp">\u25b2 pace = today</span></div>';var overs=CATS.filter(function(c){return(BUD[c.id]||0)>0;}).map(function(c){var a=act[c.id]||0,b=BUD[c.id],p=frac>0?a/frac:a;return{c:c,a:a,b:b,proj:p};}).filter(function(x){return x.proj>x.b*1.02;}).sort(function(a,b){return(b.proj-b.b)-(a.proj-a.b);}).slice(0,4);if(overs.length){html+='<div class="pace-warns">'+overs.map(function(x){return '<div class="pw"><span class="pw-dot" style="background:'+colorOf(x.c.id)+'"></span><span class="pw-name">'+esc(x.c.name)+'</span><span class="pw-txt">'+money2(x.a)+" of "+money2(x.b)+" \u00b7 on track for <b>"+money2(Math.round(x.proj))+"</b></span></div>";}).join("")+"</div>";}else{html+='<div class="pace-ok">\u2713 Every category is on pace.</div>';}host.innerHTML=html;}
