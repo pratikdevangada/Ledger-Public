@@ -2083,13 +2083,13 @@ box-shadow:0 20px 60px -12px rgba(199,165,87,.7);opacity:0;transform:scale(.4)}
         </div>
         <div class="cwrap"><canvas id="cCat"></canvas></div>
       </section>
-      <section class="card full" data-mod="breakdown" data-chart="sub">
+      <section class="card full collapsible" id="subChartCard" data-mod="breakdown" data-chart="sub">
         <div class="chead"><h2 class="ctitle">Top sub-categories <span class="soft">— shades of their category</span></h2>
           <div class="ctools"><button class="expand" data-card="sub" title="Toggle full width">⤢</button></div>
         </div>
         <div id="cSub"></div>
       </section>
-      <section class="card full" data-mod="budget" data-chart="dow">
+      <section class="card full collapsible" id="dowChartCard" data-mod="budget" data-chart="dow">
         <div class="chead"><h2 class="ctitle">Rhythm by weekday</h2>
           <div class="ctools">
             <div class="miniseg" data-target="dow"><button data-type="bar" class="on">Bar</button><button data-type="line">Line</button></div>
@@ -2098,7 +2098,7 @@ box-shadow:0 20px 60px -12px rgba(199,165,87,.7);opacity:0;transform:scale(.4)}
         </div>
         <div class="cwrap"><canvas id="cDow"></canvas></div>
       </section>
-      <section class="card full" data-mod="breakdown" data-chart="who">
+      <section class="card full collapsible" id="whoChartCard" data-mod="breakdown" data-chart="who">
         <div class="chead"><h2 class="ctitle">Who paid</h2>
           <div class="ctools">
             <div class="miniseg" data-target="who"><button data-type="doughnut" class="on">Donut</button><button data-type="bar">Bar</button><button data-type="pie">Pie</button></div>
@@ -2107,7 +2107,7 @@ box-shadow:0 20px 60px -12px rgba(199,165,87,.7);opacity:0;transform:scale(.4)}
         </div>
         <div class="cwrap"><canvas id="cWho"></canvas></div>
       </section>
-      <section class="card full" data-mod="breakdown" data-chart="cardspend">
+      <section class="card full collapsible" id="cardspendChartCard" data-mod="breakdown" data-chart="cardspend">
         <div class="chead"><h2 class="ctitle">By card</h2>
           <div class="ctools">
             <div class="miniseg" data-target="cardspend"><button data-type="doughnut" class="on">Donut</button><button data-type="bar">Bar</button><button data-type="pie">Pie</button></div>
@@ -3314,9 +3314,8 @@ if($("backupExport"))$("backupExport").onclick=exportBackup;
 if($("backupImport"))$("backupImport").onclick=function(){$("backupFile").click();};
 if($("backupFile"))$("backupFile").onchange=function(e){var f=e.target.files[0];restoreBackup(f);e.target.value="";};
 function initCollapsibles(){document.querySelectorAll(".card.collapsible").forEach(function(card){if(card._collInit)return;card._collInit=true;var head=card.querySelector(".chead")||card.querySelector(".ctitle");if(!head)return;var key="kharcha-collapse-"+(card.id||(head.textContent||"").replace(/\s+/g," ").trim().slice(0,24));var chev=document.createElement("button");chev.type="button";chev.className="card-chev";chev.setAttribute("aria-label","Collapse or expand");chev.innerHTML='<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>';card.appendChild(chev);
-var _saved=null;try{_saved=localStorage.getItem(key);}catch(e){}
-if(_saved==="0")card.classList.remove("collapsed");else card.classList.add("collapsed");
-function toggle(){card.classList.toggle("collapsed");var c=card.classList.contains("collapsed");try{localStorage.setItem(key,c?"1":"0");}catch(e){}haptic&&haptic(8);}chev.addEventListener("click",function(e){e.stopPropagation();toggle();});head.classList.add("coll-head");head.addEventListener("click",function(e){if(e.target.closest("button,input,select,.csel-btn,a"))return;toggle();});});}
+card.classList.add("collapsed");
+function toggle(){card.classList.toggle("collapsed");haptic&&haptic(8);}chev.addEventListener("click",function(e){e.stopPropagation();toggle();});head.classList.add("coll-head");head.addEventListener("click",function(e){if(e.target.closest("button,input,select,.csel-btn,a"))return;toggle();});});}
 
 function _monthExp(back){var n=new Date();var y=n.getFullYear(),m=n.getMonth()-(back||0);var f=new Date(y,m,1),l=new Date(y,m+1,0);var from=ymd(f),to=ymd(l);return EXP.filter(function(e){return e.spent_on>=from&&e.spent_on<=to&&!spendExcluded(e);});}
 function renderTrends(){var host=$("trendsBody");if(!host)return;var cur=_monthExp(0),prev=_monthExp(1);var T=function(l){return l.reduce(function(s,e){return s+Number(e.amount);},0);};var ct=T(cur),pt=T(prev);if(ct===0&&pt===0){host.innerHTML='<div class="empty" style="padding:12px 2px">No spending yet to compare.</div>';return;}var html="";if(pt>0){var dp=Math.round((ct-pt)/pt*100),up=dp>=0;html+='<div class="trend-head"><span class="trend-pill '+(up?"up":"down")+'">'+(up?"\u2191":"\u2193")+" "+Math.abs(dp)+'%</span><span class="trend-sub">'+money2(ct)+" this month vs "+money2(pt)+" last</span></div>";}else{html+='<div class="trend-head"><span class="trend-sub">'+money2(ct)+" spent so far this month</span></div>";}var cc={},pc={};cur.forEach(function(e){cc[e.category_id]=(cc[e.category_id]||0)+Number(e.amount);});prev.forEach(function(e){pc[e.category_id]=(pc[e.category_id]||0)+Number(e.amount);});var ids={};Object.keys(cc).forEach(function(k){ids[k]=1;});Object.keys(pc).forEach(function(k){ids[k]=1;});var movers=Object.keys(ids).map(function(id){return{id:id,d:(cc[id]||0)-(pc[id]||0)};}).filter(function(x){return Math.abs(x.d)>=1;});movers.sort(function(a,b){return Math.abs(b.d)-Math.abs(a.d);});var top=movers.slice(0,3);if(top.length){var maxAbs=Math.max.apply(null,top.map(function(x){return Math.abs(x.d);}));html+='<div class="mover-list">'+top.map(function(x){var up=x.d>=0,w=maxAbs>0?Math.round(Math.abs(x.d)/maxAbs*100):0;return '<div class="mover"><span class="mv-dot" style="background:'+colorOf(x.id)+'"></span><span class="mv-name">'+esc(nameOf(x.id))+'</span><span class="mv-bar"><span class="mv-fill '+(up?"up":"down")+'" style="width:'+w+'%"></span></span><span class="mv-amt '+(up?"up":"down")+'">'+(up?"+":"\u2212")+money2(Math.abs(x.d))+"</span></div>";}).join("")+"</div>";}host.innerHTML=html;}
@@ -4302,6 +4301,6 @@ try{updatePinMenuLabel();}catch(e){}
 
 </script>
 <script>if("serviceWorker" in navigator){window.addEventListener("load",function(){navigator.serviceWorker.register("sw.js").catch(function(){});});}
-try{setTimeout(initCollapsibles,80);}catch(e){}try{setTimeout(function(){["budgets","cards","invest"].forEach(function(mt){var c=document.querySelector('#screen-budgets .card.collapsible[data-mtab="'+mt+'"]');if(c)c.classList.remove("collapsed");});},140);}catch(e){}
+try{setTimeout(initCollapsibles,80);}catch(e){}
 </script>
 </body></html>
