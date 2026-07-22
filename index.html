@@ -1884,18 +1884,28 @@ box-shadow:0 20px 60px -12px rgba(199,165,87,.7);opacity:0;transform:scale(.4)}
 
 
   /* Insights master row — single entry point for all analysis */
-  #filterToggle{display:none !important}
   .ins-master{display:flex;align-items:center;gap:6px;margin-top:16px;padding:4px 8px 4px 4px}
   .ins-master .ins-main{flex:1;display:flex;align-items:center;justify-content:space-between;gap:10px;
     background:none;border:none;padding:14px 8px 14px 16px;cursor:pointer;min-height:52px;text-align:left}
   .ins-master .ins-title{margin:0;font-size:inherit}
   .ins-chev{color:var(--brass-2);font-size:22px;line-height:1;flex:none;transition:transform .16s}
   .ins-master.open .ins-chev{transform:translateY(2px)}
-  .ins-flt{flex:none;margin-right:6px}
   .modwrap.hide{display:none}
 
   /* collapsed cards show only the title — no chart-type controls */
   .card.collapsible.collapsed .chead .ctools{display:none !important}
+
+  /* Progressive All-Expenses filter */
+  .ael-stage{padding:8px 0;border-top:1px solid var(--line);transition:opacity .16s}
+  .ael-stage:first-of-type{border-top:none}
+  .ael-stage.locked{opacity:.4;pointer-events:none}
+  .ael-fg-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+  .ael-fg-label{font-size:10.5px;font-weight:700;letter-spacing:.11em;text-transform:uppercase;color:var(--ink-faint)}
+  .ael-fg-hint{font-size:10px;font-weight:600;color:var(--brass-2);letter-spacing:.04em}
+  .ael-fg-chips{display:flex;flex-wrap:wrap;gap:6px}
+  .ael-chip-ic{margin-right:4px;font-size:12px;line-height:1}
+  .ael-clear{margin-left:6px;background:none;border:none;color:var(--brass-2);font-size:11.5px;font-weight:600;cursor:pointer;padding:3px 6px;border-radius:6px}
+  .ael-clear:hover{background:rgba(199,165,87,.08)}
 </style>
 </head>
 <body>
@@ -2057,7 +2067,6 @@ box-shadow:0 20px 60px -12px rgba(199,165,87,.7);opacity:0;transform:scale(.4)}
 
     <section class="card ins-master" id="insMaster">
       <button class="ins-main" type="button" onclick="toggleInsights()"><h2 class="ctitle ins-title">Insights &amp; charts</h2><span class="ins-chev" id="insChev">›</span></button>
-      <button class="hdr-icon ins-flt hide" id="insFilterBtn" type="button" onclick="toggleFilter(this)" aria-label="Filter and export"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 5h18l-7 8v6l-4-2v-4z"/></svg></button>
     </section>
     <div class="modwrap hide" id="modwrap">
     <div class="modbar" id="modbar">
@@ -3602,13 +3611,12 @@ function renderHomeHero(F,from,to){
     else if(sub){sub.remove();}})();
 }
 function closeProfile(){var m=$("profileMenu"),bd=$("profileBackdrop");if(m)m.classList.remove("open");if(bd)bd.classList.remove("on");}function toggleProfile(){var m=$("profileMenu"),btn=$("profileBtn"),bd=$("profileBackdrop");if(!m)return;if(m.classList.contains("open")){closeProfile();return;}if(btn){var r=btn.getBoundingClientRect();m.style.top=(r.bottom+8)+"px";m.style.right=Math.max(12,(window.innerWidth-r.right))+"px";}m.classList.add("open");if(bd)bd.classList.add("on");if(typeof haptic==="function")haptic(6);}function syncProfile(email){var init=((window._me||"?").trim().charAt(0)||"?").toUpperCase();var a=$("avatarInitial");if(a)a.textContent=init;var b=$("pmAv");if(b)b.textContent=init;if(email!==undefined){var e=$("pmEmail");if(e)e.textContent=email;}}function toggleInsights(){
-  var w=document.getElementById("modwrap"),chev=document.getElementById("insChev"),fb=document.getElementById("insFilterBtn"),m=document.getElementById("insMaster");
+  var w=document.getElementById("modwrap"),chev=document.getElementById("insChev"),m=document.getElementById("insMaster");
   if(!w)return;
   var opening=w.classList.contains("hide");
   w.classList.toggle("hide");
   if(m)m.classList.toggle("open",opening);
   if(chev)chev.textContent=opening?"⌄":"›";
-  if(fb)fb.classList.toggle("hide",!opening);
   if(opening){try{applyFilters();}catch(_){}}
   else{var p=$("filterPanel");if(p&&p.classList.contains("open"))toggleFilter();}
   if(typeof haptic==="function")haptic(8);
@@ -3763,11 +3771,10 @@ document.addEventListener("click",function(e){
 
 function methodIcon(m){const a='width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"';const k=(m||"").toLowerCase();let p;if(k==="card"||k==="zaggle")p='<rect x="2.5" y="5" width="19" height="14" rx="2.5"/><path d="M2.5 10h19"/>';else if(k==="cash")p='<rect x="2.5" y="6" width="19" height="12" rx="2"/><circle cx="12" cy="12" r="2.6"/>';else if(k==="upi")p='<rect x="7" y="2.5" width="10" height="19" rx="2.2"/><path d="M10.5 18.5h3"/>';else if(k.indexOf("bank")>-1)p='<path d="M3 9.5 12 4l9 5.5"/><path d="M5 10.5V19M19 10.5V19M9.5 10.5V19M14.5 10.5V19M3.5 19h17"/>';else p='<circle cx="12" cy="12" r="8"/>';return `<svg ${a}>${p}</svg>`;}
 function renderAllExpenses(){const host=$("allExp");if(!host)return;let list=EXP.slice();
-  if(AEL_F.method)list=list.filter(r=>r.method===AEL_F.method);
-  if(AEL_F.paid_by)list=list.filter(r=>r.paid_by===AEL_F.paid_by);
-  if(AEL_F.category_id)list=list.filter(r=>r.category_id===AEL_F.category_id);
-  if(AEL_F.subcategory_id)list=list.filter(r=>r.subcategory_id===AEL_F.subcategory_id);
-  if(AEL_F.card_id)list=list.filter(r=>r.card_id===AEL_F.card_id);
+  if(AEL_F.paid_by&&AEL_F.paid_by.length)list=list.filter(r=>AEL_F.paid_by.indexOf(r.paid_by||"__none__")>=0);
+  if(AEL_F.method&&AEL_F.method.length)list=list.filter(r=>AEL_F.method.indexOf(r.method||"__none__")>=0);
+  if(AEL_F.category_id&&AEL_F.category_id.length)list=list.filter(r=>AEL_F.category_id.indexOf(r.category_id)>=0);
+  if(AEL_F.subcategory_id&&AEL_F.subcategory_id.length)list=list.filter(r=>AEL_F.subcategory_id.indexOf(r.subcategory_id||"__none__")>=0);
   if(ALL_Q){const q=ALL_Q.toLowerCase();list=list.filter(r=>[nameOf(r.category_id),subName(r.subcategory_id),r.note,r.paid_by,r.method,String(r.amount)].filter(Boolean).join(" ").toLowerCase().includes(q));}if(!list.length){host.innerHTML=`<div class="empty" style="padding:22px">${ALL_Q?"No matches.":"No expenses yet — add one above."}</div>`;return;}const more=list.length>300;const shown=more?list.slice(0,300):list;const body=shown.map((r,i)=>{const sn=subName(r.subcategory_id);return`<tr class="${r._pending?'pending':''}" onclick="openEditModal('${r.id}')"><td class="ael-d">${new Date(r.spent_on).toLocaleDateString(LOCALE,{day:"2-digit",month:"short"})}</td><td class="ael-it"><span class="ael-cat">${esc(nameOf(r.category_id))}</span>${sn?`<span class="ael-sub">${esc(sn)}</span>`:""}</td><td class="ael-a"><span class="ael-amt">${money2(r.amount)}</span>${(r.paid_by||r.method)?`<span class="ael-pm">${r.paid_by?`<span class="ini" title="${esc(r.paid_by)}">${esc(r.paid_by.trim().charAt(0).toUpperCase())}</span>`:""}${r.method?`${methodIcon(r.method)}${esc(r.card_id?cardName(r.card_id):r.method)}`:""}</span>`:""}</td></tr>`;}).join("");host.innerHTML=`<div class="allexp-scroll"><table class="ael"><thead><tr><th>Date</th><th>Item</th><th class="r">Amount</th></tr></thead><tbody>${body}</tbody></table></div>${more?`<div class="empty" style="padding:12px">Showing the latest 300 of ${list.length}. Use search for older.</div>`:""}`;}
 function renderCompare(F,from,to){const host=$("compare");if(!host)return;
   if(!from||!to){host.innerHTML=`<div class="empty">Pick a specific period (not “All time”) to compare it with the one before.</div>`;return;}
