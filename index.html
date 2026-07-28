@@ -36,7 +36,7 @@ html[data-theme="light"] .__sp-wm em{color:#8A701F}
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="format-detection" content="telephone=no">
 <meta name="apple-mobile-web-app-title" content="Kharcha">
-<title>DevangadaKharcha</title>
+<title>SpendWise</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Fraunces:ital,opsz,wght@0,9..144,400..700;1,9..144,400..700&display=swap" onload="this.onload=null;this.rel='stylesheet'"><noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Fraunces:ital,opsz,wght@0,9..144,400..700;1,9..144,400..700&display=swap"></noscript>
@@ -1913,10 +1913,15 @@ box-shadow:0 20px 60px -12px rgba(199,165,87,.7);opacity:0;transform:scale(.4)}
     background:linear-gradient(150deg,#EDD8A0,#C7A557);box-shadow:0 0 6px rgba(199,165,87,.8);
     opacity:0;transform:scale(.5);transition:.18s;pointer-events:none}
   .flt-dot.show{opacity:1;transform:scale(1)}
+
+  /* Android scroll fix: AEL filter stages wrap instead of horizontal-scroll */
+  .ael-fg.ael-stage{display:block;overflow-x:visible;flex-wrap:wrap;white-space:normal}
+  .ael-stage .ael-fg-chips{display:flex;flex-wrap:wrap;gap:6px;overflow:visible}
+  .ael-stage .ael-chip{flex:none}
 </style>
 </head>
 <body>
-<div id="__splash"><div class="__sp-inner"><span class="__sp-mark"></span><div class="__sp-wm">Devangada <em>Kharcha</em></div><div class="__sp-dots"><span></span><span></span><span></span></div></div></div>
+<div id="__splash"><div class="__sp-inner"><span class="__sp-mark"></span><div class="__sp-wm">Spend<em>Wise</em></div><div class="__sp-dots"><span></span><span></span><span></span></div></div></div>
 <div class="grain"></div>
 
 <div id="pinLock" class="pin-lock hide">
@@ -1987,7 +1992,7 @@ box-shadow:0 20px 60px -12px rgba(199,165,87,.7);opacity:0;transform:scale(.4)}
 
 <div id="gate" class="gate hide">
   <div class="card">
-    <h1><span class="mark"></span> DevangadaKharcha</h1>
+    <h1><span class="mark"></span> SpendWise</h1>
     <p class="sub" id="gateSub">Sign in to your shared expenses.</p>
     <div id="gateMsg"></div>
     <div class="gfield"><label>Email</label><input id="email" type="email" autocomplete="email" placeholder="you@example.com"></div>
@@ -2022,7 +2027,7 @@ box-shadow:0 20px 60px -12px rgba(199,165,87,.7);opacity:0;transform:scale(.4)}
 <div id="bootLoader" class="boot-loader hide">
   <div class="bl-inner">
     <span class="bl-mark"></span>
-    <div class="bl-title">Devangada <em>Kharcha</em></div>
+    <div class="bl-title">Spend<em>Wise</em></div>
     <div class="bl-dots"><span></span><span></span><span></span></div>
   </div>
 </div>
@@ -2030,7 +2035,7 @@ box-shadow:0 20px 60px -12px rgba(199,165,87,.7);opacity:0;transform:scale(.4)}
 <div id="app" class="hide">
   <div class="topstick">
   <header class="topbar">
-    <div class="brand"><span class="mark"></span><span class="name">Devangada <em>Kharcha</em></span></div>
+    <div class="brand"><span class="mark"></span><span class="name">Spend<em>Wise</em></span></div>
     <div class="seg">
       <button class="tab active" data-screen="dash">Dashboard</button>
       <button class="tab" data-screen="add">Add expenses</button>
@@ -3180,7 +3185,7 @@ function downloadBudgetSheet(){
     inc=act.length?Math.round(act.reduce(function(s,m){return s+m.income;},0)/act.length):0;
   }catch(_){}
   var guide=[
-    ["Devangada Kharcha \u2014 monthly budget sheet"],
+    ["SpendWise \u2014 monthly budget sheet"],
     [""],
     ["Exported on: "+new Date().toLocaleDateString(LOCALE,{day:"numeric",month:"long",year:"numeric"})],
     ["Categories: "+rows.length],
@@ -3200,7 +3205,7 @@ function downloadBudgetSheet(){
   ];
   var gs=XLSX.utils.aoa_to_sheet(guide);gs["!cols"]=[{wch:96}];
   XLSX.utils.book_append_sheet(wb,gs,"Read me");
-  XLSX.writeFile(wb,"kharcha-budgets-"+todayStr()+".xlsx");
+  XLSX.writeFile(wb,"spendwise-budgets-"+todayStr()+".xlsx");
   haptic(10);
   showToast("Budget sheet downloaded");
 }
@@ -3346,7 +3351,7 @@ function closeSmsModal(){$("smsModal").classList.add("hide");}
 $("smsBtn").onclick=openSmsModal;$("smsCancel").onclick=closeSmsModal;
 $("smsModal").addEventListener("click",function(e){if(e.target.id==="smsModal")closeSmsModal();});
 $("smsParse").onclick=function(){var r=parseSMS($("smsText").value);if(!r.amount){alert("Couldn\u2019t find an amount in that message. You can add it manually.");return;}closeSmsModal();goScreen("add");addRow({amount:r.amount,date:todayStr(),category_id:r.category_id||"",note:r.merchant||""});var cards=$("rows").querySelectorAll(".exp-card");var last=cards[cards.length-1];if(last){last.scrollIntoView({behavior:"smooth",block:"center"});}haptic(12);showToast("Filled "+money2(r.amount)+(r.merchant?" \u00b7 "+r.merchant:"")+" \u2014 review & submit");};
-async function exportBackup(){var tables=["categories","subcategories","expenses","budgets","profiles","income","cards","investments","investment_holdings","investment_snapshots","recurring"];var dump={_meta:{app:"Devangada Kharcha",exported_at:new Date().toISOString(),version:1}};if($("backupExport"))$("backupExport").disabled=true;try{for(var i=0;i<tables.length;i++){try{var r=await sb.from(tables[i]).select("*");dump[tables[i]]=(r&&r.data)||[];}catch(e){dump[tables[i]]=[];}}var blob=new Blob([JSON.stringify(dump,null,2)],{type:"application/json"});var url=URL.createObjectURL(blob);var a=document.createElement("a");a.href=url;a.download="kharcha-backup-"+todayStr()+".json";document.body.appendChild(a);a.click();document.body.removeChild(a);setTimeout(function(){URL.revokeObjectURL(url);},1000);var n=tables.reduce(function(s,t){return s+(dump[t]?dump[t].length:0);},0);showToast("Backup saved \u00b7 "+n+" records");}catch(e){alert("Backup failed: "+(e&&e.message||e));}if($("backupExport"))$("backupExport").disabled=false;}
+async function exportBackup(){var tables=["categories","subcategories","expenses","budgets","profiles","income","cards","investments","investment_holdings","investment_snapshots","recurring"];var dump={_meta:{app:"SpendWise",exported_at:new Date().toISOString(),version:1}};if($("backupExport"))$("backupExport").disabled=true;try{for(var i=0;i<tables.length;i++){try{var r=await sb.from(tables[i]).select("*");dump[tables[i]]=(r&&r.data)||[];}catch(e){dump[tables[i]]=[];}}var blob=new Blob([JSON.stringify(dump,null,2)],{type:"application/json"});var url=URL.createObjectURL(blob);var a=document.createElement("a");a.href=url;a.download="spendwise-backup-"+todayStr()+".json";document.body.appendChild(a);a.click();document.body.removeChild(a);setTimeout(function(){URL.revokeObjectURL(url);},1000);var n=tables.reduce(function(s,t){return s+(dump[t]?dump[t].length:0);},0);showToast("Backup saved \u00b7 "+n+" records");}catch(e){alert("Backup failed: "+(e&&e.message||e));}if($("backupExport"))$("backupExport").disabled=false;}
 async function restoreBackup(file){if(!file)return;if(!confirm("Restore will add or overwrite rows from this file into your account (matched by ID). Use this only to recover after data loss. Continue?"))return;var data;try{data=JSON.parse(await file.text());}catch(e){alert("That file isn\u2019t a valid backup.");return;}var order=["categories","subcategories","profiles","expenses","budgets","income","cards","investments","investment_holdings","investment_snapshots","recurring"];var done=0,fails=[];for(var i=0;i<order.length;i++){var t=order[i],rows=data[t];if(!rows||!rows.length)continue;try{var r=await sb.from(t).upsert(rows);if(r&&r.error)fails.push(t);else done+=rows.length;}catch(e){fails.push(t);}}if(fails.length)alert("Restored "+done+" records. Some tables couldn\u2019t restore: "+fails.join(", ")+".");else showToast("Restored "+done+" records \u2014 reloading");setTimeout(function(){location.reload();},1400);}
 function openBackupModal(){$("backupModal").classList.remove("hide");}
 function closeBackupModal(){$("backupModal").classList.add("hide");}
@@ -3928,6 +3933,7 @@ document.addEventListener("touchstart",_lpStart,{passive:true});
 document.addEventListener("touchmove",_lpMove,{passive:true});
 document.addEventListener("touchend",_lpEnd,true);
 document.addEventListener("touchcancel",function(){clearTimeout(_lp.t);_lp.t=null;},true);
+window.addEventListener("scroll",function(){if(_lp.t){clearTimeout(_lp.t);_lp.t=null;}},{passive:true,capture:true});
 document.addEventListener("mousedown",_lpStart);
 document.addEventListener("mousemove",_lpMove);
 document.addEventListener("mouseup",_lpEnd,true);
