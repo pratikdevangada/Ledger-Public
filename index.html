@@ -3710,20 +3710,49 @@ function _getLastAdd(){
   try{var r=JSON.parse(localStorage.getItem("kharcha-lastadd")||"null");if(r&&r.category_id&&(CATS||[]).some(function(c){return c.id===r.category_id;})){window._LASTADD=r;return r;}}catch(_){}
   return null;
 }
-function renderQuickAdd(){const host=$("quickAdd");if(!host)return;const cutoff=Date.now()-60*864e5;const cnt={},lastTs={};
-  EXP.forEach(e=>{if(!e.category_id)return;const t=new Date(e.spent_on).getTime();if(isNaN(t)||t<cutoff)return;const k=e.category_id+"|"+(e.subcategory_id||"");cnt[k]=(cnt[k]||0)+1;if(!lastTs[k]||t>lastTs[k])lastTs[k]=t;});
-  const last=_getLastAdd()||EXP[0]||null;
-  const lastKey=last&&last.category_id?(last.category_id+"|"+(last.subcategory_id||"")):null;
-  let top=Object.entries(cnt)
-    .filter(([k])=>k!==lastKey)
-    .sort((a,b)=>(b[1]-a[1])||((lastTs[b[0]]||0)-(lastTs[a[0]]||0)))
-    .slice(0,7).map(([k])=>k.split("|"));
-  if(!top.length&&!lastKey)top=CATS.slice(0,7).map(c=>[c.id,""]);
-  if(!top.length&&!lastKey){host.innerHTML="";return;}
-  const repChip=last&&last.category_id?`<button type="button" class="qa-chip qa-repeat" data-rep="1" data-c="${last.category_id}" data-s="${last.subcategory_id||""}" data-amt="${last.amount}" data-m="${last.method||""}" data-cid="${last.card_id||""}">\u21ba ${catIconHTML(last.category_id)}${esc(nameOf(last.category_id))}${last.subcategory_id?" \u00b7 "+esc(subName(last.subcategory_id)||"") : ""} \u00b7 ${money(last.amount)}</button>`:"";
-  host.innerHTML=`<span class="qa-lbl">Quick add</span>`+repChip+top.map(([c,s])=>`<button type="button" class="qa-chip" data-c="${c}" data-s="${s}">${catIconHTML(c)}${esc(s?(subName(s)||nameOf(c)):nameOf(c))}</button>`).join("");host.querySelectorAll(".qa-chip").forEach(b=>b.onclick=()=>{haptic(6);const c=b.dataset.c,s=b.dataset.s||"";
-    if(b.dataset.rep){addRow({amount:b.dataset.amt,category_id:c,subcategory_id:s,method:b.dataset.cid?null:(b.dataset.m||null),card_id:b.dataset.cid||null});const t=$("rows").lastElementChild;if(t){const a=t.querySelector(".ramt");if(a){a.focus();a.select&&a.select();t.scrollIntoView({behavior:"smooth",block:"center"});}}return;}
-    const rows=[...$("rows").querySelectorAll(".exp-card")];const empty=rows.find(r=>{const a=r.querySelector(".ramt");const cv=r._cat&&r._cat.value;return (!a||!a.value.trim())&&!cv;});let target;if(empty){target=empty;empty._cat.value=c;if(empty._sub){empty._sub.setOptions(rowSubOpts(c));empty._sub.value=s;}}else{addRow({category_id:c,subcategory_id:s});target=$("rows").lastElementChild;}if(target){const amt=target.querySelector(".ramt");if(amt){amt.focus();target.scrollIntoView({behavior:"smooth",block:"center"});}}});}
+function renderQuickAdd(){const host=$("quickAdd");if(!host)return;
+  const seen={},uniq=[];
+  const sorted=(EXP||[]).slice().sort((a,b)=>{
+    const t=(new Date(b.spent_on)) - (new Date(a.spent_on));
+    if(t!==0) return t;
+    return String(b.id||"").localeCompare(String(a.id||""));
+  });
+  for(let i=0;i<sorted.length && uniq.length<5;i++){
+    const e=sorted[i]; if(!e.category_id) continue;
+    const k=e.category_id+"|"+(e.subcategory_id||"");
+    if(seen[k]) continue;
+    seen[k]=1; uniq.push([e.category_id, e.subcategory_id||""]);
+  }
+  if(!uniq.length){host.innerHTML="";return;}
+  host.innerHTML=`<span class="qa-lbl">Quick add</span>`+uniq.map(([c,s])=>`<button type="button" class="qa-chip" data-c="${c}" data-s="${s}">${catIconHTML(c)}${esc(nameOf(c))}${s?' \u00b7 '+esc(subName(s)||''):''}</button>`).join("");
+  host.querySelectorAll(".qa-chip").forEach(b=>b.onclick=()=>{
+    haptic(6);
+    const c=b.dataset.c, s=b.dataset.s||"";
+    const rows=[...document.querySelectorAll("#rows .exp-card")];
+    // Prefer a row that is completely blank (no amount, no category chosen) — fill it.
+    // Otherwise, if the last row is blank, fill it. Otherwise add a new row.
+    const isBlank=(r)=>{
+      const amt=(r.querySelector(".ramt")||{}).value||"";
+      return !amt.trim();
+    };
+    let row=rows.find(isBlank);
+    if(!row){
+      // still no blank row → create one
+      if(typeof addRow==="function") addRow();
+      const fresh=[...document.querySelectorAll("#rows .exp-card")];
+      row=fresh[fresh.length-1];
+    }
+    if(!row) return;
+    if(row._cat) row._cat.value=c;
+    if(row._sub){
+      if(row._sub.setOptions && typeof rowSubOpts==="function") row._sub.setOptions(rowSubOpts(c));
+      row._sub.value=s;
+    }
+    row.classList.remove("collapsed");
+    const amt=row.querySelector(".ramt");
+    if(amt) setTimeout(()=>amt.focus(),30);
+  });
+}
 function renderAddRecent(){renderQuickAdd();try{buildAelFilters();}catch(e){}renderAllExpenses();renderMonthDownload();}
 let ALL_Q="";
 var AEL_F={method:"",paid_by:"",category_id:"",subcategory_id:"",card_id:""};
@@ -4218,7 +4247,25 @@ async function showApp(session){if(window._appReady)return;
     if(window._cacheRendered){renderAddRecent();applyFilters();updateSync();if(navigator.onLine)flushQueue();renderReports();fetchUsdRate();}
     else{initFilters();$("rows").innerHTML="";addRow();renderAddRecent();applyFilters();updateSync();if(navigator.onLine)flushQueue();renderReports();fetchUsdRate();}
   }catch(e){fatalLoad("Something went wrong while showing your dashboard. Please reload the app.", e&&e.message||e);return;}
-  window._appReady=true;_saveBootCache();const _le=$("loadErr");if(_le)_le.remove();try{var __sp=document.getElementById("__splash");if(__sp){__sp.classList.add("__hide");setTimeout(function(){__sp&&__sp.parentNode&&__sp.parentNode.removeChild(__sp);},350);}}catch(_){}
+  window._appReady=true;_saveBootCache();const _le=$("loadErr");if(_le)_le.remove();
+  // Keep-alive: explicit ping now + every 6h while app stays open.
+  (function(){
+    function ping(){try{sb.from("expenses").select("id",{count:"exact",head:true}).limit(1).then(function(){},function(){});}catch(_){}}
+    ping();
+    if(!window._kaTimer)window._kaTimer=setInterval(ping, 6*60*60*1000);
+    // Also ping when the tab becomes visible after a long hidden gap (foreground return)
+    if(!window._kaVis){
+      window._kaVis=true;
+      document.addEventListener("visibilitychange",function(){
+        if(document.visibilityState==="visible"){
+          var last=Number(localStorage.getItem("kharcha-lastping")||"0");
+          if(Date.now()-last>60*60*1000)ping();
+        }
+      });
+    }
+    try{localStorage.setItem("kharcha-lastping",String(Date.now()));}catch(_){}
+  })();
+try{var __sp=document.getElementById("__splash");if(__sp){__sp.classList.add("__hide");setTimeout(function(){__sp&&__sp.parentNode&&__sp.parentNode.removeChild(__sp);},350);}}catch(_){}
   var _bl=$("bootLoader");if(_bl){_bl.style.opacity="0";setTimeout(function(){_bl.classList.add("hide");_bl.style.opacity="";},250);}
   $("app").style.visibility="";
   
