@@ -413,7 +413,7 @@ table.recent{min-width:520px}
 #screen-budgets .budtoprow #budModeSeg{width:100%;margin-top:2px}
 #screen-budgets .budtoprow #budModeSeg button{flex:1;justify-content:center}
 .modal{padding:16px}.modal-card{max-width:none;width:100%}
-.botnav{display:flex;position:fixed;left:0;right:0;bottom:0;z-index:80;background:var(--surface);border-top:1px solid var(--line);padding:7px 10px calc(7px + env(safe-area-inset-bottom));transform:translateZ(0);-webkit-transform:translateZ(0);will-change:transform;-webkit-backface-visibility:hidden;backface-visibility:hidden}
+.botnav{display:flex;position:fixed;left:0;right:0;bottom:var(--bn-gap,0px);z-index:80;background:var(--surface);border-top:1px solid var(--line);padding:7px 10px calc(7px + env(safe-area-inset-bottom));transform:translateZ(0);-webkit-transform:translateZ(0);will-change:transform;-webkit-backface-visibility:hidden;backface-visibility:hidden}
 .navitem{flex:1;background:none;border:none;display:flex;flex-direction:column;align-items:center;gap:3px;padding:2px 4px;color:var(--ink-faint);font-size:11px;font-weight:600;cursor:pointer;-webkit-tap-highlight-color:transparent}
 .navib{display:grid;place-items:center;width:56px;height:30px;border-radius:10px;transition:.16s}
 .navitem svg{width:21px;height:21px}
@@ -927,7 +927,7 @@ padding:calc(11px + env(safe-area-inset-top,0px)) 16px 13px;
 .topbar .seg .tab.active{color:#2A1F0E;background:linear-gradient(135deg,#E7CF93,#C7A557)}
 @media(max-width:760px){.topbar .seg{display:none}.topbar .ghost#signout{padding:0 10px}}
 .botnav{
-left:14px;right:14px;bottom:calc(12px + env(safe-area-inset-bottom,0px));
+left:14px;right:14px;bottom:calc(12px + env(safe-area-inset-bottom,0px) + var(--bn-gap,0px));
 border-radius:24px;
 background:linear-gradient(180deg,rgba(94,134,240,.17),rgba(40,50,92,.44));
 -webkit-backdrop-filter:blur(28px) saturate(185%);backdrop-filter:blur(28px) saturate(185%);
@@ -1183,7 +1183,7 @@ border-bottom:1px solid rgba(231,207,147,.10);
 .avatarbtn,.pm-av{background:linear-gradient(150deg,#EDD8A0,#C7A557 58%,#B4913F);color:#241B07}
 @media(max-width:760px){
 .botnav{
-left:12px !important;right:12px !important;bottom:calc(10px + env(safe-area-inset-bottom,0px)) !important;
+left:12px !important;right:12px !important;bottom:calc(10px + env(safe-area-inset-bottom,0px) + var(--bn-gap,0px)) !important;
 border-radius:24px !important;padding:8px 10px !important;
 background:rgba(13,27,21,.82) !important;
 -webkit-backdrop-filter:blur(24px) saturate(1.3);backdrop-filter:blur(24px) saturate(1.3);
@@ -4426,5 +4426,29 @@ try{updatePinMenuLabel();}catch(e){}
 </script>
 <script>if("serviceWorker" in navigator){window.addEventListener("load",function(){navigator.serviceWorker.register("sw.js").catch(function(){});});}
 try{setTimeout(initCollapsibles,80);}catch(e){}
+</script>
+<script>
+/* Keep the bottom nav pinned to the actual visible screen, not the layout viewport.
+   Mobile Safari/Chrome resize their own toolbar as you scroll, and CSS `position:fixed;bottom:0`
+   is anchored to the layout viewport (which doesn't shrink), so a fixed bar can end up
+   floating off the real bottom edge or getting covered by page content. This nudges it back
+   using the standard visualViewport API. It only ever touches `bottom` inline style, so it
+   never conflicts with the separate keyboard-hide rule (which uses `transform`). */
+(function(){
+  function pinBotnav(){
+    var bn = document.getElementById("botnav");
+    if(!bn || !window.visualViewport) return;
+    var vv = window.visualViewport;
+    var gap = window.innerHeight - (vv.height + vv.offsetTop);
+    document.documentElement.style.setProperty("--bn-gap", (gap > 0 ? gap : 0) + "px");
+  }
+  if(window.visualViewport){
+    window.visualViewport.addEventListener("resize", pinBotnav);
+    window.visualViewport.addEventListener("scroll", pinBotnav);
+  }
+  window.addEventListener("orientationchange", function(){ setTimeout(pinBotnav, 150); });
+  window.addEventListener("load", pinBotnav);
+  pinBotnav();
+})();
 </script>
 </body></html>
