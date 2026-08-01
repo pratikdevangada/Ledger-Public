@@ -2535,6 +2535,41 @@ $("syncDiscard").onclick=async function(){var n=loadQueue().length;if(!n){closeS
 async function loadExpenses(){var real=[];try{var r=await sb.from("expenses").select("id,amount,spent_on,paid_by,note,category_id,subcategory_id,method,card_id,interest_pct").order("spent_on",{ascending:false}).limit(5000);if(r.error)throw r.error;real=r.data||[];cacheExpenses(real);}catch(e){real=loadCache();}EXP=pendingItems().concat(real);updateSync();}
 let RECUR=[];const METHODS=["UPI","Card","Cash","Bank transfer","Other"];
 async function loadRecurring(){try{const{data}=await sb.from("recurring").select("*").order("day_of_month",{ascending:true});RECUR=data||[];}catch(e){RECUR=[];}}
+async function processIncomeCarry(){
+  if(window._incCarryRunning)return 0;
+  window._incCarryRunning=true;
+  try{
+    var now=new Date();
+    var ym=now.getFullYear()+"-"+String(now.getMonth()+1).padStart(2,"0");
+    var fresh=await sb.from("income").select("*").gte("received_on",ym+"-01").lte("received_on",ym+"-31");
+    if(fresh.error)return 0;
+    var thisMonth=fresh.data||[];
+    if(thisMonth.some(function(r){return !r.one_time;}))return 0;
+    var prev=(INCOME||[]).filter(function(r){
+      return !r.one_time && r.received_on && r.received_on.slice(0,7)<ym;
+    });
+    if(!prev.length)return 0;
+    var lastYm=prev.reduce(function(a,r){var m=r.received_on.slice(0,7);return m>a?m:a;},"");
+    var toCopy=prev.filter(function(r){return r.received_on.slice(0,7)===lastYm;});
+    var added=0;
+    for(var i=0;i<toCopy.length;i++){
+      var src=toCopy[i];
+      var day=Math.min(parseInt(src.received_on.slice(8,10),10)||1,28);
+      var received_on=ym+"-"+String(day).padStart(2,"0");
+      var ins=await sb.from("income").insert({
+        amount:src.amount,
+        net_amount:src.net_amount!=null?src.net_amount:null,
+        received_on:received_on,
+        source:src.source||null,
+        one_time:false
+      });
+      if(!ins.error)added++;
+    }
+    if(added){await loadIncome();if(typeof renderIncomeList==="function")renderIncomeList();renderIncome();applyFilters();}
+    return added;
+  }catch(e){return 0;}
+  finally{window._incCarryRunning=false;}
+}
 async function processRecurring(){
   if(window._recurRunning)return 0;
   window._recurRunning=true;
@@ -4367,7 +4402,7 @@ async function prefetchApp(session){
   window._prefetchPromise=(async function(){
     try{
       await Promise.all([loadMeta(),loadExpenses(),loadBudgets(),loadIncome(),loadCards(),loadInvest(),loadInvestSnap(),loadRecurring()]);
-      processRecurring().catch(function(){});
+      processRecurring().catch(function(){});processIncomeCarry().catch(function(){});
       window._prefetchNetworkDone=true;
     }catch(e){window._prefetchError=e;}
   })();
@@ -4418,7 +4453,7 @@ async function showApp(session){if(window._appReady)return;
     if(window._prefetchPromise){await window._prefetchPromise;}
     else{
       await Promise.all([loadMeta(),loadExpenses(),loadBudgets(),loadIncome(),loadCards(),loadInvest(),loadInvestSnap(),loadRecurring()]);
-      processRecurring().catch(function(){});
+      processRecurring().catch(function(){});processIncomeCarry().catch(function(){});
     }
   }
   catch(e){fatalLoad("Couldn’t reach the internet right now. Check your connection and try again.", e&&e.message||e);return;}
