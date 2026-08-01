@@ -1925,6 +1925,11 @@ box-shadow:0 20px 60px -12px rgba(199,165,87,.7);opacity:0;transform:scale(.4)}
   [data-theme="light"] .cat-ico{color:#8A701F}
   .ael-chip-ic{display:inline-flex;align-items:center;vertical-align:-2px}
   .qa-chip .cat-ico{margin-right:4px}
+
+  .ctxn-nav{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:10px}
+  .ctxn-nav .ghost{min-height:38px;min-width:44px;padding:6px 14px;font-size:17px;border-radius:10px}
+  .ctxn-nav .ghost:disabled{opacity:.3;pointer-events:none}
+  .ctxn-month{font-family:var(--serif);font-weight:600;font-size:15px;color:var(--ink)}
 </style>
 </head>
 <body>
@@ -2401,6 +2406,7 @@ box-shadow:0 20px 60px -12px rgba(199,165,87,.7);opacity:0;transform:scale(.4)}
     <div class="sheet-handle" id="cardTxnHandle"></div>
     <div class="modal-title" id="cardTxnTitle">Card transactions</div>
     <div class="modal-sub" id="cardTxnSub"></div>
+    <div class="ctxn-nav"><button type="button" class="ghost ctxn-prev" id="ctxnPrev" aria-label="Previous month">‹</button><span class="ctxn-month" id="ctxnMonth"></span><button type="button" class="ghost ctxn-next" id="ctxnNext" aria-label="Next month">›</button></div>
     <div style="overflow-y:auto;flex:1;margin:12px -6px 0;padding:0 6px">
       <table class="ael" id="cardTxnTable"><thead><tr><th>Date</th><th>Category</th><th class="r">Amount</th></tr></thead><tbody id="cardTxnBody"></tbody></table>
       <div id="cardTxnEmpty" class="empty hide" style="padding:24px 4px">No transactions found for this card.</div>
@@ -2886,24 +2892,55 @@ function filtered(){const[from,to]=rangeDates();const cat=$("fCat").value,sub=$(
 let LASTF=[],LASTR=["",""];
 const CT={trend:'area',cat:'doughnut',dow:'bar',who:'doughnut'};
 
-function openCardTxn(cardId){
+var _ctxnState={cardId:null,y:0,m:0};
+function _ctxnRender(){
+  var cardId=_ctxnState.cardId;
   var card=(CARDS||[]).find(function(c){return c.id===cardId;});
-  if(!card){showToast("Card not found");return;}
-  var txns=EXP.filter(function(e){return e.card_id===cardId;}).sort(function(a,b){return b.spent_on<a.spent_on?-1:b.spent_on>a.spent_on?1:0;});
+  if(!card)return;
+  var y=_ctxnState.y,m=_ctxnState.m;
+  var txns=EXP.filter(function(e){
+    if(e.card_id!==cardId)return false;
+    var d=new Date(e.spent_on);
+    return d.getFullYear()===y&&d.getMonth()===m;
+  }).sort(function(a,b){return a.spent_on<b.spent_on?-1:(a.spent_on>b.spent_on?1:0);});
+  var lbl=new Date(y,m,1).toLocaleDateString(LOCALE,{month:"long",year:"numeric"});
+  var mEl=document.getElementById("ctxnMonth");if(mEl)mEl.textContent=lbl;
   $("cardTxnTitle").textContent=card.name+(card.last4?" \u00b7\u00b7"+card.last4:"");
   var total=txns.reduce(function(s,e){return s+Number(e.amount);},0);
-  $("cardTxnSub").textContent=txns.length+" transaction"+(txns.length!==1?"s":"")+" \u00b7 "+money2(total)+" total";
-  var body=$("cardTxnBody");
-  var empty=$("cardTxnEmpty");
+  $("cardTxnSub").textContent=txns.length+" transaction"+(txns.length!==1?"s":"")+" \u00b7 "+money2(total);
+  var body=$("cardTxnBody"),empty=$("cardTxnEmpty");
   if(!txns.length){body.innerHTML="";empty.classList.remove("hide");}
   else{empty.classList.add("hide");
     body.innerHTML=txns.map(function(e){
       var sn=subName(e.subcategory_id);
-      return '<tr class="rec-row" data-exp="'+e.id+'" onclick="document.getElementById(\'cardTxnModal\').classList.add(\'hide\');openEditModal(\''+e.id+'\')"><td class="muted num">'+new Date(e.spent_on).toLocaleDateString(LOCALE,{day:"2-digit",month:"short"})+'</td><td><span class="chip" style="background:'+colorOf(e.category_id)+'">'+catIconHTML(e.category_id)+esc(nameOf(e.category_id))+'</span>'+(sn?'<span class="subtag"><span class="dot" style="background:'+subColor(e.subcategory_id)+'"></span>'+esc(sn)+'</span>':"")+'</td><td class="amt" style="text-align:right">'+money2(e.amount)+'</td></tr>';
-    }).join("");}
+      return '<tr class="rec-row" data-exp="'+e.id+'" onclick="document.getElementById(\'cardTxnModal\').classList.add(\'hide\');openEditModal(\''+e.id+'\')"><td class="muted num">'+new Date(e.spent_on).toLocaleDateString(LOCALE,{day:"2-digit",month:"short"})+'</td><td><span class="chip" style="background:'+colorOf(e.category_id)+'">'+catIconHTML(e.category_id)+esc(nameOf(e.category_id))+'</span>'+(sn?'<div class="muted" style="font-size:12px;margin-top:2px">'+esc(sn)+'</div>':'')+'</td><td class="r num">'+money2(e.amount)+'</td></tr>';
+    }).join("");
+  }
+  var hasPrev=EXP.some(function(e){if(e.card_id!==cardId)return false;var d=new Date(e.spent_on);return d<new Date(y,m,1);});
+  var now=new Date();
+  var hasNext=(y<now.getFullYear())||(y===now.getFullYear()&&m<now.getMonth());
+  var pb=document.getElementById("ctxnPrev"),nb=document.getElementById("ctxnNext");
+  if(pb)pb.disabled=!hasPrev;
+  if(nb)nb.disabled=!hasNext;
+}
+function openCardTxn(cardId){
+  var card=(CARDS||[]).find(function(c){return c.id===cardId;});
+  if(!card){showToast("Card not found");return;}
+  var now=new Date();
+  _ctxnState={cardId:cardId,y:now.getFullYear(),m:now.getMonth()};
+  var curHas=EXP.some(function(e){if(e.card_id!==cardId)return false;var d=new Date(e.spent_on);return d.getFullYear()===_ctxnState.y&&d.getMonth()===_ctxnState.m;});
+  if(!curHas){
+    var latest=null;
+    EXP.forEach(function(e){if(e.card_id!==cardId)return;if(!latest||e.spent_on>latest)latest=e.spent_on;});
+    if(latest){var ld=new Date(latest);_ctxnState.y=ld.getFullYear();_ctxnState.m=ld.getMonth();}
+  }
+  var pb=document.getElementById("ctxnPrev"),nb=document.getElementById("ctxnNext");
+  if(pb&&!pb._wired){pb._wired=true;pb.onclick=function(){var d=new Date(_ctxnState.y,_ctxnState.m-1,1);_ctxnState.y=d.getFullYear();_ctxnState.m=d.getMonth();_ctxnRender();haptic(5);};}
+  if(nb&&!nb._wired){nb._wired=true;nb.onclick=function(){var d=new Date(_ctxnState.y,_ctxnState.m+1,1);_ctxnState.y=d.getFullYear();_ctxnState.m=d.getMonth();_ctxnRender();haptic(5);};}
+  _ctxnRender();
+  document.getElementById("cardTxnModal").classList.remove("hide");
   openCardTxnSheet();
 }
-
 function openCardTxnSheet(){
   var modal=$("cardTxnModal"), sheet=$("cardTxnSheet");
   modal.classList.remove("hide");
@@ -3046,8 +3083,8 @@ function markExported(ym){try{var a=exportedMonths();if(a.indexOf(ym)<0){a.push(
 function _ym(d){return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0");}
 function lastNMonths(n){var out=[],now=new Date();for(var i=1;i<=n;i++){var d=new Date(now.getFullYear(),now.getMonth()-i,1);out.push({y:d.getFullYear(),m:d.getMonth(),label:d.toLocaleDateString(LOCALE,{month:"long",year:"numeric"}),ym:_ym(d)});}return out;}
 function _monthRows(y,m){return EXP.filter(function(e){if(e._pending)return false;var d=new Date(e.spent_on);return d.getFullYear()===y&&d.getMonth()===m&&!spendExcluded(e);}).sort(function(a,b){return a.spent_on<b.spent_on?-1:(a.spent_on>b.spent_on?1:0);});}
-function _buildSheet(wb,y,m){var rows=_monthRows(y,m),label=new Date(y,m,1).toLocaleDateString(LOCALE,{month:"long",year:"numeric"});var aoa=[["Kharcha \u2014 "+label],[],["Date","Category","Sub-category","Paid by","Method","Amount (INR)","Note"]];var total=0;rows.forEach(function(e){total+=Number(e.amount);aoa.push([new Date(e.spent_on),nameOf(e.category_id),subName(e.subcategory_id)||"",e.paid_by||"",e.method||"",Number(e.amount),e.note||""]);});aoa.push([]);aoa.push(["","","","","Total",total,""]);var ws=XLSX.utils.aoa_to_sheet(aoa);ws["!cols"]=[{wch:12},{wch:24},{wch:20},{wch:12},{wch:12},{wch:13},{wch:30}];XLSX.utils.book_append_sheet(wb,ws,label.slice(0,31));return label;}
-function downloadMonths(list){if(typeof XLSX==="undefined"){showToast("Still loading — try again in a moment");return;}if(!list.length){showToast("Pick at least one month");return;}var wb=XLSX.utils.book_new();var labels=list.map(function(mo){return _buildSheet(wb,mo.y,mo.m);});list.forEach(function(mo){markExported(mo.ym);});var fname=list.length===1?("Kharcha_"+labels[0].replace(/ /g,"_")):"Kharcha_Monthly_Reports";XLSX.writeFile(wb,fname+".xlsx");haptic(12);showToast("Downloaded "+list.length+" month"+(list.length>1?"s":""));renderReports();}
+function _buildSheet(wb,y,m){var rows=_monthRows(y,m),label=new Date(y,m,1).toLocaleDateString(LOCALE,{month:"long",year:"numeric"});var aoa=[["SpendWise \u2014 "+label],[],["Date","Category","Sub-category","Paid by","Method","Amount (INR)","Note"]];var total=0;rows.forEach(function(e){total+=Number(e.amount);aoa.push([new Date(e.spent_on),nameOf(e.category_id),subName(e.subcategory_id)||"",e.paid_by||"",e.method||"",Number(e.amount),e.note||""]);});aoa.push([]);aoa.push(["","","","","Total",total,""]);var ws=XLSX.utils.aoa_to_sheet(aoa);ws["!cols"]=[{wch:12},{wch:24},{wch:20},{wch:12},{wch:12},{wch:13},{wch:30}];XLSX.utils.book_append_sheet(wb,ws,label.slice(0,31));return label;}
+function downloadMonths(list){if(typeof XLSX==="undefined"){showToast("Still loading — try again in a moment");return;}if(!list.length){showToast("Pick at least one month");return;}var wb=XLSX.utils.book_new();var labels=list.map(function(mo){return _buildSheet(wb,mo.y,mo.m);});list.forEach(function(mo){markExported(mo.ym);});var fname=list.length===1?("SpendWise_"+labels[0].replace(/ /g,"_")):"SpendWise_Monthly_Reports";XLSX.writeFile(wb,fname+".xlsx");haptic(12);showToast("Downloaded "+list.length+" month"+(list.length>1?"s":""));renderReports();}
 function openReportModal(preLast){var months=lastNMonths(3),exp=exportedMonths(),host=$("reportPickList");host.innerHTML=months.map(function(mo,idx){var cnt=_monthRows(mo.y,mo.m).length,done=exp.indexOf(mo.ym)>=0,chk=(preLast&&idx===0)?" checked":"";return '<label class="repick"><input type="checkbox" class="repchk" data-y="'+mo.y+'" data-m="'+mo.m+'" data-ym="'+mo.ym+'"'+chk+'><span class="repick-meta"><span class="repick-name">'+mo.label+'</span><span class="repick-sub">'+cnt+' expense'+(cnt!==1?"s":"")+(done?' \u00b7 downloaded':'')+'</span></span></label>';}).join("");$("reportSelectAll").textContent="Select all";$("reportModal").classList.remove("hide");}
 function closeReportModal(){$("reportModal").classList.add("hide");}
 function renderReports(){var rem=$("exportReminder");if(!rem)return;var now=new Date(),last=new Date(now.getFullYear(),now.getMonth()-1,1),lym=_ym(last),done=exportedMonths().indexOf(lym)>=0,lastLabel=last.toLocaleDateString(LOCALE,{month:"long",year:"numeric"});if(!done&&!_remDismissed){rem.innerHTML='<div class="rembar rembar-v2"><div class="remhead"><span class="remlabel">MONTH JUST ENDED</span><span class="remmonth">'+lastLabel+'</span></div><div class="remsub">Take a moment to see how it went.</div><div class="remact"><button class="primary rembtn">See recap</button><button class="ghost remlater">Not now</button></div></div>';rem.querySelector(".rembtn").onclick=function(){openMonthRecap(last.getFullYear(),last.getMonth());};rem.querySelector(".remlater").onclick=function(){_remDismissed=true;rem.innerHTML="";};}else rem.innerHTML="";}
@@ -3182,6 +3219,26 @@ function downloadBudgetSheet(){
   var ws=XLSX.utils.json_to_sheet(rows,{header:BUD_SHEET_COLS});
   ws["!cols"]=[{wch:38},{wch:26},{wch:16},{wch:26}];
   XLSX.utils.book_append_sheet(wb,ws,"Budgets");
+  var recRows=(RECUR||[]).map(function(r){
+    var o={};
+    o["Name"]=r.note||nameOf(r.category_id)||"";
+    o["Category"]=nameOf(r.category_id)||"";
+    o["Sub-category"]=subName(r.subcategory_id)||"";
+    o["Amount (INR)"]=Math.round(Number(r.amount)||0);
+    o["Day of month"]=r.day_of_month||"";
+    o["Method"]=r.method||"";
+    o["Paid by"]=r.paid_by||"";
+    o["Active"]=(r.active===false)?"No":"Yes";
+    if(r.interest_pct!=null)o["Interest %"]=r.interest_pct;
+    return o;
+  });
+  if(recRows.length){
+    var rws=XLSX.utils.json_to_sheet(recRows,{header:["Name","Category","Sub-category","Amount (INR)","Day of month","Method","Paid by","Active","Interest %"]});
+    rws["!cols"]=[{wch:22},{wch:18},{wch:18},{wch:13},{wch:13},{wch:12},{wch:12},{wch:8},{wch:10}];
+    var recTotal=recRows.reduce(function(s,r){return s+(r["Active"]==="Yes"?r["Amount (INR)"]:0);},0);
+    XLSX.utils.sheet_add_aoa(rws,[[],["","","Active monthly total",recTotal]],{origin:-1});
+    XLSX.utils.book_append_sheet(wb,rws,"Recurring");
+  }
   var totalBud=rows.reduce(function(s,r){return s+r["Budget (INR)"];},0);
   var totalAvg=rows.reduce(function(s,r){return s+r["Avg spend last 3 mo (INR)"];},0);
   var inc=0;
