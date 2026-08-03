@@ -1975,6 +1975,12 @@ box-shadow:0 20px 60px -12px rgba(199,165,87,.7);opacity:0;transform:scale(.4)}
   [data-theme="light"] .budbreak{border-top-color:rgba(154,126,52,.2)}
 
   .nodata-hide{display:none !important}
+
+  @media(max-width:760px){
+    .modal{place-items:start center;align-items:start;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:16px 14px calc(24px + env(safe-area-inset-bottom,0px));overscroll-behavior:contain}
+    .modal>.modal-card{max-height:none;margin:auto 0}
+    .modal>.modal-card{max-width:100%}
+  }
 </style>
 </head>
 <body>
