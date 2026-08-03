@@ -3505,7 +3505,7 @@ function renderHeroCats(){
   var t=document.getElementById("gcatsToggle"),p=document.getElementById("gcatsPanel");
   if(!t||!p)return;
   var rows=_heroCatRows();
-  if(!rows.length){t.classList.add("hide");p.classList.add("hide");return;}
+  if(!rows.length){t.classList.add("hide");p.classList.add("hide");var c0=document.getElementById("gcatsChev");if(c0)c0.textContent="\u203a";return;}
   t.classList.remove("hide");
   if(!p.classList.contains("hide")){
     p.innerHTML=rows.map(function(r){
@@ -3518,9 +3518,19 @@ function toggleHeroCats(){
   var p=document.getElementById("gcatsPanel"),c=document.getElementById("gcatsChev");
   if(!p)return;
   var opening=p.classList.contains("hide");
-  p.classList.toggle("hide");
-  if(c)c.textContent=opening?"⌄":"›";
-  if(opening)renderHeroCats();
+  if(opening){
+    var rows=_heroCatRows();
+    if(!rows.length){
+      if(typeof showToast==="function")showToast("No budgeted category spends in this period yet");
+      if(typeof haptic==="function")haptic(4);
+      return;
+    }
+    p.classList.remove("hide");
+    renderHeroCats();
+  }else{
+    p.classList.add("hide");
+  }
+  if(c)c.textContent=p.classList.contains("hide")?"›":"⌄";
   if(typeof haptic==="function")haptic(6);
 }
 function _monthExp(back){var n=new Date();var y=n.getFullYear(),m=n.getMonth()-(back||0);var f=new Date(y,m,1),l=new Date(y,m+1,0);var from=ymd(f),to=ymd(l);return EXP.filter(function(e){return e.spent_on>=from&&e.spent_on<=to&&!spendExcluded(e);});}
