@@ -1973,6 +1973,8 @@ box-shadow:0 20px 60px -12px rgba(199,165,87,.7);opacity:0;transform:scale(.4)}
   .budbreak-fill{display:block;height:100%;border-radius:3px;background:linear-gradient(90deg,#C7A557,#E7CF93)}
   .budbreak-amt{font-size:12.5px;font-weight:700;color:var(--ink);white-space:nowrap}
   [data-theme="light"] .budbreak{border-top-color:rgba(154,126,52,.2)}
+
+  .nodata-hide{display:none !important}
 </style>
 </head>
 <body>
@@ -3137,7 +3139,30 @@ document.addEventListener("click",function(e){
 
 const BOOT_KEY="kharcha-boot";
 function _saveBootCache(){try{localStorage.setItem(BOOT_KEY,JSON.stringify({v:1,uid:window._uid||null,me:window._me||"",BUD:BUD,INCOME:INCOME,CARDS:CARDS,INVEST:INVEST,INVSNAP:(typeof INVSNAP!=="undefined"?INVSNAP:[]),RECUR:RECUR}));}catch(e){}}
-function applyFilters(){const[from,to]=rangeDates();LASTR=[from,to];const F=filtered();LASTF=F;renderHomeHero(F,from,to);renderStats(F,from,to);renderTrend(F,from,to);renderCat(F);renderSub(F);renderDow(F);renderWho(F);renderCardChart(F);renderSummary(F,from,to);renderCompare(F,from,to);renderBudgetVsActual();renderInsights();renderIncome();renderTrends();renderPace();renderNetWorth();renderRecent(F);if(window._appReady)_saveBootCache();try{_updateFirstRun();}catch(_){}try{renderMoneySnap();renderBudgetView();}catch(_){}try{_syncFltChrome(F);}catch(_){}try{renderHeroCats();}catch(_){}}
+function _hideEmptyHomeCards(F){
+  try{
+    F=F||[];
+    var sum=function(pred){var t=0;for(var i=0;i<F.length;i++){if(pred(F[i]))t+=Number(F[i].amount)||0;}return t;};
+    var any=function(pred){for(var i=0;i<F.length;i++){if(pred(F[i]))return true;}return false;};
+    // card id -> has-data test
+    var tests={
+      catChartCard: F.length>0,
+      trendChartCard: F.length>0,
+      subChartCard: any(function(e){return e.subcategory_id;}),
+      dowChartCard: F.length>0,
+      whoChartCard: any(function(e){return e.paid_by;}),
+      cardspendChartCard: any(function(e){return e.card_id;}),
+      trendsCard: (_monthExp(0).length+_monthExp(1).length)>0,
+      compareCard: F.length>0
+    };
+    Object.keys(tests).forEach(function(id){
+      var card=document.getElementById(id);
+      if(!card)return;
+      card.classList.toggle("nodata-hide",!tests[id]);
+    });
+  }catch(_){}
+}
+function applyFilters(){const[from,to]=rangeDates();LASTR=[from,to];const F=filtered();LASTF=F;renderHomeHero(F,from,to);renderStats(F,from,to);renderTrend(F,from,to);renderCat(F);renderSub(F);renderDow(F);renderWho(F);renderCardChart(F);renderSummary(F,from,to);renderCompare(F,from,to);renderBudgetVsActual();renderInsights();renderIncome();renderTrends();renderPace();renderNetWorth();renderRecent(F);if(window._appReady)_saveBootCache();try{_updateFirstRun();}catch(_){}try{renderMoneySnap();renderBudgetView();}catch(_){}try{_syncFltChrome(F);}catch(_){}try{renderHeroCats();}catch(_){}try{_hideEmptyHomeCards(F);}catch(_){}}
 function _friendly(raw){
   var m=String(raw||"").toLowerCase();
   if(!m)return "Something went wrong. Please try again.";
@@ -4019,38 +4044,55 @@ function renderQuickAdd(){const host=$("quickAdd");if(!host)return;
 }
 function renderAddRecent(){renderQuickAdd();try{buildAelFilters();}catch(e){}renderAllExpenses();renderMonthDownload();}
 let ALL_Q="";
-var AEL_F={paid_by:[],method:[],category_id:[],subcategory_id:[]};
+var AEL_F={paid_by:[],method:[],card_id:[],category_id:[],subcategory_id:[]};
 function buildAelFilters(){
   var host=$("aelFilterChips");if(!host)return;
   var pool=EXP;
-  var payerSet={},methodSet={},catSet={},subSet={};
+  var payerSet={};
   pool.forEach(function(e){if(e.paid_by)payerSet[e.paid_by]=1;});
   var afterPayer=pool.filter(function(e){return !AEL_F.paid_by.length||AEL_F.paid_by.indexOf(e.paid_by||"__none__")>=0;});
-  afterPayer.forEach(function(e){if(e.method)methodSet[e.method]=1;});
-  var afterMethod=afterPayer.filter(function(e){return !AEL_F.method.length||AEL_F.method.indexOf(e.method||"__none__")>=0;});
-  afterMethod.forEach(function(e){if(e.category_id)catSet[e.category_id]=nameOf(e.category_id);});
-  var afterCat=afterMethod.filter(function(e){return !AEL_F.category_id.length||AEL_F.category_id.indexOf(e.category_id)>=0;});
+  function payToken(e){return e.card_id?("card:"+e.card_id):("m:"+(e.method||"Other"));}
+  var paySet={};
+  afterPayer.forEach(function(e){paySet[payToken(e)]=1;});
+  var afterPay=afterPayer.filter(function(e){
+    if(!AEL_F.method.length&&!AEL_F.card_id.length)return true;
+    if(e.card_id&&AEL_F.card_id.indexOf(e.card_id)>=0)return true;
+    if(!e.card_id&&AEL_F.method.indexOf(e.method||"Other")>=0)return true;
+    return false;
+  });
+  var catSet={};
+  afterPay.forEach(function(e){if(e.category_id)catSet[e.category_id]=nameOf(e.category_id);});
+  var afterCat=afterPay.filter(function(e){return !AEL_F.category_id.length||AEL_F.category_id.indexOf(e.category_id)>=0;});
+  var subSet={};
   afterCat.forEach(function(e){if(e.subcategory_id)subSet[e.subcategory_id]=subName(e.subcategory_id)||"Other";});
   function stage(id,label,items,selected,active){
     var hintN=selected.length?selected.length+" selected":"any";
     var locked=!active&&!selected.length;
     var chipsHtml=items.map(function(it){
       var on=selected.indexOf(it.v)>=0;
-      return '<button class="ael-chip'+(on?" on":"")+'" data-fk="'+id+'" data-fv="'+esc(String(it.v))+'">'+(it.ic?'<span class="ael-chip-ic">'+it.ic+'</span>':'')+esc(it.l)+'</button>';
+      return '<button class="ael-chip'+(on?" on":"")+'" data-fk="'+it.fk+'" data-fv="'+esc(String(it.v))+'">'+(it.ic?'<span class="ael-chip-ic">'+it.ic+'</span>':'')+esc(it.l)+'</button>';
     }).join("");
     return '<div class="ael-fg ael-stage'+(locked?" locked":"")+'"><div class="ael-fg-head"><span class="ael-fg-label">'+label+'</span><span class="ael-fg-hint">'+(locked?"":hintN)+'</span></div><div class="ael-fg-chips">'+chipsHtml+'</div></div>';
   }
-  var payerItems=Object.keys(payerSet).sort().map(function(p){return {v:p,l:p};});
-  var methodItems=Object.keys(methodSet).sort().map(function(m){return {v:m,l:(m==="Card"?"Credit card":m),ic:(typeof methodIcon==="function"?methodIcon(m):"")};});
-  var catItems=Object.keys(catSet).sort(function(a,b){return catSet[a].localeCompare(catSet[b]);}).map(function(id){return {v:id,l:catSet[id],ic:catIcon(id)};});
-  var subItems=Object.keys(subSet).sort(function(a,b){return subSet[a].localeCompare(subSet[b]);}).map(function(id){return {v:id,l:subSet[id]};});
-  var showMethod=AEL_F.paid_by.length>0||AEL_F.method.length>0;
-  var showCat=showMethod||AEL_F.category_id.length>0;
+  var payerItems=Object.keys(payerSet).sort().map(function(p){return {v:p,l:p,fk:"paid_by"};});
+  var payCards=[],payMethods=[];
+  Object.keys(paySet).forEach(function(tok){
+    if(tok.indexOf("card:")===0){var cid=tok.slice(5);payCards.push({v:cid,l:cardName(cid),ic:(typeof methodIcon==="function"?methodIcon("Card"):""),fk:"card_id",_sort:cardName(cid)});}
+    else{var m=tok.slice(2);payMethods.push({v:m,l:(m==="Card"?"Card (unlinked)":m),ic:(typeof methodIcon==="function"?methodIcon(m):""),fk:"method",_sort:m});}
+  });
+  payCards.sort(function(a,b){return a._sort.localeCompare(b._sort);});
+  payMethods.sort(function(a,b){return a._sort.localeCompare(b._sort);});
+  var payItems=payCards.concat(payMethods);
+  var catItems=Object.keys(catSet).sort(function(a,b){return catSet[a].localeCompare(catSet[b]);}).map(function(id){return {v:id,l:catSet[id],ic:catIcon(id),fk:"category_id"};});
+  var subItems=Object.keys(subSet).sort(function(a,b){return subSet[a].localeCompare(subSet[b]);}).map(function(id){return {v:id,l:subSet[id],fk:"subcategory_id"};});
+  var paySelected=AEL_F.method.concat(AEL_F.card_id);
+  var showPay=AEL_F.paid_by.length>0||paySelected.length>0;
+  var showCat=showPay||AEL_F.category_id.length>0;
   var showSub=AEL_F.category_id.length>0;
   var html="";
   html+=stage("paid_by","Who paid",payerItems,AEL_F.paid_by,true);
-  html+=stage("method","Payment type",methodItems,AEL_F.method,showMethod);
-  html+=stage("category_id","Category",catItems,AEL_F.category_id,showCat);
+  if(showPay)html+=stage("pay","Payment type",payItems,paySelected,showPay);
+  if(showCat)html+=stage("category_id","Category",catItems,AEL_F.category_id,showCat);
   if(showSub&&subItems.length)html+=stage("subcategory_id","Sub-category",subItems,AEL_F.subcategory_id,showSub);
   host.innerHTML=html;
   renderAelActive();
@@ -4058,13 +4100,14 @@ function buildAelFilters(){
 function renderAelActive(){
   var host=$("aelActiveFilters");if(!host)return;
   var tags=[],hasAny=false;
-  ["paid_by","method","category_id","subcategory_id"].forEach(function(k){
+  ["paid_by","method","card_id","category_id","subcategory_id"].forEach(function(k){
     (AEL_F[k]||[]).forEach(function(v){
       hasAny=true;
       var lbl=v;
       if(k==="category_id")lbl=nameOf(v);
       else if(k==="subcategory_id")lbl=subName(v)||v;
-      else if(k==="method"&&v==="Card")lbl="Credit card";
+      else if(k==="card_id")lbl=cardName(v);
+      else if(k==="method"&&v==="Card")lbl="Card (unlinked)";
       tags.push('<span class="ael-atag">'+esc(lbl)+' <button data-clr="'+k+'" data-clrv="'+esc(v)+'">&times;</button></span>');
     });
   });
@@ -4082,10 +4125,15 @@ document.addEventListener("click",function(e){
     var idx=arr.indexOf(v);
     if(idx>=0)arr.splice(idx,1); else arr.push(v);
     AEL_F[k]=arr;
-    if(k==="paid_by"||k==="method"){
+    if(k==="paid_by"||k==="method"||k==="card_id"){
       var pool=EXP.filter(function(x){
         if(AEL_F.paid_by.length&&AEL_F.paid_by.indexOf(x.paid_by||"__none__")<0)return false;
-        if(AEL_F.method.length&&AEL_F.method.indexOf(x.method||"__none__")<0)return false;
+        if(AEL_F.method.length||AEL_F.card_id.length){
+          var ok=false;
+          if(x.card_id&&AEL_F.card_id.indexOf(x.card_id)>=0)ok=true;
+          if(!x.card_id&&AEL_F.method.indexOf(x.method||"Other")>=0)ok=true;
+          if(!ok)return false;
+        }
         return true;
       });
       var validCats={};pool.forEach(function(x){if(x.category_id)validCats[x.category_id]=1;});
@@ -4099,7 +4147,7 @@ document.addEventListener("click",function(e){
   if(clr){
     var kk=clr.dataset.clr,vv=clr.dataset.clrv;
     var a=AEL_F[kk]||[];
-    if(vv!=null&&Array.isArray(a)){var i=a.indexOf(vv);if(i>=0)a.splice(i,1);AEL_F[kk]=a;}
+    if(vv!=null&&Array.isArray(a)){var ix=a.indexOf(vv);if(ix>=0)a.splice(ix,1);AEL_F[kk]=a;}
     else{AEL_F[kk]=[];}
     if(kk==="category_id"||!AEL_F.category_id.length)AEL_F.subcategory_id=[];
     buildAelFilters();renderAllExpenses();return;
@@ -4109,7 +4157,7 @@ document.addEventListener("click",function(e){
 function methodIcon(m){const a='width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"';const k=(m||"").toLowerCase();let p;if(k==="card"||k==="zaggle")p='<rect x="2.5" y="5" width="19" height="14" rx="2.5"/><path d="M2.5 10h19"/>';else if(k==="cash")p='<rect x="2.5" y="6" width="19" height="12" rx="2"/><circle cx="12" cy="12" r="2.6"/>';else if(k==="upi")p='<rect x="7" y="2.5" width="10" height="19" rx="2.2"/><path d="M10.5 18.5h3"/>';else if(k.indexOf("bank")>-1)p='<path d="M3 9.5 12 4l9 5.5"/><path d="M5 10.5V19M19 10.5V19M9.5 10.5V19M14.5 10.5V19M3.5 19h17"/>';else p='<circle cx="12" cy="12" r="8"/>';return `<svg ${a}>${p}</svg>`;}
 function renderAllExpenses(){const host=$("allExp");if(!host)return;let list=EXP.slice();
   if(AEL_F.paid_by&&AEL_F.paid_by.length)list=list.filter(r=>AEL_F.paid_by.indexOf(r.paid_by||"__none__")>=0);
-  if(AEL_F.method&&AEL_F.method.length)list=list.filter(r=>AEL_F.method.indexOf(r.method||"__none__")>=0);
+  if((AEL_F.method&&AEL_F.method.length)||(AEL_F.card_id&&AEL_F.card_id.length))list=list.filter(function(r){if(r.card_id&&AEL_F.card_id.indexOf(r.card_id)>=0)return true;if(!r.card_id&&AEL_F.method.indexOf(r.method||"Other")>=0)return true;return false;});
   if(AEL_F.category_id&&AEL_F.category_id.length)list=list.filter(r=>AEL_F.category_id.indexOf(r.category_id)>=0);
   if(AEL_F.subcategory_id&&AEL_F.subcategory_id.length)list=list.filter(r=>AEL_F.subcategory_id.indexOf(r.subcategory_id||"__none__")>=0);
   if(ALL_Q){const q=ALL_Q.toLowerCase();list=list.filter(r=>[nameOf(r.category_id),subName(r.subcategory_id),r.note,r.paid_by,r.method,String(r.amount)].filter(Boolean).join(" ").toLowerCase().includes(q));}if(!list.length){host.innerHTML=`<div class="empty" style="padding:22px">${ALL_Q?"No matches.":"No expenses yet — add one above."}</div>`;return;}const more=list.length>300;const shown=more?list.slice(0,300):list;const body=shown.map((r,i)=>{const sn=subName(r.subcategory_id);return`<tr class="${r._pending?'pending':''}" onclick="openEditModal('${r.id}')"><td class="ael-d">${new Date(r.spent_on).toLocaleDateString(LOCALE,{day:"2-digit",month:"short"})}</td><td class="ael-it"><span class="ael-cat">${esc(nameOf(r.category_id))}</span>${sn?`<span class="ael-sub">${esc(sn)}</span>`:""}</td><td class="ael-a"><span class="ael-amt">${money2(r.amount)}</span>${(r.paid_by||r.method)?`<span class="ael-pm">${r.paid_by?`<span class="ini" title="${esc(r.paid_by)}">${esc(r.paid_by.trim().charAt(0).toUpperCase())}</span>`:""}${r.method?`${methodIcon(r.method)}${esc(r.card_id?cardName(r.card_id):r.method)}`:""}</span>`:""}</td></tr>`;}).join("");host.innerHTML=`<div class="allexp-scroll"><table class="ael"><thead><tr><th>Date</th><th>Item</th><th class="r">Amount</th></tr></thead><tbody>${body}</tbody></table></div>${more?`<div class="empty" style="padding:12px">Showing the latest 300 of ${list.length}. Use search for older.</div>`:""}`;}
@@ -4408,14 +4456,18 @@ function toggleBudRow(id){
   if(typeof haptic==="function")haptic(5);
 }
 function renderBudgetVsActual(){const host=$("budgetVsActual");if(!host)return;const mb=monthBounds();const lbl=$("budgetMonthLbl");if(lbl)lbl.textContent="— "+mb.label;
-  const act=monthActuals();const _now=new Date(),_dim=new Date(_now.getFullYear(),_now.getMonth()+1,0).getDate(),_dleft=Math.max(0,_dim-_now.getDate()),_ppct=_dim>0?_now.getDate()/_dim*100:0;const ids=CATS.filter(c=>BUD[c.id]>0).map(c=>c.id).sort((a,b)=>BUD[b]-BUD[a]);
-  if(!ids.length){host.innerHTML=`<div class="empty" style="padding:18px 4px">No budgets set yet. <button class="linklike" id="goBudgets">Set monthly budgets →</button></div>`;const g=$("goBudgets");if(g)g.onclick=()=>gotoScreen("budgets");return;}
-  const totBud=ids.reduce((s,id)=>s+BUD[id],0),totAct=ids.reduce((s,id)=>s+(act[id]||0),0);
+  const act=monthActuals();const _now=new Date(),_dim=new Date(_now.getFullYear(),_now.getMonth()+1,0).getDate(),_dleft=Math.max(0,_dim-_now.getDate()),_ppct=_dim>0?_now.getDate()/_dim*100:0;const allBudgeted=CATS.filter(c=>BUD[c.id]>0).map(c=>c.id);
+  const ids=allBudgeted.filter(id=>(act[id]||0)>0).sort((a,b)=>(act[b]||0)-(act[a]||0));
+  const _zeroBudgeted=allBudgeted.filter(id=>!((act[id]||0)>0));
+  if(!allBudgeted.length){host.innerHTML=`<div class="empty" style="padding:18px 4px">No budgets set yet. <button class="linklike" id="goBudgets">Set monthly budgets →</button></div>`;const g=$("goBudgets");if(g)g.onclick=()=>gotoScreen("budgets");return;}
+  if(!ids.length){host.innerHTML=`<div class="empty" style="padding:18px 4px">Nothing spent yet this month in your budgeted categories.</div>`;return;}
+  const totBud=allBudgeted.reduce((s,id)=>s+BUD[id],0),totAct=allBudgeted.reduce((s,id)=>s+(act[id]||0),0);
   const opct=totBud>0?totAct/totBud*100:0,ocol=opct>100?"#DC6B73":(opct>=85?"#C9B05A":"#DFC27E");
   const head=`<div class="budtotals" style="border-bottom:none;padding:2px 4px 16px"><div class="bt"><span class="k">Budget</span><span class="v">${money(totBud)}</span></div><div class="bt"><span class="k">Spent</span><span class="v">${money(totAct)}</span></div><div class="bt"><span class="k">${totAct>totBud?"Over by":"Left"}</span><span class="v" style="color:${ocol}">${money(Math.abs(totBud-totAct))}</span></div></div>`;
   const rows=ids.map(id=>{const b=BUD[id],a=act[id]||0,pct=b>0?a/b*100:0;const cls=pct>100?"over":(pct>=85?"warn":"ok");const col=cls==="over"?"#DC6B73":(cls==="warn"?"#C9B05A":"#DFC27E");const pill=pct>100?`over ${money2(a-b)}`:`${money2(b-a)} left`;return`<div class="budrow" data-cat="${id}" onclick="toggleBudRow('${id}')"><div class="top"><span class="chip" style="background:${colorOf(id)}">${catIconHTML(id)}${esc(nameOf(id))}</span><span class="pill ${cls}">${pill}</span><span class="budrow-chev">\u203a</span></div><div class="nums"><b>${money2(a)}</b> <span class="sep">/</span> ${money2(b)}</div><div class="budtrack"><div class="budfill" style="width:${Math.min(100,pct).toFixed(1)}%;background:${col}"></div></div><div class="budhint">${Math.round(pct)}% used · ${_dleft}d left${(cls!=="over"&&pct>_ppct+8)?` · <span class="ahead">running ahead</span>`:""}</div></div>`;}).join("");
+  var _zeroNote=_zeroBudgeted.length?`<div class="soft" style="font-size:11.5px;color:var(--ink-faint);margin-top:10px">${_zeroBudgeted.length} budgeted categor${_zeroBudgeted.length>1?"ies":"y"} with no spend yet this month — hidden.</div>`:"";
   const unb=Object.keys(act).filter(id=>!(BUD[id]>0)).reduce((s,id)=>s+act[id],0);
-  const note=unb>0?`<div class="soft" style="font-size:12px;color:var(--ink-faint);margin-top:14px">+ ${money2(unb)} spent this month in categories with no budget.</div>`:"";
+  const note=(_zeroNote||"")+(unb>0?`<div class="soft" style="font-size:12px;color:var(--ink-faint);margin-top:14px">+ ${money2(unb)} spent this month in categories with no budget.</div>`:"");
   var _spent=0;for(var _k in act){_spent+=act[_k];}var _elapsed=_now.getDate()||1;var _proj=Math.round(_spent/_elapsed*_dim);var _totbud=0;CATS.forEach(function(c){if(BUD[c.id]>0)_totbud+=BUD[c.id];});var _projline=(_spent>0)?`<div class="budproj"><b>Projection</b> \u2014 on this pace, about ${money2(_proj)} by month-end${_totbud>0?` vs ${money2(_totbud)} budget \u00b7 <span class="${_proj>_totbud?"projover":"projunder"}">${_proj>_totbud?"over by "+money2(_proj-_totbud):"under by "+money2(_totbud-_proj)}</span>`:""}.</div>`:"";host.innerHTML=head+`<div class="budnote">${_dleft} day${_dleft!==1?"s":""} left in ${mb.label}</div>`+_projline+rows+note;}
 let BUDGET_MODE="amount";
 function budBase(){return (parseFloat($("budgetTotalInput").value)||0)||CATS.reduce((s,c)=>s+(BUD[c.id]||0),0);}
