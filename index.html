@@ -1962,6 +1962,17 @@ box-shadow:0 20px 60px -12px rgba(199,165,87,.7);opacity:0;transform:scale(.4)}
   .rec-addnow{background:linear-gradient(135deg,#E7CF93,#C7A557);color:#2A1F0E;border:none;border-radius:9px;font-size:12px;font-weight:700;padding:7px 12px;min-height:32px;cursor:pointer;white-space:nowrap}
   .rec-addnow:active{transform:scale(.97)}
   [data-theme="light"] .rec-status.due{color:#8A701F}
+
+  .budrow{cursor:pointer}
+  .budrow .top{display:flex;align-items:center;gap:8px}
+  .budrow-chev{margin-left:auto;color:var(--brass-2);font-size:15px;line-height:1;flex-shrink:0;transition:transform .15s}
+  .budbreak{margin-top:12px;padding-top:12px;border-top:1px dashed rgba(231,207,147,.16);display:flex;flex-direction:column;gap:8px;animation:gcatsIn .2s ease both}
+  .budbreak-row{display:grid;grid-template-columns:minmax(0,96px) 1fr auto;align-items:center;gap:10px}
+  .budbreak-name{font-size:12.5px;color:var(--ink-soft);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .budbreak-bar{height:5px;border-radius:3px;background:var(--well);overflow:hidden}
+  .budbreak-fill{display:block;height:100%;border-radius:3px;background:linear-gradient(90deg,#C7A557,#E7CF93)}
+  .budbreak-amt{font-size:12.5px;font-weight:700;color:var(--ink);white-space:nowrap}
+  [data-theme="light"] .budbreak{border-top-color:rgba(154,126,52,.2)}
 </style>
 </head>
 <body>
@@ -4363,13 +4374,46 @@ function bmFinishCheck(){if(BMI>=CATS.length-1){closeBudgetModal();renderBudgets
 async function bmSave(){if(!requireOnline("You’re offline — budgets need a connection"))return;const c=CATS[BMI];if(!c)return;let m;const val=parseFloat($("bmAmount").value)||0;if(BM_MODE==="percent"){const base=budBase();if(base<=0){$("bmHint").textContent="Set a Total monthly budget on the Budgets screen first to use %.";return;}m=Math.round(base*val/100/10)*10;}else m=val;BUD[c.id]=m;$("bmSave").disabled=true;try{await sb.from("budgets").upsert({category_id:c.id,monthly:m,updated_at:new Date().toISOString()});}catch(e){$("bmHint").textContent="Saved on screen — run add_budgets.sql in Supabase to keep it.";}$("bmSave").disabled=false;if(bmFinishCheck())return;BMI++;bmShow();}
 function bmSkip(){if(bmFinishCheck())return;BMI++;bmShow();}
 function gotoScreen(name){const b=document.querySelector('.tab[data-screen="'+name+'"]');if(b)b.click();}
+function _catSubActuals(catId){
+  const {from,to}=monthBounds();
+  const subs={},noSub={v:0};
+  (EXP||[]).forEach(function(e){
+    if(e.category_id!==catId)return;
+    if(e.spent_on<from||e.spent_on>to||spendExcluded(e))return;
+    var amt=(e.interest_pct!=null)?_emiSplit(e).expense:Number(e.amount);
+    if(e.subcategory_id){subs[e.subcategory_id]=(subs[e.subcategory_id]||0)+amt;}
+    else{noSub.v+=amt;}
+  });
+  var list=Object.keys(subs).map(function(sid){return {id:sid,name:subName(sid)||"Other",amt:subs[sid]};});
+  if(noSub.v>0)list.push({id:null,name:"Uncategorised",amt:noSub.v});
+  list.sort(function(a,b){return b.amt-a.amt;});
+  return list;
+}
+function toggleBudRow(id){
+  var row=document.querySelector('.budrow[data-cat="'+id+'"]');
+  if(!row)return;
+  var open=row.classList.contains("open");
+  document.querySelectorAll('.budrow.open').forEach(function(r){r.classList.remove("open");var p=r.querySelector(".budbreak");if(p)p.remove();var cv=r.querySelector(".budrow-chev");if(cv)cv.textContent="\u203a";});
+  if(open)return;
+  var list=_catSubActuals(id);
+  if(!list.length)return;
+  var tot=list.reduce(function(s,x){return s+x.amt;},0)||1;
+  var html='<div class="budbreak">'+list.map(function(x){
+    var p=Math.round(x.amt/tot*100);
+    return '<div class="budbreak-row"><span class="budbreak-name">'+esc(x.name)+'</span><span class="budbreak-bar"><span class="budbreak-fill" style="width:'+p+'%"></span></span><span class="budbreak-amt">'+money2(x.amt)+'</span></div>';
+  }).join("")+'</div>';
+  row.insertAdjacentHTML("beforeend",html);
+  row.classList.add("open");
+  var cv=row.querySelector(".budrow-chev");if(cv)cv.textContent="\u2304";
+  if(typeof haptic==="function")haptic(5);
+}
 function renderBudgetVsActual(){const host=$("budgetVsActual");if(!host)return;const mb=monthBounds();const lbl=$("budgetMonthLbl");if(lbl)lbl.textContent="— "+mb.label;
   const act=monthActuals();const _now=new Date(),_dim=new Date(_now.getFullYear(),_now.getMonth()+1,0).getDate(),_dleft=Math.max(0,_dim-_now.getDate()),_ppct=_dim>0?_now.getDate()/_dim*100:0;const ids=CATS.filter(c=>BUD[c.id]>0).map(c=>c.id).sort((a,b)=>BUD[b]-BUD[a]);
   if(!ids.length){host.innerHTML=`<div class="empty" style="padding:18px 4px">No budgets set yet. <button class="linklike" id="goBudgets">Set monthly budgets →</button></div>`;const g=$("goBudgets");if(g)g.onclick=()=>gotoScreen("budgets");return;}
   const totBud=ids.reduce((s,id)=>s+BUD[id],0),totAct=ids.reduce((s,id)=>s+(act[id]||0),0);
   const opct=totBud>0?totAct/totBud*100:0,ocol=opct>100?"#DC6B73":(opct>=85?"#C9B05A":"#DFC27E");
   const head=`<div class="budtotals" style="border-bottom:none;padding:2px 4px 16px"><div class="bt"><span class="k">Budget</span><span class="v">${money(totBud)}</span></div><div class="bt"><span class="k">Spent</span><span class="v">${money(totAct)}</span></div><div class="bt"><span class="k">${totAct>totBud?"Over by":"Left"}</span><span class="v" style="color:${ocol}">${money(Math.abs(totBud-totAct))}</span></div></div>`;
-  const rows=ids.map(id=>{const b=BUD[id],a=act[id]||0,pct=b>0?a/b*100:0;const cls=pct>100?"over":(pct>=85?"warn":"ok");const col=cls==="over"?"#DC6B73":(cls==="warn"?"#C9B05A":"#DFC27E");const pill=pct>100?`over ${money2(a-b)}`:`${money2(b-a)} left`;return`<div class="budrow"><div class="top"><span class="chip" style="background:${colorOf(id)}">${catIconHTML(id)}${esc(nameOf(id))}</span><span class="pill ${cls}">${pill}</span></div><div class="nums"><b>${money2(a)}</b> <span class="sep">/</span> ${money2(b)}</div><div class="budtrack"><div class="budfill" style="width:${Math.min(100,pct).toFixed(1)}%;background:${col}"></div></div><div class="budhint">${Math.round(pct)}% used · ${_dleft}d left${(cls!=="over"&&pct>_ppct+8)?` · <span class="ahead">running ahead</span>`:""}</div></div>`;}).join("");
+  const rows=ids.map(id=>{const b=BUD[id],a=act[id]||0,pct=b>0?a/b*100:0;const cls=pct>100?"over":(pct>=85?"warn":"ok");const col=cls==="over"?"#DC6B73":(cls==="warn"?"#C9B05A":"#DFC27E");const pill=pct>100?`over ${money2(a-b)}`:`${money2(b-a)} left`;return`<div class="budrow" data-cat="${id}" onclick="toggleBudRow('${id}')"><div class="top"><span class="chip" style="background:${colorOf(id)}">${catIconHTML(id)}${esc(nameOf(id))}</span><span class="pill ${cls}">${pill}</span><span class="budrow-chev">\u203a</span></div><div class="nums"><b>${money2(a)}</b> <span class="sep">/</span> ${money2(b)}</div><div class="budtrack"><div class="budfill" style="width:${Math.min(100,pct).toFixed(1)}%;background:${col}"></div></div><div class="budhint">${Math.round(pct)}% used · ${_dleft}d left${(cls!=="over"&&pct>_ppct+8)?` · <span class="ahead">running ahead</span>`:""}</div></div>`;}).join("");
   const unb=Object.keys(act).filter(id=>!(BUD[id]>0)).reduce((s,id)=>s+act[id],0);
   const note=unb>0?`<div class="soft" style="font-size:12px;color:var(--ink-faint);margin-top:14px">+ ${money2(unb)} spent this month in categories with no budget.</div>`:"";
   var _spent=0;for(var _k in act){_spent+=act[_k];}var _elapsed=_now.getDate()||1;var _proj=Math.round(_spent/_elapsed*_dim);var _totbud=0;CATS.forEach(function(c){if(BUD[c.id]>0)_totbud+=BUD[c.id];});var _projline=(_spent>0)?`<div class="budproj"><b>Projection</b> \u2014 on this pace, about ${money2(_proj)} by month-end${_totbud>0?` vs ${money2(_totbud)} budget \u00b7 <span class="${_proj>_totbud?"projover":"projunder"}">${_proj>_totbud?"over by "+money2(_proj-_totbud):"under by "+money2(_totbud-_proj)}</span>`:""}.</div>`:"";host.innerHTML=head+`<div class="budnote">${_dleft} day${_dleft!==1?"s":""} left in ${mb.label}</div>`+_projline+rows+note;}
