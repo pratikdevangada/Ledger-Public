@@ -1977,10 +1977,10 @@ box-shadow:0 20px 60px -12px rgba(199,165,87,.7);opacity:0;transform:scale(.4)}
   .nodata-hide{display:none !important}
 
   @media(max-width:760px){
-    .modal{place-items:start center;align-items:start;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:16px 14px calc(24px + env(safe-area-inset-bottom,0px));overscroll-behavior:contain}
-    .modal>.modal-card{max-height:none;margin:auto 0}
-    .modal>.modal-card{max-width:100%}
+    .modal:not(.hide){place-items:start center;align-items:start;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:16px 14px calc(24px + env(safe-area-inset-bottom,0px));overscroll-behavior:contain}
+    .modal:not(.hide)>.modal-card{max-height:none;margin:auto 0;max-width:100%}
   }
+  .modal.hide{display:none !important;pointer-events:none !important}
 </style>
 </head>
 <body>
@@ -4803,6 +4803,7 @@ try{updatePinMenuLabel();}catch(e){}
 
 </script>
 <script>if("serviceWorker" in navigator){window.addEventListener("load",function(){navigator.serviceWorker.register("sw.js").catch(function(){});});}
+try{document.querySelectorAll(".modal").forEach(function(m){m.classList.add("hide");});}catch(e){}
 try{setTimeout(initCollapsibles,80);}catch(e){}
 </script>
 </body></html>
