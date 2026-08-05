@@ -1869,14 +1869,15 @@ box-shadow:0 20px 60px -12px rgba(199,165,87,.7);opacity:0;transform:scale(.4)}
     border-radius:var(--radius-sm);font-size:var(--fs-sm);font-weight:var(--fw-medium);font-family:var(--sans);
     padding:8px 12px;min-height:40px;width:100%;cursor:pointer;-webkit-tap-highlight-color:transparent}
   .cm-addsub:hover{background:rgba(199,165,87,.07);border-color:rgba(231,207,147,.5)}
-  .cm-addcat{width:100%;margin-bottom:14px}
+  .cm-toolbar{display:flex;gap:9px;margin-bottom:14px}
+  .cm-toolbar .ghost{flex:1;height:44px;min-height:44px}
+  .cm-reorderbtn.on{background:linear-gradient(160deg,#EDD8A0,#C7A557 62%,#B4913F);color:#241B07;border-color:transparent;font-weight:var(--fw-bold)}
+  .cm-reordernote{margin:-6px 0 14px}
+  .cm-row-reorder{background:rgba(231,207,147,.04)}
+  .cm-row-reorder .cm-name{cursor:default}
+  .cm-btn[disabled]{opacity:.25;pointer-events:none}
+  .cm-addcat{flex:1}
   [data-theme="light"] .cm-addsub{color:#8A701F;border-color:rgba(154,126,52,.35)}
-  .cm-sub .cm-btn{width:28px;height:28px;font-size:var(--fs-sm)}
-  .cm-addsub{margin-top:10px;background:none;border:1px dashed rgba(231,207,147,.28);color:var(--brass-2);
-    border-radius:var(--radius-sm);font-size:var(--fs-sm);font-weight:var(--fw-medium);font-family:var(--sans);
-    padding:8px 12px;min-height:38px;width:100%;cursor:pointer;-webkit-tap-highlight-color:transparent}
-  .cm-addsub:hover{background:rgba(199,165,87,.07);border-color:rgba(231,207,147,.5)}
-  .cm-addcat{width:100%;margin-bottom:14px}
   [data-theme="light"] .cm-addsub{color:#8A701F;border-color:rgba(154,126,52,.35)}
   .cm-subname{font-size:var(--fs-base);color:var(--ink-soft)}
   .cm-x{width:26px;height:26px;border-radius:var(--radius-xs);background:none;border:1px solid var(--line);color:var(--ink-faint);cursor:pointer;font-size:var(--fs-xs)}
@@ -2687,7 +2688,7 @@ function hexA(hex,a){hex=hex.replace('#','');return`rgba(${parseInt(hex.slice(0,
 
 let CATS=[],SUBS=[],EXP=[],CHARTS={},CATCOLOR={},SUBSHADE={},INCOME=[],CARDS=[],INVEST=[];
 function computeColors(){CATCOLOR={};SUBSHADE={};CATS.forEach((c,idx)=>{const base=PREMIUM[idx%PREMIUM.length];CATCOLOR[c.id]=base;const subs=SUBS.filter(s=>s.category_id===c.id).slice().sort((a,b)=>a.name.localeCompare(b.name));subs.forEach((s,i)=>SUBSHADE[s.id]=shadeOf(base,i,subs.length));});}
-async function loadMeta(){try{const [c,s]=await Promise.all([sb.from("categories").select("*").order("sort").order("name"),sb.from("subcategories").select("*").order("name")]);if(c.error)throw c.error;if(s.error)throw s.error;CATS=c.data||[];SUBS=s.data||[];try{localStorage.setItem("kharcha-meta",JSON.stringify({c:CATS,s:SUBS}));}catch(_){}}catch(e){var m=null;try{m=JSON.parse(localStorage.getItem("kharcha-meta")||"null");}catch(_){}if(m){CATS=m.c||[];SUBS=m.s||[];}else{throw e;}}computeColors();}
+async function loadMeta(){try{const [c,s]=await Promise.all([sb.from("categories").select("*").order("sort").order("name"),sb.from("subcategories").select("*").order("name")]);if(c.error)throw c.error;if(s.error)throw s.error;CATS=c.data||[];SUBS=s.data||[];try{localStorage.setItem("kharcha-meta",JSON.stringify({c:CATS,s:SUBS}));}catch(_){}}catch(e){var m=null;try{m=JSON.parse(localStorage.getItem("kharcha-meta")||"null");}catch(_){}if(m){CATS=m.c||[];SUBS=m.s||[];}else{throw e;}}_sortCats();_sortSubs();computeColors();}
 
 const Q_KEY="kharcha-queue",CACHE_KEY="kharcha-cache";let _syncing=false;
 function loadQueue(){try{return JSON.parse(localStorage.getItem(Q_KEY)||"[]");}catch(e){return[];}}
@@ -2911,15 +2912,51 @@ function _catUsage(id){
 function _subUsage(id){
   return (EXP||[]).filter(function(e){return e.subcategory_id===id;}).length;
 }
+function _sortCats(){
+  (CATS||[]).sort(function(a,b){
+    var sa=(a.sort==null?9999:a.sort), sb2=(b.sort==null?9999:b.sort);
+    if(sa!==sb2)return sa-sb2;
+    return String(a.name||"").localeCompare(String(b.name||""));
+  });
+}
+function _sortSubs(){
+  (SUBS||[]).sort(function(a,b){
+    var sa=(a.sort==null?9999:a.sort), sb2=(b.sort==null?9999:b.sort);
+    if(sa!==sb2)return sa-sb2;
+    return String(a.name||"").localeCompare(String(b.name||""));
+  });
+}
+/* sub-category ordering needs a `sort` column; select("*") means the key is
+   present (even if null) when it exists. If not, we hide sub reorder arrows. */
+function _subSortOK(){
+  return (SUBS||[]).some(function(x){return Object.prototype.hasOwnProperty.call(x,"sort");});
+}
+var _cmReorder=false;
+function toggleCmReorder(){_cmReorder=!_cmReorder;renderCatMgr();haptic(6);
+  showToast(_cmReorder?"Use \u25b2 \u25bc to reorder":"Order saved");}
+
 function renderCatMgr(){
   var host=document.getElementById("cmListPage")||document.getElementById("cmList");
   if(!host)return;
   var multiCat=(CATS||[]).length>1;
-  var body=(CATS||[]).map(function(c){
+  var subOK=_subSortOK();
+  var lastCat=(CATS||[]).length-1;
+
+  var body=(CATS||[]).map(function(c,ci){
     var u=_catUsage(c.id);
-    var subs=(SUBS||[]).filter(function(s){return s.category_id===c.id;});
-    var canDel=u.total===0&&subs.every(function(s){return _subUsage(s.id)===0;});
-    var subHtml=subs.map(function(sc){
+    var subs=(SUBS||[]).filter(function(x){return x.category_id===c.id;});
+    var canDel=u.total===0&&subs.every(function(x){return _subUsage(x.id)===0;});
+
+    var subHtml=subs.map(function(sc,si){
+      if(_cmReorder){
+        if(!subOK)return '';
+        return '<div class="cm-sub" data-sub="'+sc.id+'">'+
+          '<span class="cm-name cm-subname">'+esc(sc.name)+'</span>'+
+          '<span class="cm-acts">'+
+            '<button class="cm-btn" '+(si===0?'disabled ':'')+'onclick="moveSub(\''+sc.id+'\',-1)" title="Move up">\u25b2</button>'+
+            '<button class="cm-btn" '+(si===subs.length-1?'disabled ':'')+'onclick="moveSub(\''+sc.id+'\',1)" title="Move down">\u25bc</button>'+
+          '</span></div>';
+      }
       var su=_subUsage(sc.id);
       var acts='';
       if(subs.length>1)acts+='<button class="cm-btn" onclick="event.stopPropagation();openMergeSub(\''+sc.id+'\')" title="Merge into another sub-category">\u21c4</button>';
@@ -2931,21 +2968,93 @@ function renderCatMgr(){
         '<button class="cm-name cm-subname" onclick="startRenameSub(\''+sc.id+'\')" title="Tap to rename">'+esc(sc.name)+'<span class="cm-pencil">\u270e</span></button>'+
         '<span class="cm-acts">'+acts+'</span></div>';
     }).join("");
+
+    var chip='<span class="chip" style="background:'+colorOf(c.id)+'">'+catIconHTML(c.id)+esc(c.name)+'</span>';
+
+    if(_cmReorder){
+      return '<div class="cm-row cm-row-reorder" data-cat="'+c.id+'"><div class="cm-head">'+
+        '<span class="cm-name">'+chip+'</span>'+
+        '<span class="cm-acts">'+
+          '<button class="cm-btn" '+(ci===0?'disabled ':'')+'onclick="moveCat(\''+c.id+'\',-1)" title="Move up">\u25b2</button>'+
+          '<button class="cm-btn" '+(ci===lastCat?'disabled ':'')+'onclick="moveCat(\''+c.id+'\',1)" title="Move down">\u25bc</button>'+
+        '</span></div>'+subHtml+'</div>';
+    }
+
     var catActs='';
     if(multiCat)catActs+='<button class="cm-btn" onclick="openMergeCat(\''+c.id+'\')" title="Merge into another category">\u21c4</button>';
     catActs+=(canDel
       ? '<button class="cm-btn cm-danger" onclick="delCategory(\''+c.id+'\')" title="Delete">\u2715</button>'
       : '<span class="cm-count">'+(u.total>0?(u.exp+' expense'+(u.exp!==1?'s':'')+(u.rec?' \u00b7 '+u.rec+' recurring':'')):'sub-categories in use')+'</span>');
     return '<div class="cm-row" data-cat="'+c.id+'"><div class="cm-head">'+
-      '<button class="cm-name cm-catname" onclick="startRenameCat(\''+c.id+'\')" title="Tap to rename"><span class="chip" style="background:'+colorOf(c.id)+'">'+catIconHTML(c.id)+esc(c.name)+'</span><span class="cm-pencil">\u270e</span></button>'+
+      '<button class="cm-name cm-catname" onclick="startRenameCat(\''+c.id+'\')" title="Tap to rename">'+chip+'<span class="cm-pencil">\u270e</span></button>'+
       '<span class="cm-acts">'+catActs+'</span></div>'+subHtml+
       '<button class="cm-addsub" onclick="startAddSub(\''+c.id+'\')">\uff0b Add sub-category</button></div>';
   }).join("")||'<div class="empty">No categories yet.</div>';
-  host.innerHTML='<button class="ghost addbtn cm-addcat" onclick="startAddCat()">\uff0b New category</button>'+
-    '<div id="cmNewCat"></div>'+body;
+
+  var bar='<div class="cm-toolbar">'+
+    (_cmReorder?'':'<button class="ghost cm-addcat" onclick="startAddCat()">\uff0b New category</button>')+
+    '<button class="ghost cm-reorderbtn'+(_cmReorder?' on':'')+'" onclick="toggleCmReorder()">'+
+      (_cmReorder?'\u2713 Done':'\u2195 Reorder')+'</button></div>';
+  var note=_cmReorder
+    ? '<div class="cm-note cm-reordernote">This order is used everywhere \u2014 the Add expense pickers, filters and budgets.'+
+      (subOK?'':' Sub-category ordering needs a one-off database change \u2014 ask for the SQL.')+'</div>'
+    : '';
+  host.innerHTML=bar+note+body;
 }
 
-/* ---------- inline editing ---------- */
+/* ---------- reordering ---------- */
+var _ordCatT=null,_ordSubT=null;
+function moveCat(id,dir){
+  var i=(CATS||[]).findIndex(function(c){return c.id===id;});
+  if(i<0)return;
+  var j=i+dir;
+  if(j<0||j>=CATS.length)return;
+  var t=CATS[i];CATS[i]=CATS[j];CATS[j]=t;
+  renderCatMgr();haptic(8);
+  clearTimeout(_ordCatT);_ordCatT=setTimeout(_persistCatOrder,500);
+}
+async function _persistCatOrder(){
+  if(!requireOnline("You\u2019re offline \u2014 order not saved"))return;
+  var changed=[];
+  (CATS||[]).forEach(function(c,idx){
+    var want=(idx+1)*10;
+    if(c.sort!==want){c.sort=want;changed.push(c);}
+  });
+  if(!changed.length)return;
+  try{
+    for(var k=0;k<changed.length;k++){
+      var r=await sb.from("categories").update({sort:changed[k].sort}).eq("id",changed[k].id);
+      if(r.error)throw r.error;
+    }
+    try{localStorage.setItem("kharcha-meta",JSON.stringify({c:CATS,s:SUBS}));}catch(_){}
+    refreshAllRowSelects();buildFilterCats();applyFilters();
+  }catch(e){showToast("Couldn\u2019t save the order");}
+}
+function moveSub(id,dir){
+  var sc=(SUBS||[]).find(function(x){return x.id===id;});
+  if(!sc)return;
+  var sibs=(SUBS||[]).filter(function(x){return x.category_id===sc.category_id;});
+  var i=sibs.indexOf(sc), j=i+dir;
+  if(i<0||j<0||j>=sibs.length)return;
+  var t=sibs[i];sibs[i]=sibs[j];sibs[j]=t;
+  sibs.forEach(function(x,idx){x.sort=(idx+1)*10;});
+  _sortSubs();
+  renderCatMgr();haptic(8);
+  clearTimeout(_ordSubT);
+  _ordSubT=setTimeout(function(){_persistSubOrder(sibs.slice());},500);
+}
+async function _persistSubOrder(rows){
+  if(!requireOnline("You\u2019re offline \u2014 order not saved"))return;
+  try{
+    for(var k=0;k<rows.length;k++){
+      var r=await sb.from("subcategories").update({sort:rows[k].sort}).eq("id",rows[k].id);
+      if(r.error)throw r.error;
+    }
+    try{localStorage.setItem("kharcha-meta",JSON.stringify({c:CATS,s:SUBS}));}catch(_){}
+    refreshAllRowSelects();buildFilterSubs();
+  }catch(e){showToast("Couldn\u2019t save the order");}
+}
+/* ---------- inline editing ---------- *//* ---------- inline editing ---------- */
 function _cmInline(slot,current,placeholder,onCommit){
   if(!slot)return;
   var wrap=document.createElement("div");wrap.className="cm-editwrap";
@@ -3027,7 +3136,7 @@ async function commitAddSub(catId,name){
   if(!requireOnline("You\u2019re offline")){renderCatMgr();return;}
   var r=await sb.from("subcategories").insert({name:name,category_id:catId}).select().single();
   if(r.error){showToast("Couldn\u2019t add");renderCatMgr();return;}
-  SUBS.push(r.data);
+  SUBS.push(r.data);_sortSubs();
   computeColors();refreshAllRowSelects();buildFilterSubs();
   renderCatMgr();
   haptic(12);showToast("Added");
@@ -3038,7 +3147,7 @@ async function commitAddCat(name){
   var sort=((CATS||[]).reduce(function(m,x){return Math.max(m,x.sort||0);},0))+10;
   var r=await sb.from("categories").insert({name:name,color:PREMIUM[CATS.length%PREMIUM.length],sort:sort}).select().single();
   if(r.error){showToast("Couldn\u2019t add");renderCatMgr();return;}
-  CATS.push(r.data);
+  CATS.push(r.data);_sortCats();
   computeColors();refreshAllRowSelects();buildFilterCats();
   renderCatMgr();renderBudgets();applyFilters();
   haptic(12);showToast("Category added");
