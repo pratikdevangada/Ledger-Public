@@ -1842,6 +1842,35 @@ box-shadow:0 20px 60px -12px rgba(199,165,87,.7);opacity:0;transform:scale(.4)}
   .cm-btn.cm-danger{color:var(--red)}
   .cm-count{font-size:var(--fs-xs);color:var(--ink-faint);white-space:nowrap}
   .cm-sub{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:6px 0 0 14px}
+  .cm-name{display:inline-flex;align-items:center;gap:7px;background:none;border:none;padding:4px 2px;
+    min-height:36px;cursor:pointer;font-family:var(--sans);color:var(--ink);text-align:left;
+    min-width:0;flex:1;-webkit-tap-highlight-color:transparent}
+  .cm-name .cm-pencil{color:var(--ink-faint);font-size:var(--fs-sm);opacity:.45;transition:opacity .14s;flex:none}
+  .cm-name:hover .cm-pencil,.cm-name:active .cm-pencil{opacity:1;color:var(--brass-2)}
+  .cm-editwrap{display:flex;align-items:center;gap:6px;flex:1;min-width:0}
+  .cm-editwrap.saving{opacity:.55;pointer-events:none}
+  .cm-editbtn{flex:none;width:36px;height:38px;border-radius:var(--radius-sm);cursor:pointer;
+    font-size:var(--fs-md);line-height:1;display:inline-flex;align-items:center;justify-content:center;
+    border:1px solid rgba(231,207,147,.20);background:rgba(231,207,147,.07);font-family:var(--sans)}
+  .cm-editbtn.cm-ok{color:var(--pos);border-color:rgba(199,165,87,.45);background:rgba(199,165,87,.16);font-weight:var(--fw-bold)}
+  .cm-editbtn.cm-no{color:var(--ink-faint)}
+  .cm-editbtn:active{transform:scale(.94)}
+  .cm-pickfilter{width:100%;margin:10px 0 4px;height:42px}
+  .cm-ask-card{max-width:400px}
+  .cm-ask-acts{display:flex;gap:10px;justify-content:flex-end;margin-top:18px}
+  .cm-ask-acts button{min-height:44px;padding:0 20px}
+  .cm-ask-danger{border-color:var(--red) !important;background:rgba(220,107,115,.12) !important}
+  .cm-subname{font-size:var(--fs-base);color:var(--ink-soft);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .cm-edit{flex:1;min-width:0;height:38px;padding:0 11px;border:1px solid var(--brass);
+    border-radius:var(--radius-sm);background:rgba(199,165,87,.09);color:var(--ink);
+    font-family:var(--sans);font-size:var(--fs-md);font-weight:var(--fw-medium);outline:none}
+  .cm-sub .cm-btn{width:28px;height:28px;font-size:var(--fs-sm)}
+  .cm-addsub{margin-top:10px;background:none;border:1px dashed rgba(231,207,147,.28);color:var(--brass-2);
+    border-radius:var(--radius-sm);font-size:var(--fs-sm);font-weight:var(--fw-medium);font-family:var(--sans);
+    padding:8px 12px;min-height:40px;width:100%;cursor:pointer;-webkit-tap-highlight-color:transparent}
+  .cm-addsub:hover{background:rgba(199,165,87,.07);border-color:rgba(231,207,147,.5)}
+  .cm-addcat{width:100%;margin-bottom:14px}
+  [data-theme="light"] .cm-addsub{color:#8A701F;border-color:rgba(154,126,52,.35)}
   .cm-sub .cm-btn{width:28px;height:28px;font-size:var(--fs-sm)}
   .cm-addsub{margin-top:10px;background:none;border:1px dashed rgba(231,207,147,.28);color:var(--brass-2);
     border-radius:var(--radius-sm);font-size:var(--fs-sm);font-weight:var(--fw-medium);font-family:var(--sans);
@@ -1857,7 +1886,8 @@ box-shadow:0 20px 60px -12px rgba(199,165,87,.7);opacity:0;transform:scale(.4)}
   .mg-target{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;padding:12px 10px;margin-top:7px;background:rgba(231,207,147,.04);border:1px solid rgba(231,207,147,.13);border-radius:var(--radius-md);cursor:pointer;font-family:var(--sans)}
   .mg-target:hover{background:rgba(231,207,147,.09)}
   [data-theme="light"] .mg-target{background:rgba(56,36,66,.03);border-color:rgba(56,36,66,.11)}
-  #mergeCatModal .modal-card{max-height:80vh;overflow-y:auto}
+  #cmPicker .modal-card{max-height:80vh;overflow-y:auto}
+  #cmPicker .mg-target{min-height:52px}
 
   .add-more-toggle{display:block;margin:6px auto 0;background:none;border:none;color:var(--ink-faint);
     font-size:var(--fs-sm);font-weight:var(--fw-medium);font-family:var(--sans);cursor:pointer;padding:0 16px;min-height:44px;border-radius:var(--radius-sm);letter-spacing:.02em}
@@ -2889,53 +2919,279 @@ function renderCatMgr(){
     var u=_catUsage(c.id);
     var subs=(SUBS||[]).filter(function(s){return s.category_id===c.id;});
     var canDel=u.total===0&&subs.every(function(s){return _subUsage(s.id)===0;});
-    var subHtml=subs.map(function(s){
-      var su=_subUsage(s.id);
-      var acts='<button class="cm-btn" onclick="renameSubcat(\''+s.id+'\')" title="Rename">\u270e</button>';
-      if(subs.length>1)acts+='<button class="cm-btn" onclick="openMergeSub(\''+s.id+'\')" title="Merge into another sub-category">\u21c4</button>';
-      if(multiCat)acts+='<button class="cm-btn" onclick="moveSubcat(\''+s.id+'\')" title="Move to another category">\u2192</button>';
+    var subHtml=subs.map(function(sc){
+      var su=_subUsage(sc.id);
+      var acts='';
+      if(subs.length>1)acts+='<button class="cm-btn" onclick="event.stopPropagation();openMergeSub(\''+sc.id+'\')" title="Merge into another sub-category">\u21c4</button>';
+      if(multiCat)acts+='<button class="cm-btn" onclick="event.stopPropagation();moveSubcat(\''+sc.id+'\')" title="Move to another category">\u2192</button>';
       acts+=(su>0
-        ? '<span class="cm-count" title="In use - merge it instead of deleting">'+su+'</span>'
-        : '<button class="cm-btn cm-danger" onclick="delSubcat(\''+s.id+'\')" title="Delete">\u2715</button>');
-      return '<div class="cm-sub"><span class="cm-subname">'+esc(s.name)+'</span><span class="cm-acts">'+acts+'</span></div>';
+        ? '<span class="cm-count" title="Used by '+su+' expense'+(su!==1?'s':'')+' \u2014 merge instead of deleting">'+su+'</span>'
+        : '<button class="cm-btn cm-danger" onclick="event.stopPropagation();delSubcat(\''+sc.id+'\')" title="Delete">\u2715</button>');
+      return '<div class="cm-sub" data-sub="'+sc.id+'">'+
+        '<button class="cm-name cm-subname" onclick="startRenameSub(\''+sc.id+'\')" title="Tap to rename">'+esc(sc.name)+'<span class="cm-pencil">\u270e</span></button>'+
+        '<span class="cm-acts">'+acts+'</span></div>';
     }).join("");
     var catActs='';
     if(multiCat)catActs+='<button class="cm-btn" onclick="openMergeCat(\''+c.id+'\')" title="Merge into another category">\u21c4</button>';
-    catActs+='<button class="cm-btn" onclick="renameCategory(\''+c.id+'\')" title="Rename">\u270e</button>';
     catActs+=(canDel
       ? '<button class="cm-btn cm-danger" onclick="delCategory(\''+c.id+'\')" title="Delete">\u2715</button>'
       : '<span class="cm-count">'+(u.total>0?(u.exp+' expense'+(u.exp!==1?'s':'')+(u.rec?' \u00b7 '+u.rec+' recurring':'')):'sub-categories in use')+'</span>');
-    return '<div class="cm-row"><div class="cm-head"><span class="chip" style="background:'+colorOf(c.id)+'">'+catIconHTML(c.id)+esc(c.name)+'</span>'+
+    return '<div class="cm-row" data-cat="'+c.id+'"><div class="cm-head">'+
+      '<button class="cm-name cm-catname" onclick="startRenameCat(\''+c.id+'\')" title="Tap to rename"><span class="chip" style="background:'+colorOf(c.id)+'">'+catIconHTML(c.id)+esc(c.name)+'</span><span class="cm-pencil">\u270e</span></button>'+
       '<span class="cm-acts">'+catActs+'</span></div>'+subHtml+
-      '<button class="cm-addsub" onclick="addSubcatTo(\''+c.id+'\')">\uff0b Add sub-category</button></div>';
+      '<button class="cm-addsub" onclick="startAddSub(\''+c.id+'\')">\uff0b Add sub-category</button></div>';
   }).join("")||'<div class="empty">No categories yet.</div>';
-  host.innerHTML='<button class="ghost addbtn cm-addcat" onclick="addCategoryFromMgr()">\uff0b New category</button>'+body;
+  host.innerHTML='<button class="ghost addbtn cm-addcat" onclick="startAddCat()">\uff0b New category</button>'+
+    '<div id="cmNewCat"></div>'+body;
 }
-function openMergeCat(id){
-  var src=(CATS||[]).find(function(x){return x.id===id;});
-  if(!src)return;
-  var m=document.getElementById("mergeCatModal");
+
+/* ---------- inline editing ---------- */
+function _cmInline(slot,current,placeholder,onCommit){
+  if(!slot)return;
+  var wrap=document.createElement("div");wrap.className="cm-editwrap";
+  var input=document.createElement("input");
+  input.type="text";input.className="cm-edit";input.value=current||"";
+  input.placeholder=placeholder||"";input.setAttribute("autocomplete","off");
+  input.setAttribute("enterkeyhint","done");input.setAttribute("aria-label",placeholder||"Name");
+  var ok=document.createElement("button");
+  ok.type="button";ok.className="cm-editbtn cm-ok";ok.innerHTML="\u2713";ok.title="Save";
+  var no=document.createElement("button");
+  no.type="button";no.className="cm-editbtn cm-no";no.innerHTML="\u2715";no.title="Cancel";
+  wrap.appendChild(input);wrap.appendChild(ok);wrap.appendChild(no);
+  slot.replaceWith(wrap);
+  input.focus();
+  try{input.setSelectionRange(0,input.value.length);}catch(e){}
+  var settled=false;
+  function finish(commit){
+    if(settled)return;settled=true;
+    var v=input.value.trim();
+    if(commit&&v&&v!==current){
+      wrap.classList.add("saving");input.disabled=true;ok.disabled=true;no.disabled=true;
+      try{Promise.resolve(onCommit(v)).catch(function(){renderCatMgr();});}
+      catch(e){renderCatMgr();}
+    }else{renderCatMgr();}
+  }
+  // pointerdown + preventDefault keeps focus, so blur never races these
+  ok.addEventListener("pointerdown",function(e){e.preventDefault();finish(true);});
+  no.addEventListener("pointerdown",function(e){e.preventDefault();finish(false);});
+  input.addEventListener("keydown",function(e){
+    if(e.key==="Enter"){e.preventDefault();finish(true);}
+    else if(e.key==="Escape"){e.preventDefault();finish(false);}
+  });
+  input.addEventListener("blur",function(){setTimeout(function(){finish(true);},0);});
+}
+function startRenameCat(id){
+  var c=(CATS||[]).find(function(x){return x.id===id;});if(!c)return;
+  var slot=document.querySelector('.cm-row[data-cat="'+id+'"] .cm-catname');
+  _cmInline(slot,c.name,"Category name",function(v){commitRenameCat(id,v);});
+}
+function startRenameSub(id){
+  var sc=(SUBS||[]).find(function(x){return x.id===id;});if(!sc)return;
+  var slot=document.querySelector('.cm-sub[data-sub="'+id+'"] .cm-subname');
+  _cmInline(slot,sc.name,"Sub-category name",function(v){commitRenameSub(id,v);});
+}
+function startAddSub(catId){
+  var row=document.querySelector('.cm-row[data-cat="'+catId+'"] .cm-addsub');
+  _cmInline(row,"","New sub-category\u2026",function(v){commitAddSub(catId,v);});
+}
+function startAddCat(){
+  var slot=document.querySelector(".cm-addcat");
+  _cmInline(slot,"","New category\u2026",function(v){commitAddCat(v);});
+}
+
+/* ---------- commits ---------- */
+async function commitRenameCat(id,name){
+  var c=(CATS||[]).find(function(x){return x.id===id;});if(!c)return;
+  if((CATS||[]).some(function(x){return x.id!==id&&x.name.toLowerCase()===name.toLowerCase();})){showToast("That name is already taken");renderCatMgr();return;}
+  if(!requireOnline("You\u2019re offline")){renderCatMgr();return;}
+  var r=await sb.from("categories").update({name:name}).eq("id",id);
+  if(r.error){showToast("Couldn\u2019t rename");renderCatMgr();return;}
+  c.name=name;
+  computeColors();refreshAllRowSelects();buildFilterCats();
+  renderCatMgr();renderBudgetView();applyFilters();
+  haptic(10);showToast("Renamed");
+}
+async function commitRenameSub(id,name){
+  var sc=(SUBS||[]).find(function(x){return x.id===id;});if(!sc)return;
+  if((SUBS||[]).some(function(x){return x.id!==id&&x.category_id===sc.category_id&&x.name.toLowerCase()===name.toLowerCase();})){showToast("That name is already used here");renderCatMgr();return;}
+  if(!requireOnline("You\u2019re offline")){renderCatMgr();return;}
+  var r=await sb.from("subcategories").update({name:name}).eq("id",id);
+  if(r.error){showToast("Couldn\u2019t rename");renderCatMgr();return;}
+  sc.name=name;
+  computeColors();refreshAllRowSelects();buildFilterSubs();
+  renderCatMgr();applyFilters();
+  haptic(10);showToast("Renamed");
+}
+async function commitAddSub(catId,name){
+  if((SUBS||[]).some(function(x){return x.category_id===catId&&x.name.toLowerCase()===name.toLowerCase();})){showToast("That sub-category already exists here");renderCatMgr();return;}
+  if(!requireOnline("You\u2019re offline")){renderCatMgr();return;}
+  var r=await sb.from("subcategories").insert({name:name,category_id:catId}).select().single();
+  if(r.error){showToast("Couldn\u2019t add");renderCatMgr();return;}
+  SUBS.push(r.data);
+  computeColors();refreshAllRowSelects();buildFilterSubs();
+  renderCatMgr();
+  haptic(12);showToast("Added");
+}
+async function commitAddCat(name){
+  if((CATS||[]).some(function(x){return x.name.toLowerCase()===name.toLowerCase();})){showToast("That category already exists");renderCatMgr();return;}
+  if(!requireOnline("You\u2019re offline")){renderCatMgr();return;}
+  var sort=((CATS||[]).reduce(function(m,x){return Math.max(m,x.sort||0);},0))+10;
+  var r=await sb.from("categories").insert({name:name,color:PREMIUM[CATS.length%PREMIUM.length],sort:sort}).select().single();
+  if(r.error){showToast("Couldn\u2019t add");renderCatMgr();return;}
+  CATS.push(r.data);
+  computeColors();refreshAllRowSelects();buildFilterCats();
+  renderCatMgr();renderBudgets();applyFilters();
+  haptic(12);showToast("Category added");
+}
+
+/* ---------- confirm sheet (replaces native confirm) ---------- */
+var _cmAskFn=null;
+function cmAsk(title,body,confirmLabel,danger,onYes){
+  _cmAskFn=onYes;
+  var m=document.getElementById("cmAsk");
   if(!m){
-    m=document.createElement("div");m.id="mergeCatModal";m.className="modal hide";
-    m.innerHTML='<div class="modal-card"><div class="modal-title" id="mgTitle"></div><div class="cm-note" id="mgNote"></div><div id="mgList"></div><div style="text-align:right;margin-top:14px"><button class="ghost" onclick="closeMergeCat()">Cancel</button></div></div>';
-    m.onclick=function(e){if(e.target===m)closeMergeCat();};
+    m=document.createElement("div");m.id="cmAsk";m.className="modal hide";
+    m.innerHTML='<div class="modal-card cm-ask-card"><div class="modal-title" id="cmAskTitle"></div>'+
+      '<div class="cm-note" id="cmAskBody"></div>'+
+      '<div class="cm-ask-acts"><button class="ghost" onclick="closeCmAsk()">Cancel</button>'+
+      '<button class="primary" id="cmAskYes"></button></div></div>';
+    m.onclick=function(e){if(e.target===m)closeCmAsk();};
     document.body.appendChild(m);
   }
-  var u=_catUsage(id);
-  document.getElementById("mgTitle").textContent="Merge \u201c"+src.name+"\u201d into\u2026";
-  document.getElementById("mgNote").textContent="Everything under "+src.name+" \u2014 "+u.exp+" expense"+(u.exp!==1?"s":"")+(u.rec?", "+u.rec+" recurring":"")+((Number(BUD[id])||0)>0?", its budget":"")+" \u2014 will move to the category you pick. "+src.name+" is then removed.";
-  document.getElementById("mgList").innerHTML=(CATS||[]).filter(function(c){return c.id!==id;}).map(function(c){
-    return '<button class="mg-target" onclick="doMergeCat(\''+id+'\',\''+c.id+'\')"><span class="chip" style="background:'+colorOf(c.id)+'">'+catIconHTML(c.id)+esc(c.name)+'</span><span class="fr-arrow">\u203a</span></button>';
-  }).join("");
+  document.getElementById("cmAskTitle").textContent=title;
+  document.getElementById("cmAskBody").textContent=body||"";
+  var y=document.getElementById("cmAskYes");
+  y.textContent=confirmLabel||"Confirm";
+  y.className=danger?"del-btn cm-ask-danger":"primary";
+  y.onclick=function(){var fn=_cmAskFn;closeCmAsk();if(fn)fn();};
   m.classList.remove("hide");
 }
-function closeMergeCat(){var m=document.getElementById("mergeCatModal");if(m)m.classList.add("hide");}
+function closeCmAsk(){var m=document.getElementById("cmAsk");if(m)m.classList.add("hide");_cmAskFn=null;}
+
+/* ---------- shared picker sheet (merge / move) ---------- */
+var _cmPick=null;
+function openCmPicker(title,note,items,onPick){
+  _cmPick=onPick;
+  var m=document.getElementById("cmPicker");
+  if(!m){
+    m=document.createElement("div");m.id="cmPicker";m.className="modal hide";
+    m.innerHTML='<div class="modal-card"><div class="sheet-handle" style="margin-bottom:12px"></div>'+
+      '<div class="modal-title" id="cmPickTitle"></div><div class="cm-note" id="cmPickNote"></div>'+
+      '<input id="cmPickFilter" class="cm-edit cm-pickfilter" type="text" placeholder="Filter\u2026" autocomplete="off" style="display:none">'+
+      '<div id="cmPickList"></div>'+
+      '<div style="text-align:right;margin-top:14px"><button class="ghost" onclick="closeCmPicker()">Cancel</button></div></div>';
+    m.onclick=function(e){if(e.target===m)closeCmPicker();};
+    document.body.appendChild(m);
+  }
+  document.getElementById("cmPickTitle").textContent=title;
+  document.getElementById("cmPickNote").textContent=note||"";
+  var list=document.getElementById("cmPickList");
+  list.innerHTML=items.map(function(it,i){
+    return '<button class="mg-target" data-lbl="'+esc((it.label||"").toLowerCase())+'" onclick="_cmPickHit('+i+')">'+it.html+'<span class="fr-arrow">\u203a</span></button>';
+  }).join("");
+  list._items=items;
+  var f=document.getElementById("cmPickFilter");
+  if(f){
+    f.value="";
+    f.style.display=items.length>8?"":"none";
+    f.oninput=function(){
+      var q=this.value.trim().toLowerCase();
+      list.querySelectorAll(".mg-target").forEach(function(b){
+        b.style.display=(!q||(b.dataset.lbl||"").indexOf(q)>=0)?"":"none";
+      });
+    };
+  }
+  m.classList.remove("hide");
+}
+function _cmPickHit(i){
+  var items=document.getElementById("cmPickList")._items||[];
+  var fn=_cmPick;closeCmPicker();
+  if(fn&&items[i])fn(items[i].id);
+}
+function closeCmPicker(){var m=document.getElementById("cmPicker");if(m)m.classList.add("hide");_cmPick=null;}
+
+function openMergeCat(id){
+  var src=(CATS||[]).find(function(x){return x.id===id;});if(!src)return;
+  var u=_catUsage(id);
+  var items=(CATS||[]).filter(function(c){return c.id!==id;}).map(function(c){
+    return {id:c.id,label:c.name,html:'<span class="chip" style="background:'+colorOf(c.id)+'">'+catIconHTML(c.id)+esc(c.name)+'</span>'};
+  });
+  openCmPicker("Merge \u201c"+src.name+"\u201d into\u2026",
+    "Everything under "+src.name+" \u2014 "+u.exp+" expense"+(u.exp!==1?"s":"")+(u.rec?", "+u.rec+" recurring":"")+((Number(BUD[id])||0)>0?", its budget":"")+" \u2014 moves to the category you pick. "+src.name+" is then removed.",
+    items,function(toId){
+      var B=(CATS||[]).find(function(x){return x.id===toId;});
+      cmAsk("Merge into "+B.name+"?","This cannot be undone. "+u.exp+" expense"+(u.exp!==1?"s":"")+(u.rec?" and "+u.rec+" recurring":"")+" will move, and \u201c"+src.name+"\u201d will be removed.","Merge",false,function(){doMergeCat(id,toId);});
+    });
+}
+function openMergeSub(id){
+  var src=(SUBS||[]).find(function(x){return x.id===id;});if(!src)return;
+  var siblings=(SUBS||[]).filter(function(x){return x.category_id===src.category_id&&x.id!==id;});
+  if(!siblings.length){showToast("No other sub-category here to merge into");return;}
+  var used=_subUsage(id);
+  openCmPicker("Merge \u201c"+src.name+"\u201d into\u2026",
+    used+" expense"+(used!==1?"s":"")+" moves to the sub-category you pick. \u201c"+src.name+"\u201d is then removed.",
+    siblings.map(function(x){return {id:x.id,label:x.name,html:'<span class="cm-subname">'+esc(x.name)+'</span>'};}),
+    function(toId){
+      var B=(SUBS||[]).find(function(x){return x.id===toId;});
+      cmAsk("Merge into "+B.name+"?","This cannot be undone. "+used+" expense"+(used!==1?"s":"")+" will move, and \u201c"+src.name+"\u201d will be removed.","Merge",false,function(){doMergeSub(id,toId);});
+    });
+}
+function moveSubcat(id){
+  var sc=(SUBS||[]).find(function(x){return x.id===id;});if(!sc)return;
+  var others=(CATS||[]).filter(function(c){return c.id!==sc.category_id;});
+  if(!others.length){showToast("No other category to move it to");return;}
+  var used=_subUsage(id);
+  openCmPicker("Move \u201c"+sc.name+"\u201d to\u2026",
+    used?(used+" expense"+(used!==1?"s":"")+" moves with it."):"Nothing is using it yet.",
+    others.map(function(c){return {id:c.id,label:c.name,html:'<span class="chip" style="background:'+colorOf(c.id)+'">'+catIconHTML(c.id)+esc(c.name)+'</span>'};}),
+    function(toId){doMoveSub(id,toId);});
+}
+async function doMoveSub(id,targetId){
+  var sc=(SUBS||[]).find(function(x){return x.id===id;});
+  var target=(CATS||[]).find(function(x){return x.id===targetId;});
+  if(!sc||!target)return;
+  if((SUBS||[]).some(function(x){return x.category_id===targetId&&x.name.toLowerCase()===sc.name.toLowerCase();})){
+    showToast("\u201c"+target.name+"\u201d already has that sub-category");return;}
+  if(!requireOnline("You\u2019re offline"))return;
+  var used=_subUsage(id);
+  try{
+    var r1=await sb.from("subcategories").update({category_id:targetId}).eq("id",id);
+    if(r1.error)throw r1.error;
+    if(used){
+      var r2=await sb.from("expenses").update({category_id:targetId}).eq("subcategory_id",id);
+      if(r2.error)throw r2.error;
+      (EXP||[]).forEach(function(e){if(e.subcategory_id===id)e.category_id=targetId;});
+    }
+    sc.category_id=targetId;
+    computeColors();refreshAllRowSelects();buildFilterCats();
+    renderCatMgr();renderBudgetView();applyFilters();
+    haptic(12);showToast("Moved to "+target.name);
+  }catch(e){alert((e&&e.message)||"Couldn\u2019t move it \u2014 nothing was lost, try again.");}
+}
+async function doMergeSub(fromId,toId){
+  var A=(SUBS||[]).find(function(x){return x.id===fromId;}),B=(SUBS||[]).find(function(x){return x.id===toId;});
+  if(!A||!B)return;
+  if(!requireOnline("You\u2019re offline"))return;
+  var used=_subUsage(fromId);
+  try{
+    if(used){
+      var r1=await sb.from("expenses").update({subcategory_id:toId}).eq("subcategory_id",fromId);
+      if(r1.error)throw r1.error;
+      (EXP||[]).forEach(function(e){if(e.subcategory_id===fromId)e.subcategory_id=toId;});
+    }
+    var r2=await sb.from("subcategories").delete().eq("id",fromId);
+    if(r2.error)throw r2.error;
+    var i=SUBS.findIndex(function(x){return x.id===fromId;});if(i>=0)SUBS.splice(i,1);
+    computeColors();refreshAllRowSelects();buildFilterSubs();
+    renderCatMgr();applyFilters();
+    haptic(14);showToast("Merged into "+B.name);
+  }catch(e){alert((e&&e.message)||"Couldn\u2019t merge \u2014 nothing was lost, try again.");}
+}
 async function doMergeCat(fromId,toId){
   var A=(CATS||[]).find(function(x){return x.id===fromId;}),B=(CATS||[]).find(function(x){return x.id===toId;});
   if(!A||!B)return;
   var u=_catUsage(fromId),bud=Number(BUD[fromId])||0;
   var msg="Move "+u.exp+" expense"+(u.exp!==1?"s":"")+(u.rec?" and "+u.rec+" recurring":"")+" from \u201c"+A.name+"\u201d to \u201c"+B.name+"\u201d"+(bud>0?", add its "+money2(bud)+" budget to "+B.name:"")+", then delete \u201c"+A.name+"\u201d?";
-  if(!confirm(msg))return;
   if(!requireOnline("You\u2019re offline"))return;
   try{
     // --- sub-categories of A: collide -> remap, in use -> move, unused -> drop
@@ -2974,33 +3230,32 @@ async function doMergeCat(fromId,toId){
     var r9=await sb.from("categories").delete().eq("id",fromId);if(r9.error)throw r9.error;
     var ci=CATS.findIndex(function(x){return x.id===fromId;});if(ci>=0)CATS.splice(ci,1);
     computeColors();refreshAllRowSelects();buildFilterCats();
-    closeMergeCat();renderCatMgr();renderBudgets();renderBudgetView();applyFilters();
+    closeCmPicker();renderCatMgr();renderBudgets();renderBudgetView();applyFilters();
     haptic(14);if(typeof showSuccessBurst==="function")showSuccessBurst();
     showToast("Merged into "+B.name);
   }catch(e){alert((e&&e.message)||"Couldn\u2019t merge \u2014 nothing was lost, try again.");}
 }
-async function renameCategory(id){
+function delCategory(id){
   var c=(CATS||[]).find(function(x){return x.id===id;});
   if(!c)return;
-  var name=prompt("Rename category",c.name);
-  if(!name||!name.trim()||name.trim()===c.name)return;
-  name=name.trim();
-  if((CATS||[]).some(function(x){return x.id!==id&&x.name.toLowerCase()===name.toLowerCase()})){alert("A category with that name already exists.");return;}
-  if(!requireOnline("You\u2019re offline"))return;
-  var r=await sb.from("categories").update({name:name}).eq("id",id);
-  if(r.error){alert(r.error.message);return;}
-  c.name=name;
-  computeColors();refreshAllRowSelects();buildFilterCats();
-  renderCatMgr();renderBudgetView();applyFilters();
-  haptic(10);showToast("Renamed");
-}
-async function delCategory(id){
   var u=_catUsage(id);
-  if(u.total>0){alert("This category is used by "+u.total+" item"+(u.total!==1?"s":"")+" and can\u2019t be deleted.");return;}
-  var subs=(SUBS||[]).filter(function(s){return s.category_id===id;});
-  if(subs.some(function(s){return _subUsage(s.id)>0;})){alert("Some sub-categories here are still used by expenses.");return;}
-  if(!confirm("Delete this category"+(subs.length?" and its "+subs.length+" unused sub-categor"+(subs.length!==1?"ies":"y"):"")+"?"))return;
+  if(u.total>0){showToast("Used by "+u.total+" item"+(u.total!==1?"s":"")+" \u2014 merge it instead");return;}
+  var subs=(SUBS||[]).filter(function(x){return x.category_id===id;});
+  if(subs.some(function(x){return _subUsage(x.id)>0;})){showToast("Some sub-categories here are still in use");return;}
+  cmAsk("Delete \u201c"+c.name+"\u201d?",
+    subs.length?("Its "+subs.length+" unused sub-categor"+(subs.length!==1?"ies":"y")+" will go too. You can undo this straight after."):"You can undo this straight after.",
+    "Delete",true,function(){_doDelCategory(id);});
+}
+async function _doDelCategory(id){
   if(!requireOnline("You\u2019re offline"))return;
+  var c=(CATS||[]).find(function(x){return x.id===id;});
+  if(!c)return;
+  var subs=(SUBS||[]).filter(function(x){return x.category_id===id;});
+  var snap={
+    cat:{id:c.id,name:c.name,color:c.color,sort:c.sort},
+    subs:subs.map(function(x){return {id:x.id,name:x.name,category_id:x.category_id};}),
+    bud:Number(BUD[id])||0
+  };
   try{
     if(subs.length){var sr=await sb.from("subcategories").delete().eq("category_id",id);if(sr.error)throw sr.error;}
     var br=await sb.from("budgets").delete().eq("category_id",id);if(br.error&&br.error.code!=="PGRST116")throw br.error;
@@ -3010,134 +3265,50 @@ async function delCategory(id){
     delete BUD[id];
     computeColors();refreshAllRowSelects();buildFilterCats();
     renderCatMgr();renderBudgets();renderBudgetView();applyFilters();
-    haptic(12);showToast("Category deleted");
-  }catch(e){alert((e&&e.message)||"Couldn\u2019t delete");}
+    haptic(12);
+    showToast("Deleted \u201c"+snap.cat.name+"\u201d",null,{label:"Undo",fn:function(){restoreCategory(snap);}});
+  }catch(e){showToast("Couldn\u2019t delete");}
+}
+async function restoreCategory(snap){
+  if(!requireOnline("You\u2019re offline"))return;
+  try{
+    var r=await sb.from("categories").insert(snap.cat).select().single();
+    if(r.error)throw r.error;
+    CATS.push(r.data);
+    if(snap.subs.length){
+      var sr=await sb.from("subcategories").insert(snap.subs).select();
+      if(sr.error)throw sr.error;
+      (sr.data||[]).forEach(function(x){SUBS.push(x);});
+    }
+    if(snap.bud>0){
+      await sb.from("budgets").upsert({category_id:snap.cat.id,monthly:snap.bud,updated_at:new Date().toISOString()});
+      BUD[snap.cat.id]=snap.bud;
+    }
+    computeColors();refreshAllRowSelects();buildFilterCats();
+    renderCatMgr();renderBudgets();renderBudgetView();applyFilters();
+    haptic(10);showToast("Restored");
+  }catch(e){showToast("Couldn\u2019t undo");}
 }
 async function delSubcat(id){
-  if(_subUsage(id)>0){alert("This sub-category is still used by expenses.");return;}
-  if(!confirm("Delete this sub-category?"))return;
+  var sc=(SUBS||[]).find(function(x){return x.id===id;});
+  if(!sc)return;
+  if(_subUsage(id)>0){showToast("In use \u2014 merge it instead of deleting");return;}
   if(!requireOnline("You\u2019re offline"))return;
+  var snap={id:sc.id,name:sc.name,category_id:sc.category_id};
   var r=await sb.from("subcategories").delete().eq("id",id);
-  if(r.error){alert(r.error.message);return;}
-  var i=SUBS.findIndex(function(s){return s.id===id;});if(i>=0)SUBS.splice(i,1);
-  refreshAllRowSelects();
-  renderCatMgr();
-  haptic(10);showToast("Sub-category deleted");
+  if(r.error){showToast("Couldn\u2019t delete");return;}
+  var i=SUBS.findIndex(function(x){return x.id===id;});if(i>=0)SUBS.splice(i,1);
+  computeColors();refreshAllRowSelects();buildFilterSubs();renderCatMgr();
+  haptic(10);
+  showToast("Deleted \u201c"+snap.name+"\u201d",null,{label:"Undo",fn:function(){restoreSubcat(snap);}});
 }
-
-async function addCategoryFromMgr(){
-  var name=(prompt("New category name","")||"").trim();
-  if(!name)return;
-  if((CATS||[]).some(function(x){return x.name.toLowerCase()===name.toLowerCase();})){alert("A category with that name already exists.");return;}
+async function restoreSubcat(snap){
   if(!requireOnline("You\u2019re offline"))return;
-  var sort=((CATS||[]).reduce(function(m,x){return Math.max(m,x.sort||0);},0))+10;
-  var r=await sb.from("categories").insert({name:name,color:PREMIUM[CATS.length%PREMIUM.length],sort:sort}).select().single();
-  if(r.error){alert(r.error.message);return;}
-  CATS.push(r.data);
-  computeColors();refreshAllRowSelects();buildFilterCats();
-  renderCatMgr();renderBudgets();applyFilters();
-  haptic(12);showToast("Category added");
-}
-async function addSubcatTo(catId){
-  var c=(CATS||[]).find(function(x){return x.id===catId;});
-  if(!c)return;
-  var name=(prompt("New sub-category under \u201c"+c.name+"\u201d","")||"").trim();
-  if(!name)return;
-  if((SUBS||[]).some(function(x){return x.category_id===catId&&x.name.toLowerCase()===name.toLowerCase();})){alert("That sub-category already exists here.");return;}
-  if(!requireOnline("You\u2019re offline"))return;
-  var r=await sb.from("subcategories").insert({name:name,category_id:catId}).select().single();
-  if(r.error){alert(r.error.message);return;}
+  var r=await sb.from("subcategories").insert(snap).select().single();
+  if(r.error){showToast("Couldn\u2019t undo");return;}
   SUBS.push(r.data);
-  computeColors();refreshAllRowSelects();buildFilterSubs();
-  renderCatMgr();
-  haptic(12);showToast("Sub-category added");
-}
-async function renameSubcat(id){
-  var sc=(SUBS||[]).find(function(x){return x.id===id;});
-  if(!sc)return;
-  var name=prompt("Rename sub-category",sc.name);
-  if(!name||!name.trim()||name.trim()===sc.name)return;
-  name=name.trim();
-  if((SUBS||[]).some(function(x){return x.id!==id&&x.category_id===sc.category_id&&x.name.toLowerCase()===name.toLowerCase();})){alert("A sub-category with that name already exists here.");return;}
-  if(!requireOnline("You\u2019re offline"))return;
-  var r=await sb.from("subcategories").update({name:name}).eq("id",id);
-  if(r.error){alert(r.error.message);return;}
-  sc.name=name;
-  computeColors();refreshAllRowSelects();buildFilterSubs();
-  renderCatMgr();applyFilters();
-  haptic(10);showToast("Renamed");
-}
-async function moveSubcat(id){
-  var sc=(SUBS||[]).find(function(x){return x.id===id;});
-  if(!sc)return;
-  var others=(CATS||[]).filter(function(c){return c.id!==sc.category_id;});
-  if(!others.length){alert("There is no other category to move it to.");return;}
-  var lines=others.map(function(c,i){return (i+1)+". "+c.name;}).join("\n");
-  var pick=prompt("Move \u201c"+sc.name+"\u201d to which category?\n\n"+lines+"\n\nEnter a number:","1");
-  if(!pick)return;
-  var idx=parseInt(pick,10)-1;
-  if(!(idx>=0&&idx<others.length)){alert("That is not one of the numbers listed.");return;}
-  var target=others[idx];
-  if((SUBS||[]).some(function(x){return x.category_id===target.id&&x.name.toLowerCase()===sc.name.toLowerCase();})){
-    alert("\u201c"+target.name+"\u201d already has a sub-category called \u201c"+sc.name+"\u201d. Merge them instead.");return;
-  }
-  var used=_subUsage(id);
-  if(!confirm("Move \u201c"+sc.name+"\u201d to \u201c"+target.name+"\u201d?"+(used?" "+used+" expense"+(used!==1?"s":"")+" will move too.":"")))return;
-  if(!requireOnline("You\u2019re offline"))return;
-  try{
-    var r1=await sb.from("subcategories").update({category_id:target.id}).eq("id",id);
-    if(r1.error)throw r1.error;
-    if(used){
-      var r2=await sb.from("expenses").update({category_id:target.id}).eq("subcategory_id",id);
-      if(r2.error)throw r2.error;
-      (EXP||[]).forEach(function(e){if(e.subcategory_id===id)e.category_id=target.id;});
-    }
-    sc.category_id=target.id;
-    computeColors();refreshAllRowSelects();buildFilterCats();
-    renderCatMgr();renderBudgetView();applyFilters();
-    haptic(12);showToast("Moved to "+target.name);
-  }catch(e){alert((e&&e.message)||"Couldn\u2019t move it \u2014 nothing was lost, try again.");}
-}
-function openMergeSub(id){
-  var src=(SUBS||[]).find(function(x){return x.id===id;});
-  if(!src)return;
-  var siblings=(SUBS||[]).filter(function(x){return x.category_id===src.category_id&&x.id!==id;});
-  if(!siblings.length){alert("There is no other sub-category here to merge into.");return;}
-  var m=document.getElementById("mergeSubModal");
-  if(!m){
-    m=document.createElement("div");m.id="mergeSubModal";m.className="modal hide";
-    m.innerHTML='<div class="modal-card"><div class="modal-title" id="msTitle"></div><div class="cm-note" id="msNote"></div><div id="msList"></div><div style="text-align:right;margin-top:14px"><button class="ghost" onclick="closeMergeSub()">Cancel</button></div></div>';
-    m.onclick=function(e){if(e.target===m)closeMergeSub();};
-    document.body.appendChild(m);
-  }
-  var used=_subUsage(id);
-  document.getElementById("msTitle").textContent="Merge \u201c"+src.name+"\u201d into\u2026";
-  document.getElementById("msNote").textContent=used+" expense"+(used!==1?"s":"")+" will move to the sub-category you pick. \u201c"+src.name+"\u201d is then removed.";
-  document.getElementById("msList").innerHTML=siblings.map(function(x){
-    return '<button class="mg-target" onclick="doMergeSub(\''+id+'\',\''+x.id+'\')"><span class="cm-subname">'+esc(x.name)+'</span><span class="fr-arrow">\u203a</span></button>';
-  }).join("");
-  m.classList.remove("hide");
-}
-function closeMergeSub(){var m=document.getElementById("mergeSubModal");if(m)m.classList.add("hide");}
-async function doMergeSub(fromId,toId){
-  var A=(SUBS||[]).find(function(x){return x.id===fromId;}),B=(SUBS||[]).find(function(x){return x.id===toId;});
-  if(!A||!B)return;
-  var used=_subUsage(fromId);
-  if(!confirm("Move "+used+" expense"+(used!==1?"s":"")+" from \u201c"+A.name+"\u201d to \u201c"+B.name+"\u201d, then delete \u201c"+A.name+"\u201d?"))return;
-  if(!requireOnline("You\u2019re offline"))return;
-  try{
-    if(used){
-      var r1=await sb.from("expenses").update({subcategory_id:toId}).eq("subcategory_id",fromId);
-      if(r1.error)throw r1.error;
-      (EXP||[]).forEach(function(e){if(e.subcategory_id===fromId)e.subcategory_id=toId;});
-    }
-    var r2=await sb.from("subcategories").delete().eq("id",fromId);
-    if(r2.error)throw r2.error;
-    var i=SUBS.findIndex(function(x){return x.id===fromId;});if(i>=0)SUBS.splice(i,1);
-    computeColors();refreshAllRowSelects();buildFilterSubs();
-    closeMergeSub();renderCatMgr();applyFilters();
-    haptic(14);showToast("Merged into "+B.name);
-  }catch(e){alert((e&&e.message)||"Couldn\u2019t merge \u2014 nothing was lost, try again.");}
+  computeColors();refreshAllRowSelects();buildFilterSubs();renderCatMgr();
+  haptic(10);showToast("Restored");
 }
 function renderBudgetView(){
   var host=document.getElementById("budgetView");
