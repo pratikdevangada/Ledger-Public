@@ -2628,6 +2628,18 @@ box-shadow:0 20px 60px -12px rgba(199,165,87,.7);opacity:0;transform:scale(.4)}
   </div>
 </div>
 
+<div id="catBulkModal" class="modal hide" onclick="if(event.target===this)closeCatBulk()">
+  <div class="modal-card" style="max-height:86vh;display:flex;flex-direction:column">
+    <div class="sheet-handle" style="margin-bottom:10px"></div>
+    <div class="modal-title">Review changes</div>
+    <div class="modal-sub">Nothing is saved until you tap Apply. Rows missing from the file are left untouched.</div>
+    <div id="catBulkBody" style="overflow-y:auto;flex:1;margin:14px -6px 0;padding:0 6px"></div>
+    <div class="modal-actions" style="margin-top:16px">
+      <button class="ghost" onclick="closeCatBulk()">Cancel</button>
+      <button class="primary" id="catBulkApply" onclick="applyCatPlan()">Apply</button>
+    </div>
+  </div>
+</div>
 <div id="profileBackdrop" onclick="toggleProfile()"></div>
 <div id="profileMenu" class="profilemenu">
   <div class="pm-head">
@@ -2999,7 +3011,11 @@ function renderCatMgr(){
     ? '<div class="cm-note cm-reordernote">This order is used everywhere \u2014 the Add expense pickers, filters and budgets.'+
       (subOK?'':' Sub-category ordering needs a one-off database change \u2014 ask for the SQL.')+'</div>'
     : '';
-  host.innerHTML=bar+note+body;
+  host.innerHTML=bar+note+body+
+    '<div class="inv-io" style="margin-top:16px">'+
+      '<button class="ghost inv-io-btn" onclick="downloadCatSheet()">Export Excel</button>'+
+      '<button class="ghost inv-io-btn" onclick="openCatImport()">Import Excel</button>'+
+    '</div>';
 }
 
 /* ---------- reordering ---------- */
@@ -3153,6 +3169,260 @@ async function commitAddCat(name){
   haptic(12);showToast("Category added");
 }
 
+/* ---------- categories: export / import ---------- */
+var CAT_SHEET=["Category ID","Category","Order","Merge into","Expenses"];
+var SUB_SHEET=["Sub-category ID","Sub-category","Category","Category ID","Order","Merge into","Expenses"];
+
+function downloadCatSheet(){
+  if(typeof XLSX==="undefined"){showToast("Export library still loading \u2014 try again");return;}
+  var wb=XLSX.utils.book_new();
+  var catRows=(CATS||[]).map(function(c,i){
+    var o={};o["Category ID"]=c.id;o["Category"]=c.name||"";o["Order"]=(i+1)*10;
+    o["Merge into"]="";o["Expenses"]=_catUsage(c.id).exp;return o;
+  });
+  var ws=XLSX.utils.json_to_sheet(catRows,{header:CAT_SHEET});
+  ws["!cols"]=[{wch:38},{wch:26},{wch:8},{wch:22},{wch:10}];
+  XLSX.utils.book_append_sheet(wb,ws,"Categories");
+
+  var subRows=[];
+  (CATS||[]).forEach(function(c){
+    (SUBS||[]).filter(function(x){return x.category_id===c.id;}).forEach(function(sc,i){
+      var o={};o["Sub-category ID"]=sc.id;o["Sub-category"]=sc.name||"";
+      o["Category"]=c.name||"";o["Category ID"]=c.id;o["Order"]=(i+1)*10;
+      o["Merge into"]="";o["Expenses"]=_subUsage(sc.id);subRows.push(o);
+    });
+  });
+  var ws2=XLSX.utils.json_to_sheet(subRows.length?subRows:[{}],{header:SUB_SHEET});
+  ws2["!cols"]=[{wch:38},{wch:24},{wch:22},{wch:38},{wch:8},{wch:22},{wch:10}];
+  XLSX.utils.book_append_sheet(wb,ws2,"Sub-categories");
+
+  var guide=[
+    ["SpendWise \u2014 categories"],[""],
+    ["Exported: "+new Date().toLocaleDateString(LOCALE,{day:"numeric",month:"long",year:"numeric"})],
+    ["Categories: "+(CATS||[]).length+"  \u00b7  Sub-categories: "+(SUBS||[]).length],[""],
+    ["WHAT YOU CAN CHANGE"],
+    ["Category / Sub-category  \u2014 edit the text to rename it."],
+    ["Order                    \u2014 any numbers; smallest shows first."],
+    ["Category ID (subs sheet) \u2014 paste a different category's ID to move a sub-category."],
+    ["Merge into               \u2014 type the NAME of another row to merge this one into it."],
+    ["New rows                 \u2014 leave the ID blank and type a name."],[""],
+    ["WHAT IT WILL NEVER DO"],
+    ["Nothing is deleted because it is missing from the file. Removing a row does nothing."],
+    ["Deleting is only possible inside the app, and only when nothing uses it."],[""],
+    ["ABOUT MERGE"],
+    ["Merge moves every expense onto the target, then removes the row you merged away."],
+    ["It cannot be undone. The Expenses column shows how many will move."],
+    ["You will see the full list of changes and have to confirm before anything is saved."],[""],
+    ["NOTE FOR AI ASSISTANTS"],
+    ["Return the same two sheets. Keep every ID column exactly as-is."],
+    ["Only change Category / Sub-category / Order / Category ID / Merge into."]
+  ];
+  var gs=XLSX.utils.aoa_to_sheet(guide);gs["!cols"]=[{wch:92}];
+  XLSX.utils.book_append_sheet(wb,gs,"Read me");
+  XLSX.writeFile(wb,"spendwise-categories-"+todayStr()+".xlsx");
+  haptic(10);showToast("Categories exported");
+}
+
+function _cell(row,names){
+  for(var n=0;n<names.length;n++)for(var k in row){
+    if(String(k).trim().toLowerCase()===names[n])return row[k];
+  }
+  return "";
+}
+function buildCatPlan(catRows,subRows){
+  var plan={renameCat:[],newCat:[],orderCat:[],mergeCat:[],
+            renameSub:[],newSub:[],orderSub:[],moveSub:[],mergeSub:[],skipped:[]};
+  var byCatId={},byCatName={};
+  (CATS||[]).forEach(function(c){byCatId[String(c.id)]=c;byCatName[String(c.name||"").trim().toLowerCase()]=c;});
+  var bySubId={};
+  (SUBS||[]).forEach(function(x){bySubId[String(x.id)]=x;});
+  var subOK=_subSortOK();
+
+  (catRows||[]).forEach(function(r,i){
+    var id=String(_cell(r,["category id","id"])||"").trim();
+    var name=String(_cell(r,["category","name"])||"").trim();
+    var order=parseFloat(String(_cell(r,["order","sort"])||"").replace(/[^0-9.\-]/g,""));
+    var mergeTo=String(_cell(r,["merge into","merge"])||"").trim();
+    if(!id&&!name)return;
+    if(!id){
+      if(byCatName[name.toLowerCase()]){plan.skipped.push({w:"Categories row "+(i+2),y:"\u201c"+name+"\u201d already exists"});return;}
+      plan.newCat.push({name:name,order:isFinite(order)?order:null});return;
+    }
+    var c=byCatId[id];
+    if(!c){plan.skipped.push({w:"Categories row "+(i+2),y:"unknown Category ID"});return;}
+    if(mergeTo){
+      var t=byCatName[mergeTo.toLowerCase()];
+      if(!t){plan.skipped.push({w:"Categories row "+(i+2),y:"no category named \u201c"+mergeTo+"\u201d to merge into"});}
+      else if(t.id===c.id){plan.skipped.push({w:"Categories row "+(i+2),y:"cannot merge into itself"});}
+      else{plan.mergeCat.push({from:c.id,fromName:c.name,to:t.id,toName:t.name,exp:_catUsage(c.id).exp});return;}
+    }
+    if(name&&name!==c.name){
+      if(byCatName[name.toLowerCase()]&&byCatName[name.toLowerCase()].id!==c.id)
+        plan.skipped.push({w:"Categories row "+(i+2),y:"\u201c"+name+"\u201d is taken \u2014 use Merge into"});
+      else plan.renameCat.push({id:c.id,from:c.name,to:name});
+    }
+    if(isFinite(order))plan.orderCat.push({id:c.id,name:name||c.name,order:order});
+  });
+
+  (subRows||[]).forEach(function(r,i){
+    var id=String(_cell(r,["sub-category id","subcategory id","sub id"])||"").trim();
+    var name=String(_cell(r,["sub-category","subcategory","sub"])||"").trim();
+    var catId=String(_cell(r,["category id"])||"").trim();
+    var catName=String(_cell(r,["category"])||"").trim();
+    var order=parseFloat(String(_cell(r,["order","sort"])||"").replace(/[^0-9.\-]/g,""));
+    var mergeTo=String(_cell(r,["merge into","merge"])||"").trim();
+    if(!id&&!name)return;
+    var target=(catId&&byCatId[catId])||byCatName[catName.toLowerCase()]||null;
+    if(!id){
+      if(!target){plan.skipped.push({w:"Sub-categories row "+(i+2),y:"no category for \u201c"+name+"\u201d"});return;}
+      if((SUBS||[]).some(function(x){return x.category_id===target.id&&x.name.toLowerCase()===name.toLowerCase();}))
+        {plan.skipped.push({w:"Sub-categories row "+(i+2),y:"\u201c"+name+"\u201d already exists there"});return;}
+      plan.newSub.push({name:name,category_id:target.id,catName:target.name,order:isFinite(order)?order:null});return;
+    }
+    var sc=bySubId[id];
+    if(!sc){plan.skipped.push({w:"Sub-categories row "+(i+2),y:"unknown Sub-category ID"});return;}
+    if(mergeTo){
+      var sib=(SUBS||[]).filter(function(x){return x.category_id===sc.category_id&&x.id!==sc.id;});
+      var t2=sib.find(function(x){return x.name.toLowerCase()===mergeTo.toLowerCase();});
+      if(!t2){plan.skipped.push({w:"Sub-categories row "+(i+2),y:"no sibling named \u201c"+mergeTo+"\u201d"});}
+      else{plan.mergeSub.push({from:sc.id,fromName:sc.name,to:t2.id,toName:t2.name,exp:_subUsage(sc.id)});return;}
+    }
+    if(name&&name!==sc.name){
+      if((SUBS||[]).some(function(x){return x.id!==sc.id&&x.category_id===sc.category_id&&x.name.toLowerCase()===name.toLowerCase();}))
+        plan.skipped.push({w:"Sub-categories row "+(i+2),y:"\u201c"+name+"\u201d is taken here \u2014 use Merge into"});
+      else plan.renameSub.push({id:sc.id,from:sc.name,to:name});
+    }
+    if(target&&target.id!==sc.category_id)
+      plan.moveSub.push({id:sc.id,name:name||sc.name,to:target.id,toName:target.name,exp:_subUsage(sc.id)});
+    if(isFinite(order)&&subOK)plan.orderSub.push({id:sc.id,name:name||sc.name,order:order});
+  });
+  return plan;
+}
+
+var CATBULK=null;
+function openCatBulk(plan){
+  CATBULK=plan;
+  var n=plan.renameCat.length+plan.newCat.length+plan.mergeCat.length+
+        plan.renameSub.length+plan.newSub.length+plan.moveSub.length+plan.mergeSub.length;
+  var reorders=plan.orderCat.length+plan.orderSub.length;
+  var merges=plan.mergeCat.length+plan.mergeSub.length;
+  var h='';
+  h+='<div class="rec-stats">'+
+     '<div class="rec-stat"><span class="rec-stat-v">'+n+'</span><span class="rec-stat-l">Changes</span></div>'+
+     '<div class="rec-stat"><span class="rec-stat-v'+(merges?' neg':'')+'">'+merges+'</span><span class="rec-stat-l">Merges</span></div>'+
+     '<div class="rec-stat"><span class="rec-stat-v">'+reorders+'</span><span class="rec-stat-l">Reordered</span></div></div>';
+  function sec(title,rows){ if(!rows.length)return '';
+    return '<div class="rec-sep-lg"></div><div class="rec-heading">'+title+'</div>'+rows.join(''); }
+  h+=sec("New",[].concat(
+      plan.newCat.map(function(x){return '<div class="rec-line"><span class="rec-lbl">'+esc(x.name)+'</span><span class="rec-val pos">category</span></div>';}),
+      plan.newSub.map(function(x){return '<div class="rec-line"><span class="rec-lbl">'+esc(x.name)+'</span><span class="rec-val pos">in '+esc(x.catName)+'</span></div>';})));
+  h+=sec("Renames",[].concat(
+      plan.renameCat.map(function(x){return '<div class="rec-line"><span class="rec-lbl">'+esc(x.from)+'</span><span class="rec-val">\u2192 '+esc(x.to)+'</span></div>';}),
+      plan.renameSub.map(function(x){return '<div class="rec-line"><span class="rec-lbl">'+esc(x.from)+'</span><span class="rec-val">\u2192 '+esc(x.to)+'</span></div>';})));
+  h+=sec("Moved to another category",plan.moveSub.map(function(x){
+      return '<div class="rec-line"><span class="rec-lbl">'+esc(x.name)+'</span><span class="rec-val">\u2192 '+esc(x.toName)+'</span></div>'+
+             '<div class="rec-detail">'+x.exp+' expense'+(x.exp!==1?'s':'')+' move too</div>';}));
+  if(merges){
+    h+='<div class="rec-sep-lg"></div><div class="rec-heading">Merges \u2014 cannot be undone</div>';
+    h+=[].concat(plan.mergeCat,plan.mergeSub).map(function(x){
+      return '<div class="rec-line"><span class="rec-lbl">'+esc(x.fromName)+'</span><span class="rec-val neg">into '+esc(x.toName)+'</span></div>'+
+             '<div class="rec-detail">'+x.exp+' expense'+(x.exp!==1?'s':'')+' move, then \u201c'+esc(x.fromName)+'\u201d is removed</div>';
+    }).join('');
+  }
+  if(reorders)h+='<div class="rec-sep-lg"></div><div class="rec-heading">Order</div><div class="rec-detail">'+reorders+' row'+(reorders!==1?'s':'')+' renumbered.</div>';
+  if(plan.skipped.length)h+='<div class="rec-sep-lg"></div><div class="rec-heading">Skipped</div><div class="rec-detail">'+
+    plan.skipped.slice(0,10).map(function(x){return esc(x.w)+" \u2014 "+esc(x.y);}).join("<br/>")+'</div>';
+  if(!n&&!reorders&&!plan.skipped.length)h+='<div class="rec-note">Nothing to change \u2014 the file matches what you already have.</div>';
+  h+='<div class="rec-note">Rows missing from the file are left untouched. Nothing is deleted.</div>';
+  document.getElementById("catBulkBody").innerHTML=h;
+  document.getElementById("catBulkApply").disabled=!(n||reorders);
+  document.getElementById("catBulkModal").classList.remove("hide");
+}
+function closeCatBulk(){var m=document.getElementById("catBulkModal");if(m)m.classList.add("hide");CATBULK=null;}
+
+async function applyCatPlan(){
+  if(!CATBULK)return;
+  if(!requireOnline("You\u2019re offline \u2014 this needs a connection"))return;
+  var btn=document.getElementById("catBulkApply");btn.disabled=true;btn.textContent="Applying\u2026";
+  var P=CATBULK,done=0;
+  window._catBulk=true;
+  try{
+    for(var a=0;a<P.newCat.length;a++){
+      var sortv=P.newCat[a].order!=null?P.newCat[a].order:((CATS||[]).reduce(function(m,x){return Math.max(m,x.sort||0);},0)+10);
+      var r=await sb.from("categories").insert({name:P.newCat[a].name,color:PREMIUM[CATS.length%PREMIUM.length],sort:sortv}).select().single();
+      if(r.error)throw r.error; CATS.push(r.data); done++;
+    }
+    for(var b=0;b<P.newSub.length;b++){
+      var payload={name:P.newSub[b].name,category_id:P.newSub[b].category_id};
+      if(P.newSub[b].order!=null&&_subSortOK())payload.sort=P.newSub[b].order;
+      var r2=await sb.from("subcategories").insert(payload).select().single();
+      if(r2.error)throw r2.error; SUBS.push(r2.data); done++;
+    }
+    for(var c1=0;c1<P.renameCat.length;c1++){
+      var r3=await sb.from("categories").update({name:P.renameCat[c1].to}).eq("id",P.renameCat[c1].id);
+      if(r3.error)throw r3.error;
+      var cc=CATS.find(function(x){return x.id===P.renameCat[c1].id;});if(cc)cc.name=P.renameCat[c1].to; done++;
+    }
+    for(var d=0;d<P.renameSub.length;d++){
+      var r4=await sb.from("subcategories").update({name:P.renameSub[d].to}).eq("id",P.renameSub[d].id);
+      if(r4.error)throw r4.error;
+      var ss=SUBS.find(function(x){return x.id===P.renameSub[d].id;});if(ss)ss.name=P.renameSub[d].to; done++;
+    }
+    for(var e1=0;e1<P.moveSub.length;e1++){
+      await doMoveSub(P.moveSub[e1].id,P.moveSub[e1].to); done++;
+    }
+    for(var f=0;f<P.orderCat.length;f++){
+      var r5=await sb.from("categories").update({sort:P.orderCat[f].order}).eq("id",P.orderCat[f].id);
+      if(r5.error)throw r5.error;
+      var c5=CATS.find(function(x){return x.id===P.orderCat[f].id;});if(c5)c5.sort=P.orderCat[f].order;
+    }
+    for(var g=0;g<P.orderSub.length;g++){
+      var r6=await sb.from("subcategories").update({sort:P.orderSub[g].order}).eq("id",P.orderSub[g].id);
+      if(r6.error)throw r6.error;
+      var s6=SUBS.find(function(x){return x.id===P.orderSub[g].id;});if(s6)s6.sort=P.orderSub[g].order;
+    }
+    for(var h1=0;h1<P.mergeSub.length;h1++){ await doMergeSub(P.mergeSub[h1].from,P.mergeSub[h1].to); done++; }
+    for(var i1=0;i1<P.mergeCat.length;i1++){ await doMergeCat(P.mergeCat[i1].from,P.mergeCat[i1].to); done++; }
+    _sortCats();_sortSubs();
+    try{localStorage.setItem("kharcha-meta",JSON.stringify({c:CATS,s:SUBS}));}catch(_){}
+    window._catBulk=false;
+    computeColors();refreshAllRowSelects();buildFilterCats();
+    closeCatBulk();renderCatMgr();renderBudgets();renderBudgetView();applyFilters();
+    haptic(14);if(typeof showSuccessBurst==="function")showSuccessBurst();
+    showToast("Applied "+done+" change"+(done!==1?"s":""));
+  }catch(err){
+    window._catBulk=false;
+    btn.disabled=false;btn.textContent="Apply";
+    alert((err&&err.message)||"Something failed part-way. Reload to see the current state.");
+  }
+}
+function openCatImport(){
+  if(typeof XLSX==="undefined"){showToast("Import library still loading \u2014 try again");return;}
+  var f=document.getElementById("catImportFile");
+  if(!f){
+    f=document.createElement("input");f.type="file";f.id="catImportFile";
+    f.accept=".csv,.xlsx,.xls";f.className="hide";
+    f.onchange=function(ev){
+      var file=ev.target.files[0];ev.target.value="";
+      if(!file)return;
+      var rd=new FileReader();
+      rd.onload=function(e){
+        try{
+          var wb=XLSX.read(e.target.result,{type:"binary"});
+          var cn=wb.SheetNames.indexOf("Categories")>=0?"Categories":wb.SheetNames[0];
+          var sn=wb.SheetNames.indexOf("Sub-categories")>=0?"Sub-categories":null;
+          var catRows=XLSX.utils.sheet_to_json(wb.Sheets[cn],{defval:""});
+          var subRows=sn?XLSX.utils.sheet_to_json(wb.Sheets[sn],{defval:""}):[];
+          openCatBulk(buildCatPlan(catRows,subRows));
+        }catch(err){alert("Couldn\u2019t read that file. Use the sheet exported from this screen.");}
+      };
+      rd.readAsBinaryString(file);
+    };
+    document.body.appendChild(f);
+  }
+  f.click();
+}
+
 /* ---------- confirm sheet (replaces native confirm) ---------- */
 var _cmAskFn=null;
 function cmAsk(title,body,confirmLabel,danger,onYes){
@@ -3292,6 +3562,7 @@ async function doMergeSub(fromId,toId){
     if(r2.error)throw r2.error;
     var i=SUBS.findIndex(function(x){return x.id===fromId;});if(i>=0)SUBS.splice(i,1);
     computeColors();refreshAllRowSelects();buildFilterSubs();
+    if(window._catBulk)return true;
     renderCatMgr();applyFilters();
     haptic(14);showToast("Merged into "+B.name);
   }catch(e){alert((e&&e.message)||"Couldn\u2019t merge \u2014 nothing was lost, try again.");}
@@ -3339,6 +3610,7 @@ async function doMergeCat(fromId,toId){
     var r9=await sb.from("categories").delete().eq("id",fromId);if(r9.error)throw r9.error;
     var ci=CATS.findIndex(function(x){return x.id===fromId;});if(ci>=0)CATS.splice(ci,1);
     computeColors();refreshAllRowSelects();buildFilterCats();
+    if(window._catBulk)return true;
     closeCmPicker();renderCatMgr();renderBudgets();renderBudgetView();applyFilters();
     haptic(14);if(typeof showSuccessBurst==="function")showSuccessBurst();
     showToast("Merged into "+B.name);
