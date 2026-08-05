@@ -843,7 +843,7 @@ background:
 radial-gradient(130% 85% at 50% -18%, rgba(122,80,146,.38), transparent 56%),
 radial-gradient(85% 55% at 105% 112%, rgba(199,165,87,.12), transparent 52%),
 linear-gradient(168deg,#3C2148 0%,#251233 44%,#140A18 100%);
-background-attachment:fixed;
+background-attachment:scroll; /* was fixed - Android scroll lock */
 }
 #screen-dash{padding-bottom:120px}
 #screen-dash .card,#screen-dash .modpanel{
@@ -949,8 +949,9 @@ background:
 radial-gradient(130% 85% at 50% -18%, rgba(122,80,146,.38), transparent 56%),
 radial-gradient(85% 55% at 105% 112%, rgba(199,165,87,.12), transparent 52%),
 linear-gradient(168deg,#3C2148 0%,#251233 44%,#140A18 100%) !important;
-background-attachment:fixed !important;
+background-attachment:scroll !important; /* was fixed - Android scroll lock */
 min-height:100vh;
+min-height:100dvh;
 }
 [data-theme="light"]{background:var(--bg)}
 [data-theme="light"] body{background:var(--bg) !important}
@@ -1080,14 +1081,14 @@ background:
 radial-gradient(120% 70% at 50% -14%, rgba(122,80,146,.30), transparent 58%),
 radial-gradient(70% 46% at 108% 108%, rgba(199,165,87,.10), transparent 55%),
 linear-gradient(170deg,#352044 0%,#1F1129 46%,#120A17 100%) !important;
-background-attachment:fixed !important;
+background-attachment:scroll !important; /* was fixed - Android scroll lock */
 }
 [data-theme="light"] body{
 background:
 radial-gradient(90% 50% at 50% -10%, rgba(122,80,146,.10), transparent 60%),
 radial-gradient(60% 40% at 100% 0%, rgba(199,165,87,.08), transparent 55%),
 #F0EDF4 !important;
-background-attachment:fixed !important;
+background-attachment:scroll !important; /* was fixed - Android scroll lock */
 }
 .ghero-num,.hero-total,.stat-v,.nwv,#nwValue,.invtotal,.modal-title,
 .gate h1,.brand .name,.gtv{
@@ -3160,7 +3161,10 @@ function closeCardTxn(){
   setTimeout(function(){modal.classList.add("hide");modal.style.transition="";modal.style.opacity="";sheet.style.transition="";sheet.style.transform="";},300);
 }
 function initCardTxnDrag(){
+  if(initCardTxnDrag._bound)return;   // listeners are on document - bind once only
+  initCardTxnDrag._bound=true;
   var sheet=$("cardTxnSheet"), handle=$("cardTxnHandle");
+  if(!sheet||!handle){initCardTxnDrag._bound=false;return;}
   var startY=0,currentY=0,dragging=false;
   function onStart(e){
     var t=e.target,rect=sheet.getBoundingClientRect();
