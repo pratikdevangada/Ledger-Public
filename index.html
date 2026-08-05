@@ -102,7 +102,15 @@ html[data-theme="light"] .__sp-wm em{color:#8A701F}
 :root[data-theme="light"] .seg .tab.active{box-shadow:0 1px 8px -2px rgba(0,0,0,.18)}
 :root[data-theme="light"] .hero-total{text-shadow:none}
 :root[data-theme="light"] .ctitle{color:var(--ink)}
-*{box-sizing:border-box}html,body{margin:0;padding:0;overflow-x:hidden}
+*{box-sizing:border-box}
+/* overflow-x lives on <html> ONLY.
+   Putting it on <body> too makes overflow-y compute to `auto` there, so body
+   becomes a nested scroll container with nothing to scroll. Touch and trackpad
+   gestures land on body, get swallowed, and never chain up to html - while the
+   scrollbar (which drives html directly) keeps working. That asymmetry is the
+   tell. Do not re-add overflow-x to body; use `clip` if you ever need it. */
+html{margin:0;padding:0;overflow-x:hidden}
+body{margin:0;padding:0}
 body{background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:var(--fs-lg);line-height:1.55;-webkit-font-smoothing:antialiased;
 background-image:radial-gradient(1200px 500px at 50% -8%,rgba(255,255,255,.035),transparent 70%);}
 .num{font-variant-numeric:tabular-nums}
