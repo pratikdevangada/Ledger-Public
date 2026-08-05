@@ -4973,8 +4973,23 @@ function setMode(s){signingUp=s;$("authBtn").textContent=s?"Create account":"Sig
 $("switchBtn").onclick=()=>{setMode(!signingUp);gateMsg("");};
 $("authBtn").onclick=async()=>{if(!sb){gateMsg("This copy of the app isn’t configured yet. Please contact whoever shared it with you.","info");return;}const email=$("email").value.trim(),password=$("password").value;if(!email||!password){gateMsg("Enter an email and password.","err");return;}$("authBtn").disabled=true;try{if(signingUp){const{error}=await sb.auth.signUp({email,password});if(error)throw error;gateMsg("Account created — sign in now.","ok");setMode(false);}else{const{error}=await sb.auth.signInWithPassword({email,password});if(error)throw error;}}catch(e){gateMsgFriendly(null, e.message);}$("authBtn").disabled=false;};
 ["email","password"].forEach(id=>$(id).addEventListener("keydown",e=>{if(e.key==="Enter")$("authBtn").click();}));
-$("signout").onclick=()=>sb&&sb.auth.signOut();
-function showGate(){$("app").classList.add("hide");$("gate").classList.remove("hide");try{var __sp3=document.getElementById("__splash");if(__sp3){__sp3.classList.add("__hide");setTimeout(function(){__sp3&&__sp3.parentNode&&__sp3.parentNode.removeChild(__sp3);},350);}}catch(_){}}
+$("signout").onclick=()=>{closeAllOverlays();if(sb)sb.auth.signOut();};
+function closeAllOverlays(){
+  /* profileMenu / filterPanel / modals all live OUTSIDE #app, so hiding #app
+     leaves them floating over the login screen. Tear them all down here. */
+  try{closeProfile();}catch(e){}
+  try{
+    var fp=document.getElementById("filterPanel");if(fp)fp.classList.remove("open");
+    var fb=document.getElementById("filterBackdrop");if(fb)fb.classList.remove("on");
+    var ft=document.getElementById("filterToggle");if(ft)ft.classList.remove("on");
+  }catch(e){}
+  try{document.querySelectorAll(".modal").forEach(function(m){m.classList.add("hide");});}catch(e){}
+  try{var sm=document.getElementById("syncmenu");if(sm)sm.classList.add("hide");}catch(e){}
+  try{var mr=document.getElementById("monthRecap");if(mr)mr.classList.add("hide");}catch(e){}
+  try{if(typeof closeMenu==="function")closeMenu();}catch(e){}
+  try{var t=document.getElementById("toast");if(t)t.className="toast";}catch(e){}
+}
+function showGate(){closeAllOverlays();$("app").classList.add("hide");$("gate").classList.remove("hide");try{var __sp3=document.getElementById("__splash");if(__sp3){__sp3.classList.add("__hide");setTimeout(function(){__sp3&&__sp3.parentNode&&__sp3.parentNode.removeChild(__sp3);},350);}}catch(_){}}
 function fatalLoad(msg, tech){if($("loadErr"))return;var techBlock=tech?'<details class="err-details" style="margin-bottom:16px;text-align:left"><summary style="cursor:pointer;font-size:var(--fs-sm);color:var(--ink-faint)">Technical details</summary><code style="display:block;font-size:var(--fs-xs);color:var(--ink-faint);margin-top:6px;word-break:break-word">'+esc(String(tech))+'</code></details>':'';document.body.insertAdjacentHTML("beforeend",'<div id="loadErr" style="position:fixed;inset:0;z-index:500;display:grid;place-items:center;padding:24px;background:rgba(8,8,9,.92);backdrop-filter:blur(5px)"><div style="max-width:430px;text-align:center;padding:30px;border:1px solid var(--line);border-radius:var(--radius-lg);background:var(--surface)"><div style="font-weight:var(--fw-medium);font-size:var(--fs-2xl);margin-bottom:9px">Couldn\u2019t load your data</div><div style="color:var(--ink-soft);font-size:var(--fs-md);line-height:1.55;margin-bottom:20px">'+esc(msg||"")+'</div>'+techBlock+'<button class="primary" onclick="location.reload()">Reload</button></div></div>');}
 async function prefetchApp(session){
   window._uid=session.user.id;
