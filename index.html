@@ -2121,6 +2121,22 @@ box-shadow:0 20px 60px -12px rgba(199,165,87,.7);opacity:0;transform:scale(.4)}
   .catpage-list .cm-head{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
   .catpage-list .cm-sub{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 0 8px 12px;margin-top:8px;border-top:1px solid var(--line)}
   .catpage-list .cm-acts{display:flex;align-items:center;gap:6px}
+
+  /* ==================================================================
+     ANDROID STATUS-BAR OVERLAP
+     viewport-fit=cover makes the PWA draw edge-to-edge. iOS then reports a
+     real env(safe-area-inset-top); Android Chrome reports 0 even in
+     standalone, so the header slid under the system clock and battery.
+     max() satisfies both: iOS keeps its real notch inset, Android gets a
+     sane floor. Tune --safe-top if the gap looks off on your device.
+     ================================================================== */
+  :root{--safe-top:28px}
+  @media (display-mode: standalone), (display-mode: fullscreen){
+    .topbar{padding-top:max(env(safe-area-inset-top,0px),var(--safe-top)) !important}
+    .gate{padding-top:calc(24px + max(env(safe-area-inset-top,0px),var(--safe-top))) !important}
+    .pin-inner,.bl-inner,.__sp-inner{padding-top:max(env(safe-area-inset-top,0px),var(--safe-top))}
+    #ptrInd{margin-top:max(env(safe-area-inset-top,0px),var(--safe-top))}
+  }
 </style>
 </head>
 <body>
