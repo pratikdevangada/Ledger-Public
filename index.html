@@ -1696,7 +1696,8 @@ box-shadow:0 20px 60px -12px rgba(199,165,87,.7);opacity:0;transform:scale(.4)}
     z-index:1000;pointer-events:none;
     box-shadow:0 4px 18px rgba(0,0,0,.28);
     backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);
-    transition:opacity .18s ease, background .18s ease, border-color .18s ease}
+    opacity:0;
+    transition:opacity .18s ease, transform .18s ease, background .18s ease, border-color .18s ease}
   #ptrInd.visible{opacity:1}
   #ptrInd.ready{background:linear-gradient(150deg,#EDD8A0,#C7A557 58%,#9A7E34);color:#241B07;border-color:transparent}
   #ptrInd.spinning svg{animation:ptrSpin .9s linear infinite}
@@ -2130,6 +2131,11 @@ box-shadow:0 20px 60px -12px rgba(199,165,87,.7);opacity:0;transform:scale(.4)}
      max() satisfies both: iOS keeps its real notch inset, Android gets a
      sane floor. Tune --safe-top if the gap looks off on your device.
      ================================================================== */
+  .demobanner{display:flex;align-items:center;justify-content:center;gap:6px;
+    font-size:var(--fs-sm);font-weight:var(--fw-medium);padding:7px 14px;
+    background:rgba(199,165,87,.18);color:var(--brass-2);text-align:center;
+    border-bottom:1px solid rgba(231,207,147,.25)}
+  .demobanner.hide{display:none}
   :root{--safe-top:28px}
   @media (display-mode: standalone), (display-mode: fullscreen){
     .topbar{padding-top:max(env(safe-area-inset-top,0px),var(--safe-top)) !important}
@@ -2217,7 +2223,8 @@ box-shadow:0 20px 60px -12px rgba(199,165,87,.7);opacity:0;transform:scale(.4)}
     <div class="gfield"><label>Email</label><input id="email" type="email" autocomplete="email" placeholder="you@example.com"></div>
     <div class="gfield"><label>Password</label><input id="password" type="password" autocomplete="current-password" placeholder="********"></div>
     <button class="primary gbtn" id="authBtn">Sign in</button>
-    <div class="switch"><span id="switchText">First time here?</span> <button id="switchBtn" type="button">Create an account</button></div>
+    <div class="switch" id="signupRow"><span id="switchText">First time here?</span> <button id="switchBtn" type="button">Create an account</button></div>
+    <div style="margin-top:22px;padding-top:18px;border-top:1px solid var(--line);text-align:center"><button class="ghost" id="demoBtn" type="button" style="width:100%" onclick="bootDemo()">Explore with sample data</button><div style="color:var(--ink-faint);font-size:var(--fs-sm);margin-top:8px">No sign-up needed. Nothing is saved.</div></div>
   </div>
 </div>
 
@@ -2263,6 +2270,7 @@ box-shadow:0 20px 60px -12px rgba(199,165,87,.7);opacity:0;transform:scale(.4)}
     <div class="who"><button class="hdr-icon" id="filterToggle" type="button" onclick="toggleFilter()" aria-label="Filter and export"><span class="flt-dot" id="fltDot"></span><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 5h18l-7 8v6l-4-2v-4z"/></svg></button><button class="avatarbtn" id="profileBtn" type="button" onclick="toggleProfile()" aria-label="Account"><span id="avatarInitial">?</span></button></div>
   </header>
   <div id="syncbar" class="syncbar"></div>
+  <div id="demoBanner" class="demobanner hide">Demo mode · <button onclick="DEMO=false;window._appReady=false;showGate();" style="background:none;border:none;color:inherit;text-decoration:underline;cursor:pointer;font:inherit">Sign in for real data</button></div>
   </div>
 
   <div id="screen-dash" class="wrap">
@@ -2694,6 +2702,15 @@ box-shadow:0 20px 60px -12px rgba(199,165,87,.7);opacity:0;transform:scale(.4)}
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" defer></script>
 <script>
 
+/* ── SECURITY ──────────────────────────────────────────────────────
+   The anon key below is PUBLIC BY DESIGN (it ships in the client).
+   It is ONLY safe because:
+   1. Row-Level Security (RLS) is enabled on every table
+   2. Sign-up is disabled in Supabase Auth settings
+   3. RLS policies restrict access to authenticated users
+   If ANY of these is not true, anyone with this key can read and
+   write every row in your database. Verify before deploying.
+   ────────────────────────────────────────────────────────────── */
 const SUPABASE_URL      = "https://eoacbspokedsxlgstljr.supabase.co";
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVvYWNic3Bva2Vkc3hsZ3N0bGpyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI3MTc5MzgsImV4cCI6MjA5ODI5MzkzOH0.ev1LIPm4t-sTkRqmvQ6UlTu2NDZ7WvSaaoKp1NNsI8U";
 const CURRENCY = "INR";
@@ -5313,7 +5330,8 @@ function onBudgetInput(el){const cat=el.dataset.cat,val=parseFloat(el.value)||0;
 function updateBudgetAlloc(){const el=$("budgetAlloc");if(!el)return;const totBud=CATS.reduce((s,c)=>s+(BUD[c.id]||0),0),base=budBase();if(base<=0){el.innerHTML="";return;}const ap=totBud/base*100;const tail=totBud>base?`<span style="color:#F2A2AE"> · over by ${money2(totBud-base)}</span>`:(totBud<base?`<span style="color:var(--ink-faint)"> · ${money2(base-totBud)} unallocated</span>`:` · fully allocated`);el.innerHTML=`Allocated <b>${pctStr(ap)}</b> — ${money2(totBud)} of ${money2(base)}${tail}`;}
 function updateBudgetTotals(){const act=monthActuals(),mb=monthBounds();const totBud=CATS.reduce((s,c)=>s+(BUD[c.id]||0),0),totAct=Object.values(act).reduce((a,b)=>a+b,0);const tt=$("budgetTotals");if(tt)tt.innerHTML=`<div class="bt"><span class="k">Total monthly budget</span><span class="v">${money(totBud)}</span></div><div class="bt"><span class="k">Spent in ${mb.label}</span><span class="v">${money(totAct)}</span></div><div class="bt"><span class="k">${totAct>totBud?"Over by":"Remaining"}</span><span class="v">${money(Math.abs(totBud-totAct))}</span></div>`;const base=budBase();document.querySelectorAll("#budgetList .budset").forEach(row=>{const inp=row.querySelector(".binp");if(!inp)return;const id=inp.dataset.cat,a=act[id]||0,b=BUD[id]||0,sub=row.querySelector(".sub"),sec=row.querySelector(".sec");if(sub)sub.textContent=b>0?`${money2(a)} spent · ${b>=a?money2(b-a)+" left":money2(a-b)+" over"}`:(a>0?`${money2(a)} spent · no budget set`:"no budget set");if(sec){if(BUDGET_MODE==="amount"){sec.textContent=b>0?pctStr(totBud>0?b/totBud*100:0)+" of budget":"—";}else{sec.textContent=`= ${money2(b)}`;}}});updateBudgetAlloc();const _ti=$("budgetTotalInput");if(_ti&&document.activeElement!==_ti)_ti.value=totBud>0?Math.round(totBud):"";}
 function flashSaved(el){if(!el)return;el.classList.add("saved");clearTimeout(el._st);el._st=setTimeout(()=>el.classList.remove("saved"),900);}
-async function saveBudget(catId,val,inputEl){if(!requireOnline("You’re offline — budgets need a connection"))return;const m=parseFloat(val)||0;BUD[catId]=m;const{error}=await sb.from("budgets").upsert({category_id:catId,monthly:m,updated_at:new Date().toISOString()});if(error){budBanner(/relation|exist|table|schema/i.test(error.message||"")?"Couldn't save — run add_budgets.sql in Supabase once, then try again.":("Couldn't save — "+error.message));return;}updateBudgetTotals();renderBudgetVsActual();flashSaved(inputEl);}
+async function saveBudget(catId,val,inputEl){if(DEMO){BUD[catId]=parseFloat(val)||0;updateBudgetTotals();renderBudgetVsActual();flashSaved(inputEl);return;}
+if(!requireOnline("You’re offline — budgets need a connection"))return;const m=parseFloat(val)||0;BUD[catId]=m;const{error}=await sb.from("budgets").upsert({category_id:catId,monthly:m,updated_at:new Date().toISOString()});if(error){budBanner(/relation|exist|table|schema/i.test(error.message||"")?"Couldn't save — run add_budgets.sql in Supabase once, then try again.":("Couldn't save — "+error.message));return;}updateBudgetTotals();renderBudgetVsActual();flashSaved(inputEl);}
 
 function banner(t,ok){$("addBanner").innerHTML=`<div class="banner ${ok?'ok':'err'}">${esc(t)}</div>`;if(ok)setTimeout(()=>$("addBanner").innerHTML="",4000);}
 $("submitBtn").onclick=async()=>{const rows=[...$("rows").querySelectorAll("[data-row]")];const payload=[];let bad=0;rows.forEach(tr=>{const amt=parseFloat(tr.querySelector(".ramt").value),cat=tr._cat.value;if(!amt&&!cat)return;if(!amt||amt<=0||!cat){bad++;return;}payload.push({amount:amt,category_id:cat,subcategory_id:tr._sub.value||null,spent_on:tr.querySelector(".rdate").value||todayStr(),paid_by:(tr._paid&&tr._paid.value)||null,note:tr.querySelector(".rnote").value.trim()||null,...parseMethod((tr._method&&tr._method.value)||null)});});if(!payload.length){banner(bad?"Some rows are missing amount or category.":"Fill at least one row.");return;}if(!navigator.onLine){var q0=loadQueue();payload.forEach(function(p){q0.push(p);});saveQueue(q0);_setLastAdd(payload[payload.length-1]);banner("Saved "+payload.length+" offline \u2014 will sync when back online.",true);haptic(16);showToast("Saved offline");$("rows").innerHTML="";addRow();await loadExpenses();renderAddRecent();applyFilters();return;}$("submitBtn").disabled=true;$("submitBtn").textContent="Saving…";const{error}=await sb.from("expenses").insert(payload);$("submitBtn").disabled=false;$("submitBtn").textContent="Submit all";if(error){var q1=loadQueue();payload.forEach(function(p){q1.push(p);});saveQueue(q1);banner("Saved offline \u2014 will sync when the connection returns.",true);haptic(12);showToast("Saved offline");$("rows").innerHTML="";addRow();await loadExpenses();renderAddRecent();applyFilters();return;}_setLastAdd(payload[payload.length-1]);banner(`Added ${payload.length} expense${payload.length>1?"s":""}${bad?` · ${bad} incomplete skipped`:""}.`,true);haptic(16);showSuccessBurst();showToast("Added "+payload.length+" expense"+(payload.length>1?"s":""));$("rows").innerHTML="";addRow();await loadExpenses();renderAddRecent();applyFilters();flushQueue();};
@@ -5372,9 +5390,11 @@ $("fileInput").onchange=async e=>{const file=e.target.files[0];if(!file)return;
 function toDate(v){if(!v)return todayStr();if(v instanceof Date)return ymd(v);if(typeof v==="number"&&XLSX.SSF){const d=XLSX.SSF.parse_date_code(v);if(d)return`${d.y}-${String(d.m).padStart(2,"0")}-${String(d.d).padStart(2,"0")}`;}const d=new Date(v);return isNaN(d)?todayStr():ymd(d);}
 
 let signingUp=false;
+const ALLOW_SIGNUP=false; /* set to true only if Supabase has email-confirm ON and RLS with user_id scoping */
 function gateMsg(t,type){$("gateMsg").innerHTML=t?`<div class="msg ${type||'info'}">${esc(t)}</div>`:"";}
 function setMode(s){signingUp=s;$("authBtn").textContent=s?"Create account":"Sign in";$("switchText").textContent=s?"Already registered?":"First time here?";$("switchBtn").textContent=s?"Sign in instead":"Create an account";$("gateSub").textContent=s?"Create an account for you or your partner.":"Sign in to your shared expenses.";}
-$("switchBtn").onclick=()=>{setMode(!signingUp);gateMsg("");};
+(function(){var sr=document.getElementById("signupRow");if(sr&&!ALLOW_SIGNUP)sr.style.display="none";})();
+$("switchBtn").onclick=()=>{if(!ALLOW_SIGNUP){gateMsg("Sign-up is disabled. Contact the owner for access.","info");return;}setMode(!signingUp);gateMsg("");};
 $("authBtn").onclick=async()=>{if(!sb){gateMsg("This copy of the app isn’t configured yet. Please contact whoever shared it with you.","info");return;}const email=$("email").value.trim(),password=$("password").value;if(!email||!password){gateMsg("Enter an email and password.","err");return;}$("authBtn").disabled=true;try{if(signingUp){const{error}=await sb.auth.signUp({email,password});if(error)throw error;gateMsg("Account created — sign in now.","ok");setMode(false);}else{const{error}=await sb.auth.signInWithPassword({email,password});if(error)throw error;}}catch(e){gateMsgFriendly(null, e.message);}$("authBtn").disabled=false;};
 ["email","password"].forEach(id=>$(id).addEventListener("keydown",e=>{if(e.key==="Enter")$("authBtn").click();}));
 $("signout").onclick=()=>{closeAllOverlays();if(sb)sb.auth.signOut();};
@@ -5503,6 +5523,166 @@ try{var __sp=document.getElementById("__splash");if(__sp){__sp.classList.add("__
   $("app").style.visibility="";
   
   if(PROF_OK&&!nm)openNameModal(true);}
+
+
+/* ==================================================================
+   DEMO MODE — boots with synthetic data, no Supabase, nothing saved.
+   Activate via the gate button or by appending ?demo to the URL.
+   ================================================================== */
+var DEMO=false;
+function _demoId(){return "demo-"+Math.random().toString(36).slice(2,10);}
+function _demoDate(daysAgo){var d=new Date();d.setDate(d.getDate()-daysAgo);return ymd(d);}
+function _demoSeed(){
+  var _cats=[
+    {name:"Food & Dining",subs:["Restaurant","Street food","Swiggy","Office canteen"]},
+    {name:"Groceries",subs:["Kirana","Blinkit","Instamart","Vegetables"]},
+    {name:"Transport",subs:["Fuel","Cab & Auto","Metro"]},
+    {name:"Utilities",subs:["Electricity","Mobile","Broadband"]},
+    {name:"Home",subs:["Rent","Society","Domestic help"]},
+    {name:"Shopping",subs:["Clothing","Online orders","Accessories"]},
+    {name:"Health",subs:["Doctor","Gym","Medicines"]},
+    {name:"Entertainment",subs:["Subscriptions","Movies"]},
+    {name:"Travel",subs:["Tickets","Hotels"]},
+    {name:"Family",subs:["Food orders","Groceries","Bills"]}
+  ];
+  CATS=[];SUBS=[];
+  _cats.forEach(function(c,ci){
+    var cid=_demoId();
+    CATS.push({id:cid,name:c.name,sort:(ci+1)*10,color:PREMIUM[ci%PREMIUM.length]});
+    c.subs.forEach(function(sn,si){
+      SUBS.push({id:_demoId(),name:sn,category_id:cid,sort:(si+1)*10});
+    });
+  });
+  computeColors();
+
+  /* expenses: ~180 over the last 90 days, realistic amounts */
+  var _amounts={
+    "Food & Dining":[80,150,250,400,180,320,90,60,200],
+    "Groceries":[350,800,1200,450,600,280,950],
+    "Transport":[200,1500,2800,80,150,50],
+    "Utilities":[900,500,350,1200],
+    "Home":[15000,3500,6000],
+    "Shopping":[1200,800,2500,450,3000],
+    "Health":[500,300,1800,250],
+    "Entertainment":[199,299,350],
+    "Travel":[2500,4500,800],
+    "Family":[400,600,250,900]
+  };
+  var _payers=["Alex","Riya"];
+  var _methods=["UPI","UPI","UPI","Cash","Card"];
+  EXP=[];
+  for(var day=0;day<90;day++){
+    var n=day%7===0?4:day%3===0?3:day%2===0?2:1;
+    for(var j=0;j<n;j++){
+      var ci=Math.floor(Math.random()*CATS.length);
+      var cat=CATS[ci];
+      var csubs=SUBS.filter(function(x){return x.category_id===cat.id;});
+      var sub=csubs.length?csubs[Math.floor(Math.random()*csubs.length)]:null;
+      var amts=_amounts[cat.name]||[200,500];
+      var amt=amts[Math.floor(Math.random()*amts.length)];
+      amt=Math.round(amt*(0.8+Math.random()*0.4));
+      EXP.push({id:_demoId(),amount:amt,spent_on:_demoDate(day),
+        category_id:cat.id,subcategory_id:sub?sub.id:null,
+        paid_by:_payers[Math.floor(Math.random()*_payers.length)],
+        method:_methods[Math.floor(Math.random()*_methods.length)],
+        note:null});
+    }
+  }
+  EXP.sort(function(a,b){return b.spent_on.localeCompare(a.spent_on);});
+
+  /* budgets */
+  BUD={};
+  var _budgets={"Food & Dining":8000,"Groceries":6000,"Transport":3000,
+    "Utilities":3000,"Home":25000,"Shopping":4000,"Health":2000,
+    "Entertainment":1000,"Travel":5000,"Family":3000};
+  CATS.forEach(function(c){BUD[c.id]=_budgets[c.name]||2000;});
+
+  /* income: 2 months */
+  INCOME=[];
+  for(var im=0;im<2;im++){
+    var d=new Date();d.setMonth(d.getMonth()-im);d.setDate(1);
+    INCOME.push({id:_demoId(),amount:95000,net_amount:78000,
+      received_on:ymd(d),source:"Salary",received_by:"Alex",one_time:false});
+  }
+
+  /* cards */
+  CARDS=[
+    {id:_demoId(),name:"HDFC Millennia",last4:"4521",kind:"credit",
+     statement_day:15,due_day:5},
+    {id:_demoId(),name:"Zaggle",last4:"8832",kind:"prepaid",
+     monthly_load:5000,load_day:5,opening_balance:4200,opening_on:_demoDate(60)}
+  ];
+
+  /* investments */
+  INVEST=[
+    {id:_demoId(),name:"Coin MF",type:"mf",value:320000,updated_on:_demoDate(3)},
+    {id:_demoId(),name:"Kite Stocks",type:"stocks",value:185000,updated_on:_demoDate(5)},
+    {id:_demoId(),name:"NPS",type:"nps",value:95000,updated_on:_demoDate(30)},
+    {id:_demoId(),name:"EPF",type:"epf",value:210000,updated_on:_demoDate(60)}
+  ];
+  INVSNAP=[];
+  for(var sm=5;sm>=0;sm--){
+    var sd=new Date();sd.setMonth(sd.getMonth()-sm);
+    var base=700000+sm*(-25000)+Math.round(Math.random()*30000);
+    INVSNAP.push({ym:sd.getFullYear()+"-"+String(sd.getMonth()+1).padStart(2,"0"),total:base});
+  }
+
+  /* recurring */
+  RECUR=[
+    {id:_demoId(),amount:15000,category_id:CATS.find(function(c){return c.name==="Home";}).id,
+     subcategory_id:null,paid_by:"Alex",method:"Bank transfer",
+     note:"Rent",day_of_month:1,active:true,last_added:null},
+    {id:_demoId(),amount:199,category_id:CATS.find(function(c){return c.name==="Entertainment";}).id,
+     subcategory_id:null,paid_by:"Alex",method:"Card",
+     note:"Netflix",day_of_month:12,active:true,last_added:null}
+  ];
+
+  USERS=["Alex","Riya"];
+  window._me="Alex";window._uid="demo-user";
+}
+
+/* stub every Supabase write so demo never touches the network */
+function _demoStub(){
+  var noop=function(){return Promise.resolve({data:null,error:{message:"Demo mode \u2014 nothing is saved. Sign up to keep your data."}});};
+  var _sel={select:function(){return{single:noop};}};
+  var chain=function(){return{eq:chain,gte:chain,lte:chain,order:chain,limit:chain,
+    select:function(){return{single:noop};},then:noop,
+    maybeSingle:noop,upsert:noop,delete:chain,update:chain,insert:function(){return _sel;}}};
+  sb={from:chain,auth:{getSession:function(){return Promise.resolve({data:{session:null}});},
+    onAuthStateChange:function(){},signOut:function(){DEMO=false;window._appReady=false;showGate();}}};
+}
+
+function _showDemoBanner(on){var b=document.getElementById("demoBanner");if(b)b.classList.toggle("hide",!on);}
+function bootDemo(){
+  DEMO=true;
+  _demoSeed();
+  _demoStub();
+  $("gate").classList.add("hide");
+  $("app").classList.remove("hide");
+  $("app").style.visibility="";
+  $("whoName").textContent="Alex";
+  syncProfile("alex@example.com");
+  initFilters();
+  $("rows").innerHTML="";addRow();
+  renderAddRecent();applyFilters();updateSync();
+  renderReports();
+  try{renderMonthDownload();}catch(_){}
+  try{_updateFirstRun();}catch(_){}
+  try{renderMoneySnap();}catch(_){}
+  try{renderBudgetView();}catch(_){}
+  try{initCollapsibles();}catch(_){}
+  window._appReady=true;
+  _showDemoBanner(true);
+  try{var sp=document.getElementById("__splash");if(sp){sp.classList.add("__hide");setTimeout(function(){sp.remove();},350);}}catch(_){}
+  showToast("Demo mode \u2014 explore freely, nothing is saved");
+}
+
+/* auto-boot demo if ?demo is in the URL */
+if(location.search.indexOf("demo")>-1){
+  document.addEventListener("DOMContentLoaded",function(){
+    setTimeout(bootDemo,200);
+  });
+}
 
 const CFG_OK=SUPABASE_URL&&SUPABASE_ANON_KEY&&!/PASTE_/.test(SUPABASE_URL)&&!/PASTE_/.test(SUPABASE_ANON_KEY);
 window.addEventListener("error",ev=>{if(!$("app")||$("app").classList.contains("hide")){const m=ev.message&&ev.message!=="Script error."?ev.message:"A library failed to load. Check your connection/ad-blocker and the Supabase URL/key.";gateMsg("Error: "+m,"err");}});
