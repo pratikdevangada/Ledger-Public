@@ -5651,7 +5651,12 @@ function catExcluded(id){var c=(CATS||[]).find(function(x){return x.id===id;});i
 function subExcluded(id){if(!id)return false;var s=(SUBS||[]).find(function(x){return x.id===id;});if(!s)return false;if(s.exclude_from_spending===true||s.exclude_from_spending==="t")return true;return _isInvestName(s.name);}
 function spendExcluded(e){return catExcluded(e.category_id)||subExcluded(e.subcategory_id);}
 
-function monthActuals(){const {from,to}=monthBounds();const m={};EXP.forEach(e=>{if(e.spent_on>=from&&e.spent_on<=to&&!spendExcluded(e))m[e.category_id]=(m[e.category_id]||0)+Number(e.amount);});return m;}
+/* Applies the EMI split, matching renderBudgetView, the planning pack and
+   the Excel export: only the interest portion of a loan repayment is an
+   expense, the principal builds equity. Before this, the dashboard's
+   "Budget vs actual" card counted the whole EMI and so disagreed with
+   every other budget surface in the app. */
+function monthActuals(){const {from,to}=monthBounds();const m={};EXP.forEach(e=>{if(e.spent_on>=from&&e.spent_on<=to&&!spendExcluded(e)){var amt=(e.interest_pct!=null)?_emiSplit(e).expense:Number(e.amount);m[e.category_id]=(m[e.category_id]||0)+amt;}});return m;}
 function prevMonthBounds(){const n=new Date(),f=new Date(n.getFullYear(),n.getMonth()-1,1),l=new Date(n.getFullYear(),n.getMonth(),0);return{from:ymd(f),to:ymd(l),label:f.toLocaleDateString(LOCALE,{month:"long"})};}
 function suggestSplit(total){total=parseFloat(total)||0;let w={},basis="last month's spending";const pm=prevMonthBounds();EXP.forEach(e=>{if(e.spent_on>=pm.from&&e.spent_on<=pm.to&&!spendExcluded(e))w[e.category_id]=(w[e.category_id]||0)+Number(e.amount);});let sum=Object.values(w).reduce((a,b)=>a+b,0);
   if(sum<=0){w={};const from=ymd(new Date(Date.now()-90*864e5));EXP.forEach(e=>{if(e.spent_on>=from&&!spendExcluded(e))w[e.category_id]=(w[e.category_id]||0)+Number(e.amount);});sum=Object.values(w).reduce((a,b)=>a+b,0);basis="the last 90 days of spending";}
