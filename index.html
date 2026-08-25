@@ -2398,7 +2398,7 @@ box-shadow:0 20px 60px -12px rgba(199,165,87,.7);opacity:0;transform:scale(.4)}
       <section class="card sumcard full collapsible" data-mod="budget" id="sumCard">
         <h2 class="ctitle">Summary for planning <span class="soft">— paste into Claude</span></h2>
         <textarea id="summary" readonly></textarea>
-        <div class="row-actions"><button class="primary" id="copyBtn">Copy summary</button></div>
+        <div class="row-actions"><button class="primary" id="copyBtn">Copy summary</button><button class="ghost" id="planBtn">6-month planning pack</button><button class="ghost" id="baXlsBtn">Budget vs actual (Excel)</button></div>
       </section>
     </div>
     </div>
@@ -3667,11 +3667,11 @@ async function doMergeCat(fromId,toId){
     // --- budget: add A's to B's, remove A's row
     if(bud>0){
       var newB=(Number(BUD[toId])||0)+bud;
-      var r7=await sb.from("budgets").upsert({category_id:toId,monthly:newB,updated_at:new Date().toISOString()});if(r7.error)throw r7.error;
-      BUD[toId]=newB;
+      var r7=await sb.from("budgets").upsert({category_id:toId,ym:_ymOf(),monthly:newB,updated_at:new Date().toISOString()},{onConflict:"category_id,ym"});if(r7.error)throw r7.error;
+      _budSet(toId,newB);
     }
     var r8=await sb.from("budgets").delete().eq("category_id",fromId);if(r8.error&&r8.error.code!=="PGRST116")throw r8.error;
-    delete BUD[fromId];
+    _budDropCat(fromId);
     // --- delete A
     var r9=await sb.from("categories").delete().eq("id",fromId);if(r9.error)throw r9.error;
     var ci=CATS.findIndex(function(x){return x.id===fromId;});if(ci>=0)CATS.splice(ci,1);
@@ -3709,7 +3709,7 @@ async function _doDelCategory(id){
     var r=await sb.from("categories").delete().eq("id",id);if(r.error)throw r.error;
     for(var i=SUBS.length-1;i>=0;i--)if(SUBS[i].category_id===id)SUBS.splice(i,1);
     var ci=CATS.findIndex(function(x){return x.id===id;});if(ci>=0)CATS.splice(ci,1);
-    delete BUD[id];
+    _budDropCat(id);
     computeColors();refreshAllRowSelects();buildFilterCats();
     renderCatMgr();renderBudgets();renderBudgetView();applyFilters();
     haptic(12);
@@ -3728,8 +3728,8 @@ async function restoreCategory(snap){
       (sr.data||[]).forEach(function(x){SUBS.push(x);});
     }
     if(snap.bud>0){
-      await sb.from("budgets").upsert({category_id:snap.cat.id,monthly:snap.bud,updated_at:new Date().toISOString()});
-      BUD[snap.cat.id]=snap.bud;
+      await sb.from("budgets").upsert({category_id:snap.cat.id,ym:_ymOf(),monthly:snap.bud,updated_at:new Date().toISOString()},{onConflict:"category_id,ym"});
+      _budSet(snap.cat.id,snap.bud);
     }
     computeColors();refreshAllRowSelects();buildFilterCats();
     renderCatMgr();renderBudgets();renderBudgetView();applyFilters();
@@ -4009,7 +4009,7 @@ document.addEventListener("click",function(e){
 });
 
 const BOOT_KEY="kharcha-boot";
-function _saveBootCache(){try{localStorage.setItem(BOOT_KEY,JSON.stringify({v:1,uid:window._uid||null,me:window._me||"",BUD:BUD,INCOME:INCOME,CARDS:CARDS,INVEST:INVEST,INVSNAP:(typeof INVSNAP!=="undefined"?INVSNAP:[]),RECUR:RECUR}));}catch(e){}}
+function _saveBootCache(){try{localStorage.setItem(BOOT_KEY,JSON.stringify({v:1,uid:window._uid||null,me:window._me||"",BUD:BUD,BUDALL:BUDALL,INCOME:INCOME,CARDS:CARDS,INVEST:INVEST,INVSNAP:(typeof INVSNAP!=="undefined"?INVSNAP:[]),RECUR:RECUR}));}catch(e){}}
 function _hideEmptyHomeCards(F){
   try{
     F=F||[];
@@ -4033,7 +4033,7 @@ function _hideEmptyHomeCards(F){
     });
   }catch(_){}
 }
-function applyFilters(){const[from,to]=rangeDates();LASTR=[from,to];const F=filtered();LASTF=F;renderHomeHero(F,from,to);renderStats(F,from,to);renderTrend(F,from,to);renderCat(F);renderSub(F);renderDow(F);renderWho(F);renderCardChart(F);renderSummary(F,from,to);renderCompare(F,from,to);renderBudgetVsActual();renderInsights();renderIncome();renderTrends();renderPace();renderNetWorth();renderRecent(F);if(window._appReady)_saveBootCache();try{_updateFirstRun();}catch(_){}try{renderMoneySnap();renderBudgetView();}catch(_){}try{_syncFltChrome(F);}catch(_){}try{renderHeroCats();}catch(_){}try{_hideEmptyHomeCards(F);}catch(_){}}
+function applyFilters(){refreshBUD();const[from,to]=rangeDates();LASTR=[from,to];const F=filtered();LASTF=F;renderHomeHero(F,from,to);renderStats(F,from,to);renderTrend(F,from,to);renderCat(F);renderSub(F);renderDow(F);renderWho(F);renderCardChart(F);renderSummary(F,from,to);renderCompare(F,from,to);renderBudgetVsActual();renderInsights();renderIncome();renderTrends();renderPace();renderNetWorth();renderRecent(F);if(window._appReady)_saveBootCache();try{_updateFirstRun();}catch(_){}try{renderMoneySnap();renderBudgetView();}catch(_){}try{_syncFltChrome(F);}catch(_){}try{renderHeroCats();}catch(_){}try{_hideEmptyHomeCards(F);}catch(_){}}
 function _friendly(raw){
   var m=String(raw||"").toLowerCase();
   if(!m)return "Something went wrong. Please try again.";
@@ -4351,9 +4351,9 @@ async function applyBudgetBulk(){
   try{
     for(var i=0;i<BUDBULK.updates.length;i++){
       var u=BUDBULK.updates[i];
-      var r=await sb.from("budgets").upsert({category_id:u.id,monthly:u.after,updated_at:new Date().toISOString()});
+      var r=await sb.from("budgets").upsert({category_id:u.id,ym:_ymOf(),monthly:u.after,updated_at:new Date().toISOString()},{onConflict:"category_id,ym"});
       if(r.error)throw r.error;
-      BUD[u.id]=u.after;
+      _budSet(u.id,u.after);
     }
     var done=BUDBULK.updates.length;
     try{localStorage.setItem("kharcha-bud",JSON.stringify(BUD));}catch(_){}
@@ -4608,6 +4608,12 @@ function openMonthRecap(y,m){
   if(typ!==null){var diff=saved-typ; if(Math.abs(diff)<Math.abs(typ)*0.05){vsLabel="On par with your average";vsCls="rp-flat";} else if(diff>0){vsLabel="Saved "+money2(Math.abs(diff))+" more than usual";vsCls="rp-pos";} else{vsLabel=money2(Math.abs(diff))+" less than usual";vsCls="rp-neg";}}
   var days=(new Date(y,m+1,0)).getDate();
   var dailyAvg=days?Math.round(dailyTotal/days):0;
+  /* The budget that was in force THAT month - not today's. This is the
+     whole point of effective-dated rows: past recaps stay truthful even
+     after you change a budget later. */
+  var _bm=budgetsFor(y+"-"+mm),_totBud=0;
+  (CATS||[]).forEach(function(c){_totBud+=Number(_bm[c.id])||0;});
+  var _budDiff=_totBud-dailyTotal;
   var host=document.getElementById("monthRecap");
   if(!host){host=document.createElement("div");host.id="monthRecap";host.className="modal hide";host.onclick=function(e){if(e.target===host)closeMonthRecap();};document.body.appendChild(host);}
   var monthLabel=new Date(y,m,1).toLocaleDateString(LOCALE,{month:"long",year:"numeric"});
@@ -4621,7 +4627,7 @@ function openMonthRecap(y,m){
     '</div>'+
     (topCat?'<div class="rp-story"><div class="rp-storyl">TOP CATEGORY</div><div class="rp-storyv"><span class="chip" style="background:'+colorOf(topCat.id)+'">'+catIconHTML(topCat.id)+esc(nameOf(topCat.id))+'</span> · '+money2(topCat.a)+'</div></div>':'')+
     (big?'<div class="rp-story"><div class="rp-storyl">BIGGEST SINGLE EXPENSE</div><div class="rp-storyv">'+money2(big.amount)+' · '+esc(nameOf(big.category_id))+(big.note?' · '+esc(big.note):'')+'</div></div>':'')+
-    '<div class="rp-story"><div class="rp-storyl">DAILY AVERAGE</div><div class="rp-storyv">'+money2(dailyAvg)+' / day across '+days+' days</div></div>'+
+    ''+(_totBud>0?'<div class="rp-story"><div class="rp-storyl">AGAINST BUDGET</div><div class="rp-storyv">'+money2(dailyTotal)+' of '+money2(_totBud)+' · <span class="rp-vs '+(_budDiff>=0?'rp-pos':'rp-neg')+'">'+(_budDiff>=0?'under by '+money2(_budDiff):'over by '+money2(-_budDiff))+'</span></div></div>':'')+'<div class="rp-story"><div class="rp-storyl">DAILY AVERAGE</div><div class="rp-storyv">'+money2(dailyAvg)+' / day across '+days+' days</div></div>'+
     '<div class="rp-actions"><button class="primary" onclick="closeMonthRecap();downloadMonths([{y:'+y+',m:'+m+',ym:\''+y+'-'+mm+'\'}])">Download report</button><button class="ghost" onclick="closeMonthRecap()">Close</button></div>'+
   '</div>';
   host.classList.remove("hide");
@@ -5247,7 +5253,313 @@ $("editModal").addEventListener("click",ev=>{if(ev.target.id==="editModal")close
 $("editSave").onclick=async()=>{if(!EDIT_ID)return;const amt=parseFloat($("eAmt").value);if(!amt||amt<=0){alert("Enter a valid amount.");return;}const cat=_eCat.value;if(!cat){alert("Pick a category.");return;}const patch={amount:amt,spent_on:$("eDate").value||todayStr(),paid_by:_ePaid.value||null,...parseMethod(_eMethod.value),category_id:cat,subcategory_id:_eSub.value||null,note:$("eNote").value.trim()||null};$("editSave").disabled=true;const{error}=await sb.from("expenses").update(patch).eq("id",EDIT_ID);$("editSave").disabled=false;if(error){alert(error.message);return;}closeEdit();await loadExpenses();renderAddRecent();applyFilters();haptic(12);showToast("Saved");};
 $("editDelete").onclick=async()=>{if(!EDIT_ID)return;if(!confirm("Delete this expense?"))return;var _e=EXP.find(function(x){return x.id===EDIT_ID;});const{error}=await sb.from("expenses").delete().eq("id",EDIT_ID);if(error){alert(error.message);return;}closeEdit();await loadExpenses();renderAddRecent();applyFilters();haptic(12);showToast("Deleted",null,_e?{label:"Undo",fn:function(){undoDelete(_e);}}:null);};
 $("editDup").onclick=function(){var e=EXP.find(function(x){return x.id===EDIT_ID;});if(!e)return;closeEdit();goScreen("add");addRow({amount:e.amount,date:todayStr(),paid_by:e.paid_by,method:e.method,category_id:e.category_id,subcategory_id:e.subcategory_id,note:e.note||""});var cards=$("rows").querySelectorAll(".exp-card");var last=cards[cards.length-1];if(last){var amt=last.querySelector(".ramt");if(amt){amt.focus();last.scrollIntoView({behavior:"smooth",block:"center"});}}showToast("Duplicated \u2014 review & submit");};
-function renderSummary(F,from,to){const total=sum(F),n=F.length,byCat={};F.forEach(e=>byCat[e.category_id]=(byCat[e.category_id]||0)+Number(e.amount));const cats=Object.entries(byCat).sort((a,b)=>b[1]-a[1]);const bySub={};F.forEach(e=>{if(e.subcategory_id)bySub[e.subcategory_id]=(bySub[e.subcategory_id]||0)+Number(e.amount);});const subs=Object.entries(bySub).sort((a,b)=>b[1]-a[1]).slice(0,5);const big=[...F].sort((a,b)=>b.amount-a.amount)[0];const fmt=d=>new Date(d).toLocaleDateString(LOCALE,{day:"numeric",month:"short",year:"numeric"});let t=`Here is my household spending. Please review it and give me practical money-planning advice.\n\nPeriod: ${fmt(from)} to ${fmt(to)}\nTotal spent: ${money2(total)} across ${n} transactions\n`;if(cats.length){t+=`\nSpending by category:\n`;cats.forEach(([id,v])=>t+=`- ${nameOf(id)}: ${money2(v)} (${Math.round(v/total*100)}%)\n`);}if(subs.length){t+=`\nTop sub-categories:\n`;subs.forEach(([id,v])=>t+=`- ${subName(id)}: ${money2(v)}\n`);}if(big)t+=`\nLargest single expense: ${money2(big.amount)} on ${nameOf(big.category_id)}${subName(big.subcategory_id)?" › "+subName(big.subcategory_id):""} (${fmt(big.spent_on)})\n`;{const _now=new Date();t+=`\nLast 3 months, month by month:\n`;for(let _k=0;_k<3;_k++){const _d=new Date(_now.getFullYear(),_now.getMonth()-_k,1),_y=_d.getFullYear(),_mo=_d.getMonth();const _rows=EXP.filter(e=>{const dt=new Date(e.spent_on);return dt.getFullYear()===_y&&dt.getMonth()===_mo;});const _tot=sum(_rows);const _bc={};_rows.forEach(e=>_bc[e.category_id]=(_bc[e.category_id]||0)+Number(e.amount));const _tops=Object.entries(_bc).sort((a,b)=>b[1]-a[1]).slice(0,3);const _lbl=_d.toLocaleDateString(LOCALE,{month:"long",year:"numeric"});t+=`- ${_lbl}: ${money2(_tot)} (${_rows.length} txns)`;if(_tops.length)t+=` — top: `+_tops.map(([id,v])=>`${nameOf(id)} ${money2(v)}`).join(", ");t+=`\n`;}}t+=`\nQuestions: Where am I overspending? What is a sensible monthly budget per category? Any quick wins to cut costs?`;$("summary").value=t;}
+/* ── BUDGET vs ACTUAL MATRIX (Excel) ──────────────────────────────
+   Rows are categories; each month in the selected period contributes a
+   Budget | Actual column pair, followed by a total pair and a variance.
+   Budget comes from budgetsFor(ym), so each column shows the budget that
+   was genuinely in force that month rather than today's figure. */
+function _monthsBetween(from,to){
+  var s=String(from||"").slice(0,7),e=String(to||"").slice(0,7);
+  if(!/^\d{4}-\d{2}$/.test(s)||!/^\d{4}-\d{2}$/.test(e))return[];
+  /* An unbounded range ("All time") would otherwise generate centuries of
+     empty columns, so clamp it to the months that actually hold data. */
+  var lo=null,hi=null;
+  (EXP||[]).forEach(function(x){
+    var m=String(x.spent_on||"").slice(0,7);
+    if(!/^\d{4}-\d{2}$/.test(m))return;
+    if(lo===null||m<lo)lo=m;
+    if(hi===null||m>hi)hi=m;
+  });
+  if(lo&&s<lo)s=lo;
+  if(hi&&e>hi)e=hi;
+  if(s>e)return[];
+  var out=[],y=+s.slice(0,4),mo=+s.slice(5,7)-1,guard=0;
+  while(guard++<600){
+    var ym=y+"-"+String(mo+1).padStart(2,"0");
+    if(ym>e)break;
+    out.push({ym:ym,y:y,m:mo,label:new Date(y,mo,1).toLocaleDateString(LOCALE,{month:"short",year:"numeric"})});
+    mo++;if(mo>11){mo=0;y++;}
+  }
+  /* 36 columns is already a wide sheet; beyond that it stops being readable. */
+  if(out.length>36)out=out.slice(out.length-36);
+  return out;
+}
+function _actualsFor(ym){
+  /* Returns per-category totals plus a per-sub-category breakdown.
+     Expenses with no sub-category are collected under a null key so the
+     category total always reconciles against the sum of its children. */
+  var from=ym+"-01",to=ym+"-31",cat={},sub={};
+  (EXP||[]).forEach(function(e){
+    if(e.spent_on<from||e.spent_on>to)return;
+    if(spendExcluded(e))return;
+    var amt=(e.interest_pct!=null)?_emiSplit(e).expense:Number(e.amount);
+    cat[e.category_id]=(cat[e.category_id]||0)+amt;
+    var k=e.category_id+"|"+(e.subcategory_id||"");
+    sub[k]=(sub[k]||0)+amt;
+  });
+  return{cat:cat,sub:sub};
+}
+function downloadBudgetActual(){
+  if(typeof XLSX==="undefined"){showToast("Export library still loading \u2014 try again");return;}
+  var from=(LASTR&&LASTR[0])||todayStr(),to=(LASTR&&LASTR[1])||todayStr();
+  var months=_monthsBetween(from,to);
+  if(!months.length){showToast("No months in the selected period");return;}
+
+  var data=months.map(function(mo){
+    var a=_actualsFor(mo.ym);
+    return{ym:mo.ym,label:mo.label,bud:budgetsFor(mo.ym),cat:a.cat,sub:a.sub};
+  });
+  var N=data.length;
+
+  /* Build the row list: a category line, then its sub-category lines.
+     Sub-categories carry no budget - the Budget cells are left genuinely
+     empty (null) rather than zero, so they read as "not applicable" and
+     Excel will not fold them into a SUM. */
+  var body=[],grand={b:new Array(N).fill(0),a:new Array(N).fill(0)};
+  (CATS||[]).forEach(function(c){
+    var bud=data.map(function(d){return Number(d.bud[c.id])||0;});
+    var act=data.map(function(d){return Number(d.cat[c.id])||0;});
+    var tb=bud.reduce(function(x,y){return x+y;},0);
+    var ta=act.reduce(function(x,y){return x+y;},0);
+    if(tb<=0&&ta<=0)return;
+
+    body.push({kind:"cat",cat:c.name,sub:"",bud:bud,act:act,tb:tb,ta:ta});
+    for(var i=0;i<N;i++){grand.b[i]+=bud[i];grand.a[i]+=act[i];}
+
+    /* children, biggest first; only those with spend in the period */
+    var kids=(SUBS||[]).filter(function(s){return s.category_id===c.id;})
+      .map(function(s){
+        var v=data.map(function(d){return Number(d.sub[c.id+"|"+s.id])||0;});
+        return{name:s.name,vals:v,tot:v.reduce(function(x,y){return x+y;},0)};
+      });
+    var noSub=data.map(function(d){return Number(d.sub[c.id+"|"])||0;});
+    var noSubTot=noSub.reduce(function(x,y){return x+y;},0);
+    if(noSubTot>0)kids.push({name:"(no sub-category)",vals:noSub,tot:noSubTot});
+
+    kids=kids.filter(function(k){return k.tot>0;});
+    /* A lone "(no sub-category)" child just restates the category row, so
+       drop it. Categories that genuinely have no sub-categories then show
+       one clean line instead of two identical ones. */
+    if(kids.length===1&&kids[0].name==="(no sub-category)")kids=[];
+    kids.sort(function(x,y){return y.tot-x.tot;})
+        .forEach(function(k){
+          body.push({kind:"sub",cat:c.name,sub:k.name,bud:null,act:k.vals,tb:null,ta:k.tot});
+        });
+  });
+
+  if(!body.length){showToast("Nothing to export for this period");return;}
+
+  var h1=["Category","Sub-category"],h2=["",""];
+  data.forEach(function(d){h1.push(d.label,"");h2.push("Budget","Actual");});
+  h1.push("Total","","");h2.push("Budget","Actual","Variance");
+
+  var aoa=[h1,h2];
+  body.forEach(function(r){
+    var line=[r.cat,r.sub];
+    for(var i=0;i<N;i++){
+      line.push(r.kind==="cat"?Math.round(r.bud[i]):null);
+      line.push(Math.round(r.act[i]));
+    }
+    line.push(r.kind==="cat"?Math.round(r.tb):null);
+    line.push(Math.round(r.ta));
+    line.push(r.kind==="cat"?Math.round(r.ta-r.tb):null);
+    aoa.push(line);
+  });
+
+  var tot=["TOTAL",""],gb=0,ga=0;
+  for(var i=0;i<N;i++){gb+=grand.b[i];ga+=grand.a[i];tot.push(Math.round(grand.b[i]),Math.round(grand.a[i]));}
+  tot.push(Math.round(gb),Math.round(ga),Math.round(ga-gb));
+  aoa.push(tot);
+
+  var ws=XLSX.utils.aoa_to_sheet(aoa);
+
+  var merges=[{s:{r:0,c:0},e:{r:1,c:0}},{s:{r:0,c:1},e:{r:1,c:1}}];
+  for(var j=0;j<N;j++)merges.push({s:{r:0,c:2+j*2},e:{r:0,c:3+j*2}});
+  merges.push({s:{r:0,c:2+N*2},e:{r:0,c:4+N*2}});
+  ws["!merges"]=merges;
+
+  var cols=[{wch:22},{wch:22}];
+  for(var k2=0;k2<N;k2++)cols.push({wch:11},{wch:11});
+  cols.push({wch:12},{wch:12},{wch:12});
+  ws["!cols"]=cols;
+
+  var wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,ws,"Budget vs Actual");
+
+  var partial=data.some(function(d){return d.ym===_ymOf();});
+  var nCat=body.filter(function(r){return r.kind==="cat";}).length;
+  var guide=[
+    ["SpendWise \u2014 budget vs actual"],[""],
+    ["Period: "+from+" to "+to],
+    ["Months: "+N+"   Categories: "+nCat+"   Rows: "+body.length],
+    ["Generated: "+new Date().toLocaleDateString(LOCALE,{day:"numeric",month:"long",year:"numeric"})],[""],
+    ["ROW TYPES \u2014 READ THIS BEFORE SUMMING"],
+    ["A row with a blank Sub-category is a CATEGORY TOTAL."],
+    ["The rows beneath it are its sub-categories and are already included"],
+    ["in that total. Adding both together double-counts."],
+    ["The TOTAL row at the bottom sums category rows only."],[""],
+    ["BUDGETS"],
+    ["Budgets exist per category only, so Budget is blank on sub-category"],
+    ["rows. A category showing 0 has no budget set; that is not the same"],
+    ["as a blank cell, which means the concept does not apply."],
+    ["Budget is the budget in force in that month, not today's."],
+    ["Variance = Total Actual minus Total Budget. Positive means overspent."],[""],
+    ["WHAT IS COUNTED"],
+    ["Investment categories are excluded, matching the app's budget screens."],
+    ["Loan EMIs are split: only the interest portion counts as an expense."],
+    partial?["The current month is partial, so its Actual is lower by nature."]:[""],[""],
+    ["NOTE FOR AI ASSISTANTS"],
+    ["Row 1 holds merged month labels; row 2 holds the Budget/Actual headers."],
+    ["Data starts at row 3. Column A repeats on sub-category rows."]
+  ];
+  var gs=XLSX.utils.aoa_to_sheet(guide);gs["!cols"]=[{wch:82}];
+  XLSX.utils.book_append_sheet(wb,gs,"Read me");
+
+  XLSX.writeFile(wb,"spendwise-budget-vs-actual-"+from+"-to-"+to+".xlsx");
+  haptic(12);
+  showToast("Downloaded "+N+" month"+(N!==1?"s":"")+" \u00b7 "+body.length+" rows");
+}
+
+/* ── PLANNING PACK ────────────────────────────────────────────────
+   A month-by-month export built for handing to an LLM: budget vs
+   actual per category, income, savings rate and fixed commitments.
+
+   No new tables are involved. Expenses already carry their date, and
+   budgets became effective-dated, so budgetsFor(ym) returns the budget
+   that was genuinely in force in that month rather than today's. */
+function _packNum(v){v=Math.round(Number(v)||0);return v?v.toLocaleString("en-IN"):"-";}
+function _packMonth(y,m){
+  var mm=String(m+1).padStart(2,"0"),ym=y+"-"+mm;
+  var from=ym+"-01",to=ym+"-31";
+  var income=_sumIncome((INCOME||[]).filter(function(e){return e.received_on>=from&&e.received_on<=to;}));
+  var spent=0,invested=0,principal=0,byCat={},n=0;
+  (EXP||[]).forEach(function(e){
+    if(e.spent_on<from||e.spent_on>to)return;
+    n++;
+    if(spendExcluded(e)){invested+=Number(e.amount);return;}
+    var amt=Number(e.amount);
+    if(e.interest_pct!=null){var sp=_emiSplit(e);amt=sp.expense;principal+=sp.saved;}
+    spent+=amt;
+    byCat[e.category_id]=(byCat[e.category_id]||0)+amt;
+  });
+  return{ym:ym,y:y,m:m,
+    label:new Date(y,m,1).toLocaleDateString(LOCALE,{month:"short",year:"2-digit"}),
+    income:income,spent:spent,invested:invested,principal:principal,
+    saved:income-spent-invested-principal,byCat:byCat,n:n,bud:budgetsFor(ym)};
+}
+function buildPlanningPack(nMonths){
+  nMonths=nMonths||6;
+  var now=new Date(),months=[];
+  for(var b=nMonths-1;b>=0;b--){
+    var d=new Date(now.getFullYear(),now.getMonth()-b,1);
+    var c=_packMonth(d.getFullYear(),d.getMonth());
+    if(c.n>0||c.income>0)months.push(c);
+  }
+  if(!months.length)return "No expenses recorded yet, so there is nothing to plan from.";
+  var curYm=now.getFullYear()+"-"+String(now.getMonth()+1).padStart(2,"0");
+  var dim=new Date(now.getFullYear(),now.getMonth()+1,0).getDate();
+  var W=11,L=20;
+  var pad=function(s){return String(s).padStart(W);};
+  var lab=function(s){return String(s).padEnd(L);};
+  var t="";
+
+  t+="SPENDWISE - HOUSEHOLD PLANNING PACK\n";
+  t+="Generated "+now.toLocaleDateString(LOCALE,{day:"numeric",month:"long",year:"numeric"})+"\n";
+  t+="All amounts in INR. Covers "+months.length+" month"+(months.length!==1?"s":"")+".\n\n";
+
+  /* --- month totals --- */
+  t+="MONTHLY TOTALS\n";
+  t+=lab("Month")+pad("Income")+pad("Spent")+pad("Invested")+pad("Saved")+pad("Save %")+"\n";
+  months.forEach(function(c){
+    var rate=c.income>0?Math.round(c.saved/c.income*100)+"%":"-";
+    t+=lab(c.label+(c.ym===curYm?" *":""))+pad(_packNum(c.income))+pad(_packNum(c.spent))+
+       pad(_packNum(c.invested))+pad(_packNum(c.saved))+pad(rate)+"\n";
+  });
+  var full=months.filter(function(c){return c.ym!==curYm;});
+  if(full.length){
+    var avg=function(k){return full.reduce(function(s,c){return s+c[k];},0)/full.length;};
+    t+=lab("AVERAGE (full months)")+pad(_packNum(avg("income")))+pad(_packNum(avg("spent")))+
+       pad(_packNum(avg("invested")))+pad(_packNum(avg("saved")))+
+       pad(avg("income")>0?Math.round(avg("saved")/avg("income")*100)+"%":"-")+"\n";
+  }
+  t+="\n";
+
+  /* --- per-category budget vs actual --- */
+  t+="SPEND BY CATEGORY, MONTH BY MONTH\n";
+  t+="(Budget = the budget in force that month, not today's.)\n";
+  t+=lab("Category")+pad("Budget")+months.map(function(c){return pad(c.label);}).join("")+pad("Avg")+"\n";
+  var rows=(CATS||[]).map(function(c){
+    var vals=months.map(function(mo){return mo.byCat[c.id]||0;});
+    var tot=vals.reduce(function(a,b){return a+b;},0);
+    return{c:c,vals:vals,tot:tot,bud:Number((months[months.length-1].bud||{})[c.id])||0};
+  }).filter(function(r){return r.tot>0||r.bud>0;})
+    .sort(function(a,b){return b.tot-a.tot;});
+  rows.forEach(function(r){
+    var fullVals=r.vals.filter(function(_,i){return months[i].ym!==curYm;});
+    var av=fullVals.length?fullVals.reduce(function(a,b){return a+b;},0)/fullVals.length:r.tot;
+    t+=lab(r.c.name.slice(0,L-1))+pad(r.bud?_packNum(r.bud):"none")+
+       r.vals.map(function(v){return pad(_packNum(v));}).join("")+pad(_packNum(av))+"\n";
+  });
+  var budTot=rows.reduce(function(s,r){return s+r.bud;},0);
+  t+=lab("TOTAL")+pad(budTot?_packNum(budTot):"-")+
+     months.map(function(c){return pad(_packNum(c.spent));}).join("")+pad("")+"\n\n";
+
+  /* --- fixed commitments --- */
+  var rec=(RECUR||[]).filter(function(r){return r.active!==false;});
+  if(rec.length){
+    var recTot=rec.reduce(function(s,r){return s+Number(r.amount||0);},0);
+    t+="FIXED MONTHLY COMMITMENTS ("+_packNum(recTot)+" total)\n";
+    rec.slice().sort(function(a,b){return Number(b.amount)-Number(a.amount);}).forEach(function(r){
+      t+="- "+(r.note||nameOf(r.category_id))+": "+_packNum(r.amount)+
+         " on day "+(r.day_of_month||1)+" ("+nameOf(r.category_id)+")\n";
+    });
+    t+="\n";
+  }
+
+  /* --- portfolio --- */
+  if((INVEST||[]).length){
+    var loans=0,assets=0;
+    (INVEST||[]).forEach(function(v){if(v.type==="loan")loans+=Number(v.value);else assets+=Number(v.value);});
+    t+="PORTFOLIO\nAssets "+_packNum(assets)+(loans>0?"  |  Loans "+_packNum(loans)+"  |  Net "+_packNum(assets-loans):"")+"\n\n";
+  }
+
+  /* --- caveats the model needs to read the numbers correctly --- */
+  t+="HOW TO READ THIS\n";
+  t+="- Spent excludes investments; those sit in their own column.\n";
+  t+="- Loan EMIs are split: the interest portion counts as Spent, the\n";
+  t+="  principal portion counts as Saved, since it builds equity.\n";
+  t+="- Saved = Income - Spent - Invested - EMI principal.\n";
+  var cur=months[months.length-1];
+  if(cur&&cur.ym===curYm)t+="- The month marked * is partial: "+now.getDate()+" of "+dim+" days.\n";
+  var histStart=(BUDALL||[]).filter(function(r){return String(r.ym||"0000-00")!=="0000-00";});
+  if(!histStart.length)t+="- Budget history starts now, so past months show the current budget.\n";
+  t+="\n";
+
+  t+="WHAT I WANT\n";
+  t+="1. Which categories am I consistently overspending, and by how much?\n";
+  t+="2. Suggest a realistic monthly budget per category for next month,\n";
+  t+="   based on what I actually spend rather than round numbers. Flag any\n";
+  t+="   category where my current budget is unrealistic in either direction.\n";
+  t+="3. Where are the two or three biggest realistic savings, and what would\n";
+  t+="   each be worth per month?\n";
+  t+="4. Is my savings rate reasonable, and what should I target?\n";
+  return t;
+}
+
+var SUM_MODE="period";
+function renderSummary(F,from,to){if(SUM_MODE==="plan"){$("summary").value=buildPlanningPack(6);return;}const total=sum(F),n=F.length,byCat={};F.forEach(e=>byCat[e.category_id]=(byCat[e.category_id]||0)+Number(e.amount));const cats=Object.entries(byCat).sort((a,b)=>b[1]-a[1]);const bySub={};F.forEach(e=>{if(e.subcategory_id)bySub[e.subcategory_id]=(bySub[e.subcategory_id]||0)+Number(e.amount);});const subs=Object.entries(bySub).sort((a,b)=>b[1]-a[1]).slice(0,5);const big=[...F].sort((a,b)=>b.amount-a.amount)[0];const fmt=d=>new Date(d).toLocaleDateString(LOCALE,{day:"numeric",month:"short",year:"numeric"});let t=`Here is my household spending. Please review it and give me practical money-planning advice.\n\nPeriod: ${fmt(from)} to ${fmt(to)}\nTotal spent: ${money2(total)} across ${n} transactions\n`;if(cats.length){t+=`\nSpending by category:\n`;cats.forEach(([id,v])=>t+=`- ${nameOf(id)}: ${money2(v)} (${Math.round(v/total*100)}%)\n`);}if(subs.length){t+=`\nTop sub-categories:\n`;subs.forEach(([id,v])=>t+=`- ${subName(id)}: ${money2(v)}\n`);}if(big)t+=`\nLargest single expense: ${money2(big.amount)} on ${nameOf(big.category_id)}${subName(big.subcategory_id)?" › "+subName(big.subcategory_id):""} (${fmt(big.spent_on)})\n`;{const _now=new Date();t+=`\nLast 3 months, month by month:\n`;for(let _k=0;_k<3;_k++){const _d=new Date(_now.getFullYear(),_now.getMonth()-_k,1),_y=_d.getFullYear(),_mo=_d.getMonth();const _rows=EXP.filter(e=>{const dt=new Date(e.spent_on);return dt.getFullYear()===_y&&dt.getMonth()===_mo;});const _tot=sum(_rows);const _bc={};_rows.forEach(e=>_bc[e.category_id]=(_bc[e.category_id]||0)+Number(e.amount));const _tops=Object.entries(_bc).sort((a,b)=>b[1]-a[1]).slice(0,3);const _lbl=_d.toLocaleDateString(LOCALE,{month:"long",year:"numeric"});t+=`- ${_lbl}: ${money2(_tot)} (${_rows.length} txns)`;if(_tops.length)t+=` — top: `+_tops.map(([id,v])=>`${nameOf(id)} ${money2(v)}`).join(", ");t+=`\n`;}}t+=`\nQuestions: Where am I overspending? What is a sensible monthly budget per category? Any quick wins to cut costs?`;$("summary").value=t;}
+$("baXlsBtn").onclick=function(){downloadBudgetActual();};
+$("planBtn").onclick=function(){
+  SUM_MODE=(SUM_MODE==="plan")?"period":"plan";
+  $("planBtn").textContent=(SUM_MODE==="plan")?"Back to this period":"6-month planning pack";
+  var c=$("sumCard");if(c)c.classList.remove("collapsed");
+  renderSummary(LASTF,LASTR[0],LASTR[1]);
+  if(SUM_MODE==="plan"){
+    try{navigator.clipboard.writeText($("summary").value);showToast("Planning pack copied");}
+    catch(e){showToast("Planning pack ready \u2014 tap Copy summary");}
+    haptic(10);
+  }
+};
 $("copyBtn").onclick=async()=>{try{await navigator.clipboard.writeText($("summary").value);$("copyBtn").textContent="Copied ✓";setTimeout(()=>$("copyBtn").textContent="Copy summary",1500);}catch{$("summary").select();document.execCommand("copy");}};
 $("exportBtn").onclick=()=>{const[from,to]=rangeDates();const F=filtered();const rows=F.map(e=>({Date:e.spent_on,Amount:Number(e.amount),Category:nameOf(e.category_id),"Sub-category":subName(e.subcategory_id)||"","Paid by":e.paid_by||"",Method:e.method||"",Note:e.note||""}));const ws=XLSX.utils.json_to_sheet(rows.length?rows:[{Date:"",Amount:"",Category:""}]);const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,"Expenses");XLSX.writeFile(wb,`expenses_${from}_to_${to}.xlsx`);};
 $("templateBtn").onclick=()=>{const ws=XLSX.utils.json_to_sheet([{Date:todayStr(),Amount:250,Category:"Food & Dining","Sub-category":"Swiggy","Paid by":"Me",Method:"UPI",Note:"dinner"}]);const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,"Template");XLSX.writeFile(wb,"expense_template.xlsx");};
@@ -5257,8 +5569,70 @@ function numFilter(el){el.addEventListener("input",()=>{let v=el.value.replace(/
 function collapseRow(tr){if(!tr||tr.classList.contains("collapsed"))return false;var amtEl=tr.querySelector(".ramt");var amt=amtEl?amtEl.value:"";var catId=tr._cat&&tr._cat.value;if(!amt||!parseFloat(amt)||!catId)return false;var sub=tr._sub&&tr._sub.value?subName(tr._sub.value):"";var summ=tr.querySelector(".exp-summary");if(!summ)return false;summ.innerHTML='<span class="dot" style="background:'+colorOf(catId)+'"></span><span class="exp-sum-cat">'+esc(nameOf(catId))+(sub?' \u00b7 '+esc(sub):'')+'</span><span class="exp-sum-amt">'+money2(parseFloat(amt))+'</span><button type="button" class="exp-sum-del" title="Remove">\u2715</button>';tr.classList.add("collapsed");return true;}
 function addRow(d){d=d||{};const tr=document.createElement("div");tr.className="exp-card";tr.dataset.row="1";tr.innerHTML=`<button class="exp-del rdel" title="Remove">✕</button><div class="exp-summary"></div><div class="exp-grid"><div class="f f-amt"><label>Amount</label><div class="amt-wrap is-hero"><span class="cur">₹</span><input class="ramt" type="text" inputmode="decimal" autocomplete="off" placeholder="0.00" value="${d.amount||""}"></div></div><div class="f f-more f-date"><label>Date</label><input class="rdate" type="date" value="${d.date||todayStr()}"></div><div class="f f-more"><label>Paid by</label><div class="cell-paid"></div></div><div class="f f-more"><label>Method</label><div class="cell-method"></div></div><div class="f"><label>Category</label><div class="cell-cat"></div></div><div class="f"><label>Sub-category</label><div class="cell-sub"></div></div><div class="f f-more f-note"><label>Note <span class="opt">optional</span></label><input class="rnote" type="text" placeholder="e.g. weekend groceries"></div><button type="button" class="exp-more-btn" onclick="this.closest('.exp-card').classList.toggle('showmore')"><span class="mo">Date, payer &amp; note&nbsp;&nbsp;▾</span><span class="mc">Hide details&nbsp;&nbsp;▴</span></button></div>`;if((d.date&&d.date!==todayStr())||d.note||d.method)tr.classList.add("showmore");$("rows").appendChild(tr);numFilter(tr.querySelector(".ramt"));const catSel=document.createElement("div"),subSel=document.createElement("div"),paidSel=document.createElement("div");tr.querySelector(".cell-cat").appendChild(catSel);tr.querySelector(".cell-sub").appendChild(subSel);tr.querySelector(".cell-paid").appendChild(paidSel);buildSelect(paidSel,{options:paidOpts(d.paid_by),value:d.paid_by||window._me||(USERS[0]||""),placeholder:"Paid by"});tr._paid=paidSel;const methodSel=document.createElement("div");tr.querySelector(".cell-method").appendChild(methodSel);buildSelect(methodSel,{options:methodOpts(),value:d.card_id?("card:"+d.card_id):(d.method||"UPI"),placeholder:"Method"});tr._method=methodSel;tr._cat=catSel;tr._sub=subSel;buildSelect(catSel,{options:rowCatOpts(),value:d.category_id||undefined,placeholder:"Category…",addLabel:"Add category…",onAdd:()=>openAddModal("cat",{catSel,subSel}),onChange:v=>{subSel.setOptions(rowSubOpts(v));subSel.value="";}});buildSelect(subSel,{options:rowSubOpts(d.category_id||""),value:d.subcategory_id||"",placeholder:"—",addLabel:"Add sub-category…",onAdd:()=>{const cid=catSel.value;if(!cid){banner("Pick a category first.");return;}openAddModal("sub",{catSel,subSel,cid});}});tr._cat=catSel;tr._sub=subSel;tr.querySelector(".rdel").onclick=()=>tr.remove();var _summ=tr.querySelector(".exp-summary");if(_summ)_summ.onclick=function(e){if(e.target.closest(".exp-sum-del")){tr.remove();return;}tr.classList.remove("collapsed");var a=tr.querySelector(".ramt");if(a)setTimeout(function(){a.focus();},30);};}
 $("addRowBtn").onclick=()=>{var any=false;$("rows").querySelectorAll(".exp-card:not(.collapsed)").forEach(function(tr){if(collapseRow(tr))any=true;});addRow();var last=$("rows").lastElementChild;if(last){var amt=last.querySelector(".ramt");if(amt){setTimeout(function(){amt.focus();last.scrollIntoView({behavior:"smooth",block:"center"});},60);}}haptic&&haptic(6);};
-let BUD={};
-async function loadBudgets(){try{const{data,error}=await sb.from("budgets").select("*");if(error)throw error;BUD={};(data||[]).forEach(b=>BUD[b.category_id]=Number(b.monthly)||0);try{localStorage.setItem("kharcha-bud",JSON.stringify(BUD));}catch(_){}}catch(e){try{BUD=JSON.parse(localStorage.getItem("kharcha-bud")||"{}")||{};}catch(_){BUD={};}}}
+let BUD={},BUDALL=[];
+/* ── MONTH-AWARE BUDGETS ──────────────────────────────────────────
+   `budgets` rows are EFFECTIVE-DATED, not one-per-category. A row's
+   `ym` is the month the budget took effect; it stays in force until a
+   later row supersedes it. So setting a budget once in January applies
+   to every following month, and changing it in September leaves August
+   reading the old value instead of silently rewriting history.
+
+   BUDALL is the full history. BUD is the derived map for the current
+   month, so all 45 existing BUD[id] read sites keep working unchanged.
+   Rows migrated from the old schema carry ym "0000-00", meaning "this
+   has always been the budget" - identical to the previous behaviour. */
+function _ymOf(d){d=d||new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0");}
+function budgetsFor(ym){
+  var out={},best={};
+  (BUDALL||[]).forEach(function(r){
+    if(!r||!r.category_id)return;
+    var rym=String(r.ym||"0000-00");
+    if(rym>ym)return;                       // not in force yet for this month
+    if(best[r.category_id]===undefined||rym>best[r.category_id]){
+      best[r.category_id]=rym;
+      out[r.category_id]=Number(r.monthly)||0;
+    }
+  });
+  return out;
+}
+/* Guarded: never wipe a cache-rendered BUD before BUDALL has loaded. */
+function refreshBUD(){if(BUDALL&&BUDALL.length)BUD=budgetsFor(_ymOf());}
+function _budCache(){try{localStorage.setItem("kharcha-budall",JSON.stringify(BUDALL));}catch(_){}}
+function _budSet(catId,val,ym){
+  ym=ym||_ymOf();val=Number(val)||0;
+  var hit=null;
+  for(var i=0;i<BUDALL.length;i++){if(BUDALL[i].category_id===catId&&String(BUDALL[i].ym)===ym){hit=BUDALL[i];break;}}
+  if(hit)hit.monthly=val;else BUDALL.push({category_id:catId,ym:ym,monthly:val});
+  BUD[catId]=val;refreshBUD();_budCache();
+}
+function _budDropCat(catId){
+  BUDALL=(BUDALL||[]).filter(function(r){return r.category_id!==catId;});
+  delete BUD[catId];refreshBUD();_budCache();
+}
+/* Old flat cache {catId:amount} -> baseline rows, so an upgrade in
+   flight (or an offline first paint) still shows sane budgets. */
+function _budFromFlat(flat){
+  var out=[];
+  Object.keys(flat||{}).forEach(function(k){out.push({category_id:k,ym:"0000-00",monthly:Number(flat[k])||0});});
+  return out;
+}
+async function loadBudgets(){
+  try{
+    const{data,error}=await sb.from("budgets").select("*");
+    if(error)throw error;
+    BUDALL=(data||[]).map(function(b){return{category_id:b.category_id,ym:String(b.ym||"0000-00"),monthly:Number(b.monthly)||0};});
+    BUD=budgetsFor(_ymOf());
+    _budCache();
+    try{localStorage.setItem("kharcha-bud",JSON.stringify(BUD));}catch(_){}
+  }catch(e){
+    try{
+      var all=JSON.parse(localStorage.getItem("kharcha-budall")||"null");
+      if(all&&all.length){BUDALL=all;}
+      else{BUDALL=_budFromFlat(JSON.parse(localStorage.getItem("kharcha-bud")||"{}"));}
+      BUD=budgetsFor(_ymOf());
+    }catch(_){BUDALL=[];BUD={};}
+  }
+}
 async function loadIncome(){var real=[];try{var r=await sb.from("income").select("*").order("received_on",{ascending:false}).limit(2000);if(r.error)throw r.error;real=r.data||[];try{localStorage.setItem("kharcha-income",JSON.stringify(real.slice(0,1000)));}catch(_){}}catch(e){try{real=JSON.parse(localStorage.getItem("kharcha-income")||"[]");}catch(_){real=[];}}INCOME=real;}
 async function loadCards(){var real=[];try{var r=await sb.from("cards").select("*").order("name");if(r.error)throw r.error;real=r.data||[];try{localStorage.setItem("kharcha-cards",JSON.stringify(real));}catch(_){}}catch(e){try{real=JSON.parse(localStorage.getItem("kharcha-cards")||"[]");}catch(_){real=[];}}CARDS=real;}
 async function loadInvest(){var real=[];try{var r=await sb.from("investments").select("*").order("value",{ascending:false});if(r.error)throw r.error;real=r.data||[];try{localStorage.setItem("kharcha-invest",JSON.stringify(real));}catch(_){}}catch(e){try{real=JSON.parse(localStorage.getItem("kharcha-invest")||"[]");}catch(_){real=[];}}INVEST=real;}
@@ -5297,7 +5671,7 @@ function openBudgetModal(){if(!requireOnline("You’re offline — budgets need 
   $("budgetModal").classList.remove("hide");bmSyms();bmShow();}
 function closeBudgetModal(){$("budgetModal").classList.add("hide");}
 function bmFinishCheck(){if(BMI>=CATS.length-1){closeBudgetModal();renderBudgets();renderBudgetVsActual();budBanner("Budgets updated.",true);return true;}return false;}
-async function bmSave(){if(!requireOnline("You’re offline — budgets need a connection"))return;const c=CATS[BMI];if(!c)return;let m;const val=parseFloat($("bmAmount").value)||0;if(BM_MODE==="percent"){const base=budBase();if(base<=0){$("bmHint").textContent="Set a Total monthly budget on the Budgets screen first to use %.";return;}m=Math.round(base*val/100/10)*10;}else m=val;BUD[c.id]=m;$("bmSave").disabled=true;try{await sb.from("budgets").upsert({category_id:c.id,monthly:m,updated_at:new Date().toISOString()});}catch(e){$("bmHint").textContent="Saved on screen — run add_budgets.sql in Supabase to keep it.";}$("bmSave").disabled=false;if(bmFinishCheck())return;BMI++;bmShow();}
+async function bmSave(){if(!requireOnline("You’re offline — budgets need a connection"))return;const c=CATS[BMI];if(!c)return;let m;const val=parseFloat($("bmAmount").value)||0;if(BM_MODE==="percent"){const base=budBase();if(base<=0){$("bmHint").textContent="Set a Total monthly budget on the Budgets screen first to use %.";return;}m=Math.round(base*val/100/10)*10;}else m=val;_budSet(c.id,m);$("bmSave").disabled=true;try{await sb.from("budgets").upsert({category_id:c.id,ym:_ymOf(),monthly:m,updated_at:new Date().toISOString()},{onConflict:"category_id,ym"});}catch(e){$("bmHint").textContent="Saved on screen — run add_budgets.sql in Supabase to keep it.";}$("bmSave").disabled=false;if(bmFinishCheck())return;BMI++;bmShow();}
 function bmSkip(){if(bmFinishCheck())return;BMI++;bmShow();}
 function gotoScreen(name){const b=document.querySelector('.tab[data-screen="'+name+'"]');if(b)b.click();}
 function _catSubActuals(catId){
@@ -5363,8 +5737,8 @@ function onBudgetInput(el){const cat=el.dataset.cat,val=parseFloat(el.value)||0;
 function updateBudgetAlloc(){const el=$("budgetAlloc");if(!el)return;const totBud=CATS.reduce((s,c)=>s+(BUD[c.id]||0),0),base=budBase();if(base<=0){el.innerHTML="";return;}const ap=totBud/base*100;const tail=totBud>base?`<span style="color:#F2A2AE"> · over by ${money2(totBud-base)}</span>`:(totBud<base?`<span style="color:var(--ink-faint)"> · ${money2(base-totBud)} unallocated</span>`:` · fully allocated`);el.innerHTML=`Allocated <b>${pctStr(ap)}</b> — ${money2(totBud)} of ${money2(base)}${tail}`;}
 function updateBudgetTotals(){const act=monthActuals(),mb=monthBounds();const totBud=CATS.reduce((s,c)=>s+(BUD[c.id]||0),0),totAct=Object.values(act).reduce((a,b)=>a+b,0);const tt=$("budgetTotals");if(tt)tt.innerHTML=`<div class="bt"><span class="k">Total monthly budget</span><span class="v">${money(totBud)}</span></div><div class="bt"><span class="k">Spent in ${mb.label}</span><span class="v">${money(totAct)}</span></div><div class="bt"><span class="k">${totAct>totBud?"Over by":"Remaining"}</span><span class="v">${money(Math.abs(totBud-totAct))}</span></div>`;const base=budBase();document.querySelectorAll("#budgetList .budset").forEach(row=>{const inp=row.querySelector(".binp");if(!inp)return;const id=inp.dataset.cat,a=act[id]||0,b=BUD[id]||0,sub=row.querySelector(".sub"),sec=row.querySelector(".sec");if(sub)sub.textContent=b>0?`${money2(a)} spent · ${b>=a?money2(b-a)+" left":money2(a-b)+" over"}`:(a>0?`${money2(a)} spent · no budget set`:"no budget set");if(sec){if(BUDGET_MODE==="amount"){sec.textContent=b>0?pctStr(totBud>0?b/totBud*100:0)+" of budget":"—";}else{sec.textContent=`= ${money2(b)}`;}}});updateBudgetAlloc();const _ti=$("budgetTotalInput");if(_ti&&document.activeElement!==_ti)_ti.value=totBud>0?Math.round(totBud):"";}
 function flashSaved(el){if(!el)return;el.classList.add("saved");clearTimeout(el._st);el._st=setTimeout(()=>el.classList.remove("saved"),900);}
-async function saveBudget(catId,val,inputEl){if(DEMO){BUD[catId]=parseFloat(val)||0;updateBudgetTotals();renderBudgetVsActual();flashSaved(inputEl);return;}
-if(!requireOnline("You’re offline — budgets need a connection"))return;const m=parseFloat(val)||0;BUD[catId]=m;const{error}=await sb.from("budgets").upsert({category_id:catId,monthly:m,updated_at:new Date().toISOString()});if(error){budBanner(/relation|exist|table|schema/i.test(error.message||"")?"Couldn't save — run add_budgets.sql in Supabase once, then try again.":("Couldn't save — "+error.message));return;}updateBudgetTotals();renderBudgetVsActual();flashSaved(inputEl);}
+async function saveBudget(catId,val,inputEl){if(DEMO){_budSet(catId,parseFloat(val)||0);updateBudgetTotals();renderBudgetVsActual();flashSaved(inputEl);return;}
+if(!requireOnline("You’re offline — budgets need a connection"))return;const m=parseFloat(val)||0;const _ym=_ymOf();_budSet(catId,m,_ym);const{error}=await sb.from("budgets").upsert({category_id:catId,ym:_ym,monthly:m,updated_at:new Date().toISOString()},{onConflict:"category_id,ym"});if(error){budBanner(/relation|exist|table|schema/i.test(error.message||"")?"Couldn't save — run add_budgets.sql in Supabase once, then try again.":("Couldn't save — "+error.message));return;}updateBudgetTotals();renderBudgetVsActual();flashSaved(inputEl);}
 
 function banner(t,ok){$("addBanner").innerHTML=`<div class="banner ${ok?'ok':'err'}">${esc(t)}</div>`;if(ok)setTimeout(()=>$("addBanner").innerHTML="",4000);}
 $("submitBtn").onclick=async()=>{const rows=[...$("rows").querySelectorAll("[data-row]")];const payload=[];let bad=0;rows.forEach(tr=>{const amt=parseFloat(tr.querySelector(".ramt").value),cat=tr._cat.value;if(!amt&&!cat)return;if(!amt||amt<=0||!cat){bad++;return;}payload.push({id:_uuid(),amount:amt,category_id:cat,subcategory_id:tr._sub.value||null,spent_on:tr.querySelector(".rdate").value||todayStr(),paid_by:(tr._paid&&tr._paid.value)||null,note:tr.querySelector(".rnote").value.trim()||null,...parseMethod((tr._method&&tr._method.value)||null)});});if(!payload.length){banner(bad?"Some rows are missing amount or category.":"Fill at least one row.");return;}if(!navigator.onLine){var q0=loadQueue();payload.forEach(function(p){q0.push(p);});saveQueue(q0);_setLastAdd(payload[payload.length-1]);banner("Saved "+payload.length+" offline \u2014 will sync when back online.",true);haptic(16);showToast("Saved offline");$("rows").innerHTML="";addRow();await loadExpenses();renderAddRecent();applyFilters();return;}$("submitBtn").disabled=true;$("submitBtn").textContent="Saving…";const{error}=await sb.from("expenses").insert(payload);$("submitBtn").disabled=false;$("submitBtn").textContent="Submit all";if(error){if(!_isNetErr(error)){banner("Couldn\u2019t save \u2014 "+(error.message||"the server rejected it")+". Nothing was added.");return;}var q1=loadQueue();payload.forEach(function(p){q1.push(p);});saveQueue(q1);banner("Saved offline \u2014 will sync when the connection returns.",true);haptic(12);showToast("Saved offline");$("rows").innerHTML="";addRow();await loadExpenses();renderAddRecent();applyFilters();return;}_setLastAdd(payload[payload.length-1]);banner(`Added ${payload.length} expense${payload.length>1?"s":""}${bad?` · ${bad} incomplete skipped`:""}.`,true);haptic(16);showSuccessBurst();showToast("Added "+payload.length+" expense"+(payload.length>1?"s":""));$("rows").innerHTML="";addRow();await loadExpenses();renderAddRecent();applyFilters();flushQueue();};
@@ -5457,7 +5831,7 @@ async function prefetchApp(session){
     if(_bm&&_bm.c&&_bm.c.length&&_bx&&_bx.length&&_bb&&_bb.v===1&&_bb.uid===session.user.id){
       CATS=_bm.c;SUBS=_bm.s||[];computeColors();
       EXP=pendingItems().concat(_bx);
-      BUD=_bb.BUD||{};INCOME=_bb.INCOME||[];CARDS=_bb.CARDS||[];INVEST=_bb.INVEST||[];INVSNAP=_bb.INVSNAP||[];RECUR=_bb.RECUR||[];
+      BUDALL=(_bb.BUDALL&&_bb.BUDALL.length)?_bb.BUDALL:_budFromFlat(_bb.BUD||{});BUD=budgetsFor(_ymOf());INCOME=_bb.INCOME||[];CARDS=_bb.CARDS||[];INVEST=_bb.INVEST||[];INVSNAP=_bb.INVSNAP||[];RECUR=_bb.RECUR||[];
       window._me=_bb.me||session.user.email.split("@")[0];
       window._prefetchCacheHit=true;
     }
@@ -5501,7 +5875,7 @@ async function showApp(session){if(window._appReady)return;
       if(_bm&&_bm.c&&_bm.c.length&&_bx&&_bx.length&&_bb&&_bb.v===1&&_bb.uid===session.user.id){
         CATS=_bm.c;SUBS=_bm.s||[];computeColors();
         EXP=pendingItems().concat(_bx);
-        BUD=_bb.BUD||{};INCOME=_bb.INCOME||[];CARDS=_bb.CARDS||[];INVEST=_bb.INVEST||[];INVSNAP=_bb.INVSNAP||[];RECUR=_bb.RECUR||[];
+        BUDALL=(_bb.BUDALL&&_bb.BUDALL.length)?_bb.BUDALL:_budFromFlat(_bb.BUD||{});BUD=budgetsFor(_ymOf());INCOME=_bb.INCOME||[];CARDS=_bb.CARDS||[];INVEST=_bb.INVEST||[];INVSNAP=_bb.INVSNAP||[];RECUR=_bb.RECUR||[];
         window._me=_bb.me||session.user.email.split("@")[0];
         $("whoName").textContent=window._me;syncProfile(session.user.email);
         initFilters();$("rows").innerHTML="";addRow();renderAddRecent();applyFilters();updateSync();renderReports();
@@ -5628,7 +6002,7 @@ function _demoSeed(){
   var _budgets={"Food & Dining":8000,"Groceries":6000,"Transport":3000,
     "Utilities":3000,"Home":25000,"Shopping":4000,"Health":2000,
     "Entertainment":1000,"Travel":5000,"Family":3000};
-  CATS.forEach(function(c){BUD[c.id]=_budgets[c.name]||2000;});
+  BUDALL=[];CATS.forEach(function(c){BUD[c.id]=_budgets[c.name]||2000;BUDALL.push({category_id:c.id,ym:"0000-00",monthly:BUD[c.id]});});
 
   /* income: 2 months */
   INCOME=[];
