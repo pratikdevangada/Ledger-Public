@@ -5113,7 +5113,7 @@ function renderQuickAdd(){const host=$("quickAdd");if(!host)return;
     if(amt) setTimeout(()=>amt.focus(),30);
   });
 }
-function renderAddRecent(){renderQuickAdd();try{buildAelFilters();}catch(e){}renderAllExpenses();renderMonthDownload();}
+function renderAddRecent(){try{refreshPaidSelects();}catch(_){}renderQuickAdd();try{buildAelFilters();}catch(e){}renderAllExpenses();renderMonthDownload();}
 let ALL_Q="";
 var AEL_F={paid_by:[],method:[],card_id:[],category_id:[],subcategory_id:[]};
 function buildAelFilters(){
@@ -5826,7 +5826,11 @@ async function loadInvest(){var real=[];try{var r=await sb.from("investments").s
 let USERS=[];
 async function loadUsers(){let names=[];try{const{data}=await sb.from("profiles").select("name");names=(data||[]).map(p=>p&&p.name).filter(Boolean);}catch(e){}const fromExp=[...new Set(EXP.map(e=>e.paid_by).filter(Boolean))];USERS=[...new Set([window._me,...names,...fromExp].filter(Boolean))];}
 function paidOpts(extra){const arr=[...new Set([...(USERS||[]),window._me,extra].filter(Boolean))];return arr.map(u=>({value:u,label:u}));}
-function refreshPaidSelects(oldName,newName){document.querySelectorAll("#rows [data-row]").forEach(tr=>{if(tr._paid){const cur=tr._paid.value;tr._paid.setOptions(paidOpts(cur));if(!cur||cur===oldName)tr._paid.value=newName;}});}
+function refreshPaidSelects(oldName,newName){document.querySelectorAll("#rows [data-row]").forEach(tr=>{if(tr._paid){const cur=tr._paid.value;tr._paid.setOptions(paidOpts(cur));
+  /* Called with no arguments to refresh options only - in that case keep
+     whatever is selected rather than clearing it. */
+  if(newName&&(!cur||cur===oldName))tr._paid.value=newName;
+  else if(!cur&&window._me)tr._paid.value=window._me;}});}
 function ymd(x){return`${x.getFullYear()}-${String(x.getMonth()+1).padStart(2,"0")}-${String(x.getDate()).padStart(2,"0")}`;}
 function monthBounds(){const n=new Date(),f=new Date(n.getFullYear(),n.getMonth(),1),l=new Date(n.getFullYear(),n.getMonth()+1,0);return{from:ymd(f),to:ymd(l),label:f.toLocaleDateString(LOCALE,{month:"long",year:"numeric"})};}
 function _isInvestName(n){
@@ -6250,9 +6254,16 @@ async function showApp(session){if(window._appReady)return;
     await Promise.all([_profP, loadUsers()]);
   }
   window._me=nm||window._me||session.user.email.split("@")[0];$("whoName").textContent=window._me;syncProfile(session.user.email);$("whoName").title=session.user.email+" — click to edit your name";
+  /* USERS is derived from the profiles table plus the payers already seen
+     in EXP, so it is only complete once both have loaded. The cached first
+     paint builds a row before that, which is why the very first expense
+     used to offer just the signed-in name. Rebuild the list here, then
+     refresh any dropdown that was already on screen. */
+  try{await loadUsers();}catch(_){}
   try{
     if(window._cacheRendered){renderAddRecent();applyFilters();updateSync();if(navigator.onLine)flushQueue();renderReports();fetchUsdRate();}
     else{initFilters();$("rows").innerHTML="";addRow();renderAddRecent();applyFilters();updateSync();if(navigator.onLine)flushQueue();renderReports();fetchUsdRate();}
+    refreshPaidSelects();
   }catch(e){fatalLoad("Something went wrong while showing your dashboard. Please reload the app.", e&&e.message||e);return;}
   window._appReady=true;_saveBootCache();const _le=$("loadErr");if(_le)_le.remove();
   // Keep-alive: explicit ping now + every 6h while app stays open.
@@ -6623,3 +6634,4 @@ try{document.querySelectorAll(".modal").forEach(function(m){m.classList.add("hid
 try{setTimeout(initCollapsibles,80);}catch(e){}
 </script>
 </body></html>
+         
