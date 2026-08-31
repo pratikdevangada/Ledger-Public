@@ -2238,6 +2238,23 @@ box-shadow:0 20px 60px -12px rgba(199,165,87,.7);opacity:0;transform:scale(.4)}
     /* a flick inside a sheet must not reach the page */
     .modal{overscroll-behavior:contain}
   }
+
+  /* ── FILTER PANEL FIELD SIZING ────────────────────────────────────
+     .fl inputs carry min-width:158px, which suits the old inline filter
+     bar but not this popover: it is a fixed 342px at every viewport, so
+     two side-by-side date fields demanded 326px inside 314px of space
+     and the To field was clipped off the right edge. The existing reset
+     sat inside @media(max-width:760px), so it only ever helped on a
+     phone. Scope it to the panel instead, at all widths. */
+  .filterpanel .fl{min-width:0}
+  .filterpanel .fl input,
+  .filterpanel .fl select,
+  .filterpanel .fl .csel-btn,
+  .filterpanel .fl .ghost{min-width:0;width:100%;box-sizing:border-box}
+  .filterpanel #customRange{display:flex;gap:10px;min-width:0}
+  .filterpanel #customRange>div{flex:1 1 0;min-width:0}
+  /* the native date picker icon must not add to the intrinsic width */
+  .filterpanel input[type="date"]{overflow:hidden}
 </style>
 </head>
 <body>
@@ -6634,4 +6651,3 @@ try{document.querySelectorAll(".modal").forEach(function(m){m.classList.add("hid
 try{setTimeout(initCollapsibles,80);}catch(e){}
 </script>
 </body></html>
-         
