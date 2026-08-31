@@ -2175,6 +2175,13 @@ box-shadow:0 20px 60px -12px rgba(199,165,87,.7);opacity:0;transform:scale(.4)}
       padding-bottom:calc(16px + env(safe-area-inset-bottom,0px))}
     [data-drill]{min-height:38px}
   }
+
+  /* Page scroll lock while any sheet is open. <html> is the scroller here. */
+  html.scroll-locked{overflow:hidden !important}
+  /* Keep a flick inside a sheet from chaining out to the page once the
+     sheet's own list hits its end. */
+  .modal-card,.drill-scroll,.cardtxn-sheet,.syncmenu-card,
+  .filterpanel,.profilemenu{overscroll-behavior:contain}
 </style>
 </head>
 <body>
@@ -6323,6 +6330,51 @@ else{try{sb=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);}catch(e){show
   sb.auth.onAuthStateChange((_e,s)=>{if(s){_kickPrefetch(s);if(!window._appReady)showApp(s);}else{window._appReady=false;showGate();}});
   sb.auth.getSession().then(({data})=>{if(data.session){_kickPrefetch(data.session);showApp(data.session);}else{showGate();}}).catch(e=>{showGate();gateMsgFriendly(null, e.message);});
 }}
+
+/* ── BODY SCROLL LOCK ─────────────────────────────────────────────
+   With a sheet open, dragging outside its own scroll area scrolled the
+   page behind it, so you would close the sheet and find yourself
+   somewhere else entirely.
+
+   <html> is this app's scroll container (body is overflow:visible - see
+   the note at the top of the stylesheet), so locking overflow there
+   stops the page without the layout jump that the position:fixed trick
+   causes, and the scroll position is preserved for free.
+
+   Driven by a MutationObserver rather than by editing ~20 open/close
+   functions: every overlay in this app is shown by toggling a class, so
+   watching for that catches them all, including sheets created at
+   runtime (drill, cmAsk, cmTell, cmPicker). */
+(function(){
+  var OPEN=".modal:not(.hide), .syncmenu:not(.hide), .filterpanel.open, "+
+           ".profilemenu.open, .pin-lock:not(.hide), .success-burst:not(.hide)";
+  var WATCH=["modal","syncmenu","filterpanel","profilemenu","pin-lock","success-burst"];
+  var locked=false,queued=false;
+  function sync(){
+    queued=false;
+    var open=!!document.querySelector(OPEN);
+    if(open===locked)return;
+    locked=open;
+    document.documentElement.classList.toggle("scroll-locked",open);
+  }
+  function schedule(){if(queued)return;queued=true;requestAnimationFrame(sync);}
+  function relevant(t){
+    if(!t||!t.classList)return false;
+    for(var i=0;i<WATCH.length;i++)if(t.classList.contains(WATCH[i]))return true;
+    return false;
+  }
+  try{
+    new MutationObserver(function(muts){
+      for(var i=0;i<muts.length;i++){
+        // a class flip on an overlay, or an overlay being added to the DOM
+        if(relevant(muts[i].target)){schedule();return;}
+        var added=muts[i].addedNodes;
+        for(var j=0;added&&j<added.length;j++)if(relevant(added[j])){schedule();return;}
+      }
+    }).observe(document.documentElement,{attributes:true,attributeFilter:["class"],childList:true,subtree:true});
+  }catch(e){}
+  window._syncScrollLock=schedule;
+})();
 
 function hasPinLock(){return !!localStorage.getItem("kharcha-pin");}
 function getPinHash(){return localStorage.getItem("kharcha-pin");}
