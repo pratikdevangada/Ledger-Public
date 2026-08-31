@@ -2182,6 +2182,62 @@ box-shadow:0 20px 60px -12px rgba(199,165,87,.7);opacity:0;transform:scale(.4)}
      sheet's own list hits its end. */
   .modal-card,.drill-scroll,.cardtxn-sheet,.syncmenu-card,
   .filterpanel,.profilemenu{overscroll-behavior:contain}
+
+  /* Expense notes in the grouped Recent list */
+  .leaf{flex-wrap:wrap}
+  .leaf-note{flex-basis:100%;margin-top:3px;font-size:var(--fs-sm);color:var(--ink-faint);
+    line-height:1.4;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .leaf-head{color:var(--ink);font-weight:var(--fw-medium);cursor:default}
+  .leaf-head .tamt{color:var(--ink)}
+  .leaf-item{padding-left:64px;border-top:1px dashed var(--line)}
+  .leaf-item .tname{color:var(--ink-soft);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+  .leaf-item .tamt{font-weight:var(--fw-normal)}
+
+  .leaf-more{cursor:pointer;color:var(--brass-2);font-weight:var(--fw-medium)}
+  .leaf-more .tamt{color:var(--brass-2);font-weight:var(--fw-medium)}
+  .leaf-more:active{background:rgba(199,165,87,.10)}
+  [data-theme="light"] .leaf-more,[data-theme="light"] .leaf-more .tamt{color:#8A701F}
+
+  /* ── SHEET SCROLLING ──────────────────────────────────────────────
+     `.modal:not(.hide)>.modal-card{max-height:none}` outranks the sheet
+     classes, so bottom sheets lost their height bound and their inner
+     flex scroller never activated - the page behind scrolled instead.
+     With the page now locked, that left nothing scrolling at all.
+
+     These rules restore the bound at matching specificity. min-height:0
+     is the part that is easy to miss: a flex child defaults to
+     min-height:auto and refuses to shrink below its content, so
+     overflow-y:auto on it never gets anything to scroll. */
+  @media(max-width:760px){
+    .modal:not(.hide)>.drill-sheet,
+    .modal:not(.hide)>.cardtxn-sheet,
+    .modal:not(.hide)>.recon-sheet,
+    .modal:not(.hide)>.pin-setup-card,
+    #reconcileModal:not(.hide)>.modal-card,
+    #rowActionsModal:not(.hide)>.modal-card,
+    #catBulkModal:not(.hide)>.modal-card,
+    #budBulkModal:not(.hide)>.modal-card,
+    #investedDiag:not(.hide)>.modal-card,
+    #catMgrModal:not(.hide)>.modal-card,
+    #editModal:not(.hide)>.modal-card{
+      max-height:88vh;display:flex;flex-direction:column;overflow:hidden}
+
+    /* let the scrolling region shrink inside its flex parent */
+    .drill-scroll,
+    .cardtxn-sheet>div[style],
+    .recon-sheet>div[style],
+    #reconcileModal .modal-card>div[style],
+    #investedDiag .modal-card>div[style],
+    #catBulkModal .modal-card>div[style],
+    #budBulkModal .modal-card>div[style]{min-height:0}
+
+    /* cards that are one long form scroll as a whole */
+    #catMgrModal:not(.hide)>.modal-card,
+    #editModal:not(.hide)>.modal-card{overflow-y:auto}
+
+    /* a flick inside a sheet must not reach the page */
+    .modal{overscroll-behavior:contain}
+  }
 </style>
 </head>
 <body>
@@ -2723,7 +2779,7 @@ box-shadow:0 20px 60px -12px rgba(199,165,87,.7);opacity:0;transform:scale(.4)}
 <div id="filterPanel" class="filterpanel">
   <div class="filters">
     <div class="fl"><label>Period</label><div id="fRange"></div></div>
-    <div class="fl" id="customRange" style="display:none">
+    <div class="fl" id="customRange">
       <div><label>From</label><input id="fFrom" type="date"></div>
       <div><label>To</label><input id="fTo" type="date"></div>
     </div>
@@ -3900,11 +3956,48 @@ const catFilterOpts=()=>[{value:"",label:"All categories"}].concat(CATS.map(c=>(
 const subFilterOpts=catId=>{const a=[{value:"",label:"All sub-categories"}];if(catId)SUBS.filter(s=>s.category_id===catId).forEach(s=>a.push({value:s.id,label:s.name}));return a;};
 function buildFilterSubs(){$("fSub").setOptions(subFilterOpts($("fCat").value));}
 function buildFilterCats(){$("fCat").setOptions(catFilterOpts());buildFilterSubs();}
+
+/* Keeps the From/To boxes showing whatever period is active, so a preset
+   and a hand-picked range are never in disagreement on screen. */
+function _dataBounds(){
+  var lo=null,hi=null;
+  (EXP||[]).forEach(function(e){
+    var d=String(e.spent_on||"");
+    if(d.length<10)return;
+    if(lo===null||d<lo)lo=d;
+    if(hi===null||d>hi)hi=d;
+  });
+  return{from:lo,to:hi};
+}
+function syncRangeInputs(){
+  if(!$("fRange")||!$("fFrom")||!$("fTo"))return;
+  var v=$("fRange").value;
+  if(v==="custom")return;                 // never overwrite what was typed
+  var d=rangeDates();
+  var from=d[0],to=d[1];
+  if(v==="all"){                          // 1900-2999 helps nobody
+    var b=_dataBounds();
+    from=b.from||todayStr(); to=b.to||todayStr();
+  }
+  $("fFrom").value=from; $("fTo").value=to;
+}
 function initFilters(){
-  buildSelect($("fRange"),{options:RANGE_OPTS,value:"this_month",onChange:v=>{$("customRange").style.display=v==="custom"?"flex":"none";if(v!=="custom")applyFilters();else if($("fFrom").value&&$("fTo").value)applyFilters();}});
-  ["fFrom","fTo"].forEach(function(id){var el=$(id);if(el)el.onchange=function(){if($("fRange").value==="custom"&&$("fFrom").value&&$("fTo").value)applyFilters();};});
+  buildSelect($("fRange"),{options:RANGE_OPTS,value:"this_month",onChange:v=>{syncRangeInputs();if(v!=="custom")applyFilters();else if($("fFrom").value&&$("fTo").value)applyFilters();}});
+  ["fFrom","fTo"].forEach(function(id){var el=$(id);if(el)el.onchange=function(){
+    /* Typing a date IS choosing a custom range - no need to select
+       "Custom..." first. Presets stay as one-tap shortcuts that fill
+       these fields in, so the boxes always show the period in force. */
+    if($("fFrom").value&&$("fTo").value){
+      if($("fFrom").value>$("fTo").value){
+        if(id==="fFrom")$("fTo").value=$("fFrom").value; else $("fFrom").value=$("fTo").value;
+      }
+      if($("fRange").value!=="custom")$("fRange").value="custom";
+      applyFilters();
+    }
+  };});
   buildSelect($("fCat"),{options:catFilterOpts(),value:"",onChange:()=>{buildFilterSubs();$("fSub").value="";applyFilters();}});
   buildSelect($("fSub"),{options:subFilterOpts(""),value:"",onChange:function(){applyFilters();}});
+  syncRangeInputs();
 }
 document.addEventListener("DOMContentLoaded",function(){
   var applyBtn=document.getElementById("filterApply");
@@ -3914,8 +4007,7 @@ document.addEventListener("DOMContentLoaded",function(){
     if($("fRange").setOptions){$("fRange").value="this_month";}
     if($("fCat").setOptions){$("fCat").value="";buildFilterSubs();}
     if($("fSub").setOptions){$("fSub").value="";}
-    $("fFrom").value="";$("fTo").value="";
-    document.getElementById("customRange").style.display="none";
+    $("fRange").value="this_month";syncRangeInputs();
     applyFilters();haptic(6);
   };
 });
@@ -4919,7 +5011,7 @@ function renderCat(F){kill("cCat");if(typeof Chart==="undefined")return;const m=
 function renderSub(F){const m={};F.forEach(e=>{if(!e.subcategory_id)return;m[e.subcategory_id]=(m[e.subcategory_id]||0)+Number(e.amount);});const arr=Object.entries(m).filter(x=>subName(x[0])).sort((a,b)=>b[1]-a[1]).slice(0,10);const max=arr.length?arr[0][1]:1;$("cSub").innerHTML=arr.length?arr.map(([id,v])=>`<div class="barrow"${drillAttr({cat:(SUBS.find(x=>x.id===id)||{}).category_id||"",hasSub:true,sub:id,from:LASTR[0],to:LASTR[1],title:subName(id)||"",periodLabel:rangeLabel()})}><div class="lab"><span class="dot" style="background:${subColor(id)}"></span>${esc(subName(id))}</div><div class="track"><div class="fill" style="width:${Math.max(2,v/max*100)}%;background:${subColor(id)}"></div></div><div class="val num">${money(v)}</div></div>`).join(""):`<div class="empty">No sub-category spend in this period.</div>`;}
 function renderDow(F){kill("cDow");if(typeof Chart==="undefined")return;const names=["Mon","Tue","Wed","Thu","Fri","Sat","Sun"],tot=[0,0,0,0,0,0,0];F.forEach(e=>{tot[(new Date(e.spent_on).getDay()+6)%7]+=Number(e.amount);});const max=Math.max(...tot,1);const t=CT.dow;let ds,type;if(t==='line'){type='line';const ctx=$("cDow").getContext("2d");const grad=ctx.createLinearGradient(0,0,0,240);grad.addColorStop(0,hexA(CINK,.25));grad.addColorStop(1,hexA(CINK,0));ds={data:tot,borderColor:CINK,backgroundColor:grad,fill:true,tension:.35,pointRadius:3,pointBackgroundColor:CINK,borderWidth:2};}else{type='bar';ds={data:tot,backgroundColor:tot.map(v=>v===max?CINK:hexA(CINK,.26)),borderRadius:5,maxBarThickness:34};}CHARTS.cDow=new Chart($("cDow"),{type,data:{labels:names,datasets:[ds]},options:{plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>` ${money2(c.raw)}`}}},scales:{x:{grid:{display:false},border:{display:false},ticks:{font:GFONT}},y:{grid:{color:GRID},border:{display:false},ticks:{font:GFONT,maxTicksLimit:5,callback:v=>money(v)}}}}});_dDow(names);}
 function renderWho(F){kill("cWho");if(typeof Chart==="undefined")return;const m={};F.forEach(e=>{const k=e.paid_by||"Unspecified";m[k]=(m[k]||0)+Number(e.amount);});const arr=Object.entries(m).sort((a,b)=>b[1]-a[1]);if(!arr.length)return;const total=arr.reduce((t,a)=>t+a[1],0);const cols=["#5E96C4","#CE8E5C","#9579C0","#DFC27E","#C56F77"];const t=CT.who;if(t==='bar'){CHARTS.cWho=new Chart($("cWho"),{type:'bar',data:{labels:arr.map(a=>a[0]),datasets:[{data:arr.map(a=>a[1]),backgroundColor:arr.map((_,i)=>cols[i%cols.length]),borderRadius:4,maxBarThickness:46}]},options:{plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>` ${money2(c.raw)}`}}},scales:{x:{grid:{display:false},border:{display:false},ticks:{font:GFONT}},y:{grid:{color:GRID},border:{display:false},ticks:{font:GFONT,callback:v=>money(v)}}}}});_dWho(arr);return;}const plugins=t==='doughnut'?[centerText(money(total),"total")]:[];CHARTS.cWho=new Chart($("cWho"),{type:t,data:{labels:arr.map(a=>a[0]),datasets:[{data:arr.map(a=>a[1]),backgroundColor:arr.map((_,i)=>cols[i%cols.length]),borderColor:SEG,borderWidth:0,hoverOffset:5}]},options:{cutout:t==='doughnut'?"68%":0,plugins:{legend:{position:"right",labels:{font:GFONT,boxWidth:9,boxHeight:9,padding:9,usePointStyle:true,pointStyle:"circle"}},tooltip:{callbacks:{label:c=>` ${c.label}: ${money2(c.raw)}`}}}},plugins});_dWho(arr);}
-let RECENT_MODE="grouped",RECENT_Q="";
+let RECENT_MODE="grouped",RECENT_Q="",_leafGid=0;
 function renderRecentList(F){const rows=F.slice(0,40);const body=rows.map(r=>{const sn=subName(r.subcategory_id);return`<tr class="rec-row${r._pending?' pending':''}" data-exp="${r.id}" onclick="openEditModal('${r.id}')" style="cursor:pointer"><td class="muted num">${new Date(r.spent_on).toLocaleDateString(LOCALE,{day:"2-digit",month:"short"})}</td><td><span class="chip" style="background:${colorOf(r.category_id)}">${catIconHTML(r.category_id)}${esc(nameOf(r.category_id))}</span>${sn?`<span class="subtag"><span class="dot" style="background:${subColor(r.subcategory_id)}"></span>${esc(sn)}</span>`:""}</td><td class="muted">${esc(r.note||"")}</td><td class="muted">${esc(r.paid_by||"")}${r.method?` · <span class="muted2">${esc(r.card_id?cardName(r.card_id):r.method)}</span>`:""}</td><td class="amt">${money2(r.amount)}</td><td style="text-align:right"><button class="del" onclick="event.stopPropagation();delExpense('${r.id}')" title="Delete">✕</button></td></tr>`;}).join("");$("recent").innerHTML=`<table class="recent"><thead><tr><th>Date</th><th>Category</th><th>Note</th><th>Paid by</th><th style="text-align:right">Amount</th><th></th></tr></thead><tbody>${body}</tbody></table>`;}
 function renderRecentGrouped(F){
   const byDay={};F.forEach(e=>{(byDay[e.spent_on]=byDay[e.spent_on]||[]).push(e);});
@@ -4932,7 +5024,31 @@ function renderRecentGrouped(F){
       const list=byCat[cid];const bySub={};list.forEach(e=>{const k=e.subcategory_id||"__none__";(bySub[k]=bySub[k]||[]).push(e);});
       const leaves=Object.keys(bySub).sort((a,b)=>sum(bySub[b])-sum(bySub[a])).map(sk=>{
         const l2=bySub[sk];const label=sk==="__none__"?`<span class="muted">(no sub-category)</span>`:`<span class="dot" style="background:${subColor(sk)}"></span>${esc(subName(sk))}`;
-        const _clk=l2.length===1?` onclick="openEditModal('${l2[0].id}')" style="cursor:pointer"`:"";return `<div class="leaf"${_clk}><span class="tname">${label}${l2.length>1?` <span class="tcount">×${l2.length}</span>`:""}</span><span class="tamt">${money2(sum(l2))}</span></div>`;
+        /* Notes were only ever visible in list mode, and there only after
+           scrolling the table sideways. A single expense shows its note
+           inline; a group of them expands into one tappable row each, so
+           the note is readable and every expense is individually editable
+           (previously a grouped leaf could not be tapped at all). */
+        if(l2.length===1){
+          const e0=l2[0];
+          return `<div class="leaf" onclick="openEditModal('${e0.id}')" style="cursor:pointer"><span class="tname">${label}</span><span class="tamt">${money2(e0.amount)}</span>${e0.note?`<span class="leaf-note">${esc(e0.note)}</span>`:""}</div>`;
+        }
+        /* Long runs stay readable: show the biggest few inline and tuck the
+           rest behind one line. Below the threshold everything is shown,
+           because hiding one or two items costs a tap and saves nothing. */
+        const SHOW=4, CAP=6;
+        const sorted=l2.slice().sort((a,b)=>b.amount-a.amount);
+        const row=e=>{
+          const meta=e.note?esc(e.note):`<span class="muted2">${esc(e.paid_by||"no note")}</span>`;
+          return `<div class="leaf leaf-item" onclick="openEditModal('${e.id}')" style="cursor:pointer"><span class="tname">${meta}</span><span class="tamt">${money2(e.amount)}</span></div>`;
+        };
+        const head=`<div class="leaf leaf-head"><span class="tname">${label} <span class="tcount">×${l2.length}</span></span><span class="tamt">${money2(sum(l2))}</span></div>`;
+        if(sorted.length<=CAP)return head+sorted.map(row).join("");
+        const gid="lg"+(_leafGid++);
+        const rest=sorted.slice(SHOW);
+        return head+sorted.slice(0,SHOW).map(row).join("")+
+          `<div class="leaf-rest hide" id="${gid}">${rest.map(row).join("")}</div>`+
+          `<div class="leaf leaf-more" onclick="document.getElementById('${gid}').classList.remove('hide');this.remove()"><span class="tname">Show ${rest.length} more</span><span class="tamt">${money2(rest.reduce((t,e)=>t+Number(e.amount),0))}</span></div>`;
       }).join("");
       return `<details class="lvl-cat"><summary><span class="tw">▸</span><span class="tlab"><span class="chip" style="background:${colorOf(cid)}">${catIconHTML(cid)}${esc(nameOf(cid))}</span></span><span class="tamt">${money2(sum(list))}</span></summary>${leaves}</details>`;
     }).join("");
@@ -5115,7 +5231,7 @@ function renderAllExpenses(){const host=$("allExp");if(!host)return;let list=EXP
   if((AEL_F.method&&AEL_F.method.length)||(AEL_F.card_id&&AEL_F.card_id.length))list=list.filter(function(r){if(r.card_id&&AEL_F.card_id.indexOf(r.card_id)>=0)return true;if(!r.card_id&&AEL_F.method.indexOf(r.method||"Other")>=0)return true;return false;});
   if(AEL_F.category_id&&AEL_F.category_id.length)list=list.filter(r=>AEL_F.category_id.indexOf(r.category_id)>=0);
   if(AEL_F.subcategory_id&&AEL_F.subcategory_id.length)list=list.filter(r=>AEL_F.subcategory_id.indexOf(r.subcategory_id||"__none__")>=0);
-  if(ALL_Q){const q=ALL_Q.toLowerCase();list=list.filter(r=>[nameOf(r.category_id),subName(r.subcategory_id),r.note,r.paid_by,r.method,String(r.amount)].filter(Boolean).join(" ").toLowerCase().includes(q));}if(!list.length){host.innerHTML=`<div class="empty" style="padding:22px">${ALL_Q?"No matches.":"No expenses yet — add one above."}</div>`;return;}const more=list.length>300;const shown=more?list.slice(0,300):list;const body=shown.map((r,i)=>{const sn=subName(r.subcategory_id);return`<tr class="${r._pending?'pending':''}" onclick="openEditModal('${r.id}')"><td class="ael-d">${new Date(r.spent_on).toLocaleDateString(LOCALE,{day:"2-digit",month:"short"})}</td><td class="ael-it"><span class="ael-cat">${esc(nameOf(r.category_id))}</span>${sn?`<span class="ael-sub">${esc(sn)}</span>`:""}</td><td class="ael-a"><span class="ael-amt">${money2(r.amount)}</span>${(r.paid_by||r.method)?`<span class="ael-pm">${r.paid_by?`<span class="ini" title="${esc(r.paid_by)}">${esc(r.paid_by.trim().charAt(0).toUpperCase())}</span>`:""}${r.method?`${methodIcon(r.method)}${esc(r.card_id?cardName(r.card_id):r.method)}`:""}</span>`:""}</td></tr>`;}).join("");host.innerHTML=`<div class="allexp-scroll"><table class="ael"><thead><tr><th>Date</th><th>Item</th><th class="r">Amount</th></tr></thead><tbody>${body}</tbody></table></div>${more?`<div class="empty" style="padding:12px">Showing the latest 300 of ${list.length}. Use search for older.</div>`:""}`;}
+  if(ALL_Q){const q=ALL_Q.toLowerCase();list=list.filter(r=>[nameOf(r.category_id),subName(r.subcategory_id),r.note,r.paid_by,r.method,String(r.amount)].filter(Boolean).join(" ").toLowerCase().includes(q));}if(!list.length){host.innerHTML=`<div class="empty" style="padding:22px">${ALL_Q?"No matches.":"No expenses yet — add one above."}</div>`;return;}const more=list.length>300;const shown=more?list.slice(0,300):list;const body=shown.map((r,i)=>{const sn=subName(r.subcategory_id);return`<tr class="${r._pending?'pending':''}" onclick="openEditModal('${r.id}')"><td class="ael-d">${new Date(r.spent_on).toLocaleDateString(LOCALE,{day:"2-digit",month:"short"})}</td><td class="ael-it"><span class="ael-cat">${esc(nameOf(r.category_id))}</span>${(sn||r.note)?`<span class="ael-sub">${esc([sn,r.note].filter(Boolean).join(" \u00b7 "))}</span>`:""}</td><td class="ael-a"><span class="ael-amt">${money2(r.amount)}</span>${(r.paid_by||r.method)?`<span class="ael-pm">${r.paid_by?`<span class="ini" title="${esc(r.paid_by)}">${esc(r.paid_by.trim().charAt(0).toUpperCase())}</span>`:""}${r.method?`${methodIcon(r.method)}${esc(r.card_id?cardName(r.card_id):r.method)}`:""}</span>`:""}</td></tr>`;}).join("");host.innerHTML=`<div class="allexp-scroll"><table class="ael"><thead><tr><th>Date</th><th>Item</th><th class="r">Amount</th></tr></thead><tbody>${body}</tbody></table></div>${more?`<div class="empty" style="padding:12px">Showing the latest 300 of ${list.length}. Use search for older.</div>`:""}`;}
 function renderCompare(F,from,to){const host=$("compare");if(!host)return;
   if(!from||!to){host.innerHTML=`<div class="empty">Pick a specific period (not “All time”) to compare it with the one before.</div>`;return;}
   const d0=new Date(from),d1=new Date(to);const span=Math.round((d1-d0)/864e5)+1;
