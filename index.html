@@ -2255,6 +2255,38 @@ box-shadow:0 20px 60px -12px rgba(199,165,87,.7);opacity:0;transform:scale(.4)}
   .filterpanel #customRange>div{flex:1 1 0;min-width:0}
   /* the native date picker icon must not add to the intrinsic width */
   .filterpanel input[type="date"]{overflow:hidden}
+
+  /* ── FILTER PANEL LAYOUT ──────────────────────────────────────────
+     .filters was written for the old inline filter bar: a wrapping row
+     with align-items:flex-end, where each .fl sizes to its own content.
+     In a 342px popover that reads as ragged - "This month", "All
+     categories" and "All sub-categories" each a different width - and
+     .spring{margin-left:auto} strands Export against the right edge.
+     The full-width .fl rule that fixes this only exists inside
+     @media(max-width:760px), so the panel never got it on desktop.
+
+     Inside the panel it becomes a plain stack: one control per row,
+     every control the same width. */
+  .filterpanel .filters{flex-direction:column;align-items:stretch;flex-wrap:nowrap;gap:14px}
+  .filterpanel .filters>*{width:100%;min-width:0;flex:0 0 auto}
+  .filterpanel .fl{align-items:stretch}
+
+  /* Export is a full-width action, not a right-floated afterthought.
+     Its label is a bare &nbsp; that existed only to bottom-align it in
+     the old row layout, and in a stack it just adds a blank gap. */
+  .filterpanel .fl.spring{margin-left:0}
+  .filterpanel .fl.spring>label{display:none}
+  .filterpanel .fl.spring .ghost{width:100%}
+
+  /* the actions row was itself a content-sized flex item, which is why
+     Done never filled the space next to Reset */
+  .filterpanel .filter-actions{width:100%;margin-top:2px}
+  .filterpanel .filter-actions .primary{flex:1 1 auto}
+
+  /* the specific card or method, shown wherever an amount is listed */
+  .ael-pm .pm-lbl{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:92px}
+  .ael-int{color:var(--ink-faint);font-weight:var(--fw-normal);text-transform:none;letter-spacing:0}
+  .leaf-pm{margin-left:8px;font-size:var(--fs-xs);color:var(--ink-faint);white-space:nowrap}
 </style>
 </head>
 <body>
@@ -4266,8 +4298,123 @@ function markExported(ym){try{var a=exportedMonths();if(a.indexOf(ym)<0){a.push(
 function _ym(d){return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0");}
 function lastNMonths(n){var out=[],now=new Date();for(var i=1;i<=n;i++){var d=new Date(now.getFullYear(),now.getMonth()-i,1);out.push({y:d.getFullYear(),m:d.getMonth(),label:d.toLocaleDateString(LOCALE,{month:"long",year:"numeric"}),ym:_ym(d)});}return out;}
 function _monthRows(y,m){return EXP.filter(function(e){if(e._pending)return false;var d=new Date(e.spent_on);return d.getFullYear()===y&&d.getMonth()===m&&!spendExcluded(e);}).sort(function(a,b){return a.spent_on<b.spent_on?-1:(a.spent_on>b.spent_on?1:0);});}
-function _buildSheet(wb,y,m){var rows=_monthRows(y,m),label=new Date(y,m,1).toLocaleDateString(LOCALE,{month:"long",year:"numeric"});var aoa=[["SpendWise \u2014 "+label],[],["Date","Category","Sub-category","Paid by","Method","Amount (INR)","Note"]];var total=0;rows.forEach(function(e){total+=Number(e.amount);aoa.push([new Date(e.spent_on),nameOf(e.category_id),subName(e.subcategory_id)||"",e.paid_by||"",e.method||"",Number(e.amount),e.note||""]);});aoa.push([]);aoa.push(["","","","","Total",total,""]);var ws=XLSX.utils.aoa_to_sheet(aoa);ws["!cols"]=[{wch:12},{wch:24},{wch:20},{wch:12},{wch:12},{wch:13},{wch:30}];XLSX.utils.book_append_sheet(wb,ws,label.slice(0,31));return label;}
-function downloadMonths(list){if(typeof XLSX==="undefined"){showToast("Still loading — try again in a moment");return;}if(!list.length){showToast("Pick at least one month");return;}var wb=XLSX.utils.book_new();var labels=list.map(function(mo){return _buildSheet(wb,mo.y,mo.m);});list.forEach(function(mo){markExported(mo.ym);});var fname=list.length===1?("SpendWise_"+labels[0].replace(/ /g,"_")):"SpendWise_Monthly_Reports";XLSX.writeFile(wb,fname+".xlsx");haptic(12);showToast("Downloaded "+list.length+" month"+(list.length>1?"s":""));renderReports();}
+/* One sheet per month: budget against actual, drilled all the way down.
+   Category -> sub-category -> every individual expense with its date,
+   note, payer and the actual card used.
+
+   The Level column in A makes the hierarchy machine-readable and lets
+   Excel's filter isolate any one tier - filter Level="Category" for the
+   overview, Level="Expense" for the raw ledger. It also removes the
+   double-counting trap: a category row already contains its children.
+
+   Budgets come from budgetsFor(ym), so this sheet shows the budget that
+   was in force in THAT month. Editing a budget later never rewrites it. */
+function _buildSheet(wb,y,m){
+  var mm=String(m+1).padStart(2,"0"),ym=y+"-"+mm;
+  var from=ym+"-01",to=ym+"-31";
+  var label=new Date(y,m,1).toLocaleDateString(LOCALE,{month:"long",year:"numeric"});
+  var pack=_packMonth(y,m),bud=budgetsFor(ym);
+
+  var inMonth=(EXP||[]).filter(function(e){return e.spent_on>=from&&e.spent_on<=to;});
+  var counted=inMonth.filter(function(e){return !spendExcluded(e);});
+  var invested=inMonth.filter(function(e){return spendExcluded(e);});
+
+  var amtOf=function(e){return (e.interest_pct!=null)?_emiSplit(e).expense:Number(e.amount);};
+  var noteOf=function(e){
+    var n=e.note||"";
+    if(e.interest_pct!=null)
+      n=(n?n+" ":"")+"[EMI \u2014 interest "+e.interest_pct+"% of "+money2(e.amount)+"]";
+    return n;
+  };
+
+  var aoa=[],cash=[],dates=[];
+  var push=function(r){aoa.push(r||[]);return aoa.length-1;};
+
+  push(["SpendWise \u2014 "+label]);
+  var hr=push(["Income",Math.round(pack.income),"Spent",Math.round(pack.spent),
+               "Invested",Math.round(pack.invested),"Saved",Math.round(pack.saved)]);
+  cash.push([hr,1],[hr,3],[hr,5],[hr,7]);
+  push();
+  var headRow=push(["Level","Category","Sub-category","Date","Note","Paid by",
+                    "Method / Card","Budget","Actual","Variance"]);
+
+  var byCat={};
+  counted.forEach(function(e){(byCat[e.category_id]=byCat[e.category_id]||[]).push(e);});
+  var sumOf=function(l){return (l||[]).reduce(function(s,e){return s+amtOf(e);},0);};
+  var catIds=(CATS||[]).map(function(c){return c.id;})
+    .filter(function(id){return (byCat[id]&&byCat[id].length)||Number(bud[id])>0;})
+    .sort(function(a,b){return sumOf(byCat[b])-sumOf(byCat[a]);});
+
+  var totBud=0,totAct=0;
+  catIds.forEach(function(cid){
+    var list=byCat[cid]||[],act=sumOf(list),b=Number(bud[cid])||0;
+    totBud+=b;totAct+=act;
+    var r=push(["Category",nameOf(cid),"","","","","",
+                b?Math.round(b):null,Math.round(act),b?Math.round(act-b):null]);
+    cash.push([r,7],[r,8],[r,9]);
+
+    var bySub={};
+    list.forEach(function(e){var k=e.subcategory_id||"";(bySub[k]=bySub[k]||[]).push(e);});
+    Object.keys(bySub)
+      .sort(function(a,b2){return sumOf(bySub[b2])-sumOf(bySub[a]);})
+      .forEach(function(sk){
+        var l2=bySub[sk],sname=sk?(subName(sk)||""):"(no sub-category)";
+        /* Skip a lone "(no sub-category)" tier - it would just restate the
+           category row and add a level of nesting that says nothing. */
+        if(!(Object.keys(bySub).length===1&&!sk)){
+          var rr=push(["Sub-category",nameOf(cid),sname,"","","","",null,Math.round(sumOf(l2)),null]);
+          cash.push([rr,8]);
+        }
+        l2.slice().sort(function(a,b3){return String(a.spent_on).localeCompare(String(b3.spent_on));})
+          .forEach(function(e){
+            var r3=push(["Expense",nameOf(cid),sk?sname:"",new Date(e.spent_on),
+                         noteOf(e),e.paid_by||"",methodLabel(e),null,Math.round(amtOf(e)),null]);
+            cash.push([r3,8]);dates.push([r3,3]);
+          });
+      });
+    push();
+  });
+
+  var rt=push(["TOTAL","","","","","","",Math.round(totBud),Math.round(totAct),
+               Math.round(totAct-totBud)]);
+  cash.push([rt,7],[rt,8],[rt,9]);
+
+  if(invested.length){
+    push();
+    push(["Investments \u2014 excluded from the budget above, shown for completeness"]);
+    invested.slice().sort(function(a,b){return String(a.spent_on).localeCompare(String(b.spent_on));})
+      .forEach(function(e){
+        var r4=push(["Investment",nameOf(e.category_id),subName(e.subcategory_id)||"",
+                     new Date(e.spent_on),e.note||"",e.paid_by||"",methodLabel(e),
+                     null,Math.round(Number(e.amount)),null]);
+        cash.push([r4,8]);dates.push([r4,3]);
+      });
+    var ri=push(["Invested total","","","","","","",null,
+                 Math.round(invested.reduce(function(s,e){return s+Number(e.amount);},0)),null]);
+    cash.push([ri,8]);
+  }
+
+  var ws=XLSX.utils.aoa_to_sheet(aoa,{cellDates:true});
+  ws["!cols"]=[{wch:13},{wch:22},{wch:22},{wch:12},{wch:38},{wch:12},{wch:18},
+               {wch:12},{wch:12},{wch:12}];
+  ws["!merges"]=[{s:{r:0,c:0},e:{r:0,c:9}}];
+  /* Filter across the hierarchy - pick a Level, a Category, a payer, a card. */
+  ws["!autofilter"]={ref:XLSX.utils.encode_range(
+    {s:{r:headRow,c:0},e:{r:aoa.length-1,c:9}})};
+
+  cash.forEach(function(rc){
+    var c=ws[XLSX.utils.encode_cell({r:rc[0],c:rc[1]})];
+    if(c&&typeof c.v==="number")c.z='#,##0;[Red]-#,##0';
+  });
+  dates.forEach(function(rc){
+    var c=ws[XLSX.utils.encode_cell({r:rc[0],c:rc[1]})];
+    if(c)c.z='dd-mmm';
+  });
+
+  XLSX.utils.book_append_sheet(wb,ws,label.slice(0,31));
+  return label;
+}
+function downloadMonths(list){if(typeof XLSX==="undefined"){showToast("Still loading — try again in a moment");return;}if(!list.length){showToast("Pick at least one month");return;}var wb=XLSX.utils.book_new();var ordered=list.slice().sort(function(a,b){return (a.y-b.y)||(a.m-b.m);}).map(function(mo){return{y:mo.y,m:mo.m,ym:mo.ym,label:new Date(mo.y,mo.m,1).toLocaleDateString(LOCALE,{month:"short",year:"numeric"})};});/* Summary, budget-vs-actual and commitments come first so the file    stands on its own; the per-month transaction tabs follow. */try{_planningSheets(wb,ordered);}catch(e){}var labels=ordered.map(function(mo){return _buildSheet(wb,mo.y,mo.m);});list.forEach(function(mo){markExported(mo.ym);});var fname=list.length===1?("SpendWise_"+labels[0].replace(/ /g,"_")):"SpendWise_Monthly_Reports";XLSX.writeFile(wb,fname+".xlsx");haptic(12);showToast("Downloaded "+list.length+" month"+(list.length>1?"s":""));renderReports();}
 function openReportModal(preLast){var months=lastNMonths(3),exp=exportedMonths(),host=$("reportPickList");host.innerHTML=months.map(function(mo,idx){var cnt=_monthRows(mo.y,mo.m).length,done=exp.indexOf(mo.ym)>=0,chk=(preLast&&idx===0)?" checked":"";return '<label class="repick"><input type="checkbox" class="repchk" data-y="'+mo.y+'" data-m="'+mo.m+'" data-ym="'+mo.ym+'"'+chk+'><span class="repick-meta"><span class="repick-name">'+mo.label+'</span><span class="repick-sub">'+cnt+' expense'+(cnt!==1?"s":"")+(done?' \u00b7 downloaded':'')+'</span></span></label>';}).join("");$("reportSelectAll").textContent="Select all";$("reportModal").classList.remove("hide");}
 function closeReportModal(){$("reportModal").classList.add("hide");}
 function renderReports(){var rem=$("exportReminder");if(!rem)return;var now=new Date(),last=new Date(now.getFullYear(),now.getMonth()-1,1),lym=_ym(last),done=exportedMonths().indexOf(lym)>=0,lastLabel=last.toLocaleDateString(LOCALE,{month:"long",year:"numeric"});if(!done&&!_remDismissed){rem.innerHTML='<div class="rembar rembar-v2"><div class="remhead"><span class="remlabel">MONTH JUST ENDED</span><span class="remmonth">'+lastLabel+'</span></div><div class="remsub">Take a moment to see how it went.</div><div class="remact"><button class="primary rembtn">See recap</button><button class="ghost remlater">Not now</button></div></div>';rem.querySelector(".rembtn").onclick=function(){openMonthRecap(last.getFullYear(),last.getMonth());};rem.querySelector(".remlater").onclick=function(){_remDismissed=true;rem.innerHTML="";};}else rem.innerHTML="";}
@@ -4316,14 +4463,32 @@ if(INC_EDIT_ID){
 var r=await sb.from("income").insert({amount:amt,net_amount:(function(){var n=parseFloat(($("incNet")||{}).value);return(n&&n>0&&n<amt)?n:null;})(),one_time:($("incOneTime")&&$("incOneTime").checked)?true:null,received_on:$("incDate").value||todayStr(),received_by:(_incRB&&_incRB.value)||null,source:($("incSource").value||"").trim()||null});$("incomeSave").disabled=false;if(r.error){failSheet("Couldn\u2019t save",r.error);return;}closeIncomeModal();await loadIncome();renderIncome();applyFilters();haptic(12);showToast("Income added");};
 function parseMethod(mv){if(mv&&mv.indexOf("card:")===0)return{method:"Card",card_id:mv.slice(5)};return{method:mv||null,card_id:null};}
 function methodOpts(cur){
-  /* Zaggle was removed - it is tracked as a prepaid Card now. `cur` keeps a
-     legacy value selectable so old expenses still show their method when edited. */
-  var o=[{value:"UPI",label:"UPI"},{value:"Cash",label:"Cash"},{value:"Bank transfer",label:"Bank transfer"},{value:"Card",label:"Credit card"}];
-  (CARDS||[]).forEach(function(c){o.push({value:"card:"+c.id,label:c.name});});
+  /* The generic "Credit card" entry used to sit above the real cards, and
+     picking it stored method:"Card" with no card_id - so every list, chart
+     and export could only ever say "Card". Once at least one card exists
+     there is no reason to offer it: choose the card by name instead.
+
+     It reappears only when no cards are set up, and `cur` keeps any legacy
+     value selectable so an older expense still opens with its own method
+     shown, flagged "(old)" so it is obvious it needs re-picking. */
+  var o=[{value:"UPI",label:"UPI"},{value:"Cash",label:"Cash"},{value:"Bank transfer",label:"Bank transfer"}];
+  (CARDS||[]).forEach(function(c){o.push({value:"card:"+c.id,label:c.name+(c.last4?" \u00b7\u00b7"+c.last4:"")});});
+  if(!(CARDS||[]).length)o.push({value:"Card",label:"Credit card"});
   if(cur&&!o.some(function(x){return x.value===cur;}))o.push({value:cur,label:cur+" (old)"});
   return o;
 }
-function cardName(id){var c=(CARDS||[]).find(function(x){return x.id===id;});return c?c.name:"Card";}
+/* What the user actually picked in the Method dropdown. Selecting a card
+   stores method:"Card" plus card_id, so showing e.method alone reduces
+   "HDFC Millennia" back to a generic "Card". Always resolve the card. */
+function methodLabel(e){
+  if(!e)return "";
+  if(e.card_id)return cardName(e.card_id);
+  /* Saved before cards existed, or via the old generic option: there is no
+     card on the row to name, so say so rather than printing "Card". */
+  if(e.method==="Card")return "Card (not set)";
+  return e.method||"";
+}
+function cardName(id){var c=(CARDS||[]).find(function(x){return x.id===id;});return c?c.name:"Card (removed)";}
 function cardPaidKey(){return "kharcha-cardpaid-"+(window._uid||"anon");}
 function paidMap(){try{return JSON.parse(localStorage.getItem(cardPaidKey())||"{}");}catch(e){return{};}}
 function isCardPaid(cid,cy){return paidMap()[cid+"|"+cy]===true;}
@@ -4416,7 +4581,7 @@ function downloadBudgetSheet(){
     o["Sub-category"]=subName(r.subcategory_id)||"";
     o["Amount (INR)"]=Math.round(Number(r.amount)||0);
     o["Day of month"]=r.day_of_month||"";
-    o["Method"]=r.method||"";
+    o["Method"]=methodLabel(r);
     o["Paid by"]=r.paid_by||"";
     o["Active"]=(r.active===false)?"No":"Yes";
     if(r.interest_pct!=null)o["Interest %"]=r.interest_pct;
@@ -4582,7 +4747,7 @@ function goInvest(){goScreen("budgets");if(typeof setMoneyTab==="function")setMo
 function renderNetWorth(){var card=$("nwCard");if(!card)return;if(!(INVEST||[]).length){card.style.display="none";return;}var loans=0,assets=0,invested=0;var INVSET=["stocks","mf","us","nps","epf","other"];(INVEST||[]).forEach(function(e){var v=Number(e.value);if(e.type==="loan")loans+=v;else assets+=v;if(INVSET.indexOf(e.type)>=0)invested+=v;});var hasNW=(assets>invested)||loans>0;card.style.display="";var vEl=$("nwValue");if(vEl)vEl.textContent=money2(hasNW?(assets-loans):invested);var lbl=card.querySelector(".nwl");if(lbl)lbl.textContent=hasNW?"Net worth":"Total invested";}
 function renderRecurring(){var host=$("recurList");if(!host)return;if(!(RECUR||[]).length){host.innerHTML='<div class="empty" style="padding:14px 2px">No recurring items yet. Add rent, SIPs, EMIs or subscriptions \u2014 they post automatically each month.</div>';return;}host.innerHTML=RECUR.slice().sort(function(a,b){return (a.day_of_month||1)-(b.day_of_month||1);}).map(function(r){
     var nm=r.note||nameOf(r.category_id)||"Recurring";
-    var sub=(nameOf(r.category_id)||"")+(r.subcategory_id?" \u00b7 "+subName(r.subcategory_id):"");
+    var sub=(nameOf(r.category_id)||"")+(r.subcategory_id?" \u00b7 "+subName(r.subcategory_id):"")+(methodLabel(r)?" \u00b7 "+methodLabel(r):"");
     var now=new Date();
     var ym=now.getFullYear()+"-"+String(now.getMonth()+1).padStart(2,"0");
     var due=Math.min(r.day_of_month||1,28);
@@ -4607,12 +4772,20 @@ function renderRecurring(){var host=$("recurList");if(!host)return;if(!(RECUR||[
     return '<div class="recur-row'+(r.active===false?" off":"")+'" onclick="openRecurModal(\''+r.id+'\')" style="cursor:pointer"><div class="recmeta"><span class="recn">'+esc(nm)+'</span><span class="recs">'+esc(sub)+' \u00b7 day '+(r.day_of_month||1)+'</span><span class="rec-status'+(showAddBtn?" due":"")+'">'+status+'</span></div><div class="recright"><span class="reca">'+money2(r.amount)+'</span>'+btn+'</div></div>';
   }).join("");}
 var EDIT_RECUR=null,_rcCat=null,_rcSub=null,_rcPaid=null,_rcMethod=null;
-function openRecurModal(id){if(!requireOnline("You\u2019re offline \u2014 recurring needs a connection"))return;EDIT_RECUR=id||null;var r=id?RECUR.find(function(x){return x.id===id;}):null;$("recurModalTitle").textContent=r?"Edit recurring":"Add recurring";var f=$("recurForm");f.innerHTML='<div class="ef f-amt"><label>Description</label><input id="rcNote" type="text" placeholder="e.g. Rent, Netflix, SIP" value="'+(r&&r.note?esc(r.note):"")+'"></div><div class="ef f-amt"><label>Amount</label><div class="amt-wrap"><span class="cur">\u20b9</span><input id="rcAmt" type="text" inputmode="decimal" placeholder="0.00" value="'+(r?r.amount:"")+'"></div></div><div class="ef"><label>Category</label><div id="rcCatCell"></div></div><div class="ef"><label>Sub-category</label><div id="rcSubCell"></div></div><div class="ef"><label>Paid by</label><div id="rcPaidCell"></div></div><div class="ef"><label>Method</label><div id="rcMethodCell"></div></div><div class="ef f-amt"><label>Day of month (1\u201328)</label><input id="rcDay" type="number" min="1" max="28" value="'+((r&&r.day_of_month)||1)+'"></div><div class="ef f-amt"><label>Interest portion % <span class="muted" style="font-weight:400;font-size:var(--fs-xs)">(only for home/vehicle loan EMI)</span></label><input id="rcIntPct" type="number" min="0" max="100" step="1" placeholder="e.g. 80 for home loan EMI" value="'+((r&&r.interest_pct!=null)?r.interest_pct:"")+'"></div><div class="ef f-amt"><label class="rcactive"><input type="checkbox" id="rcActive" '+((!r||r.active!==false)?"checked":"")+'> Active \u2014 auto-add each month</label></div>';numFilter($("rcAmt"));_rcCat=document.createElement("div");$("rcCatCell").appendChild(_rcCat);buildSelect(_rcCat,{options:rowCatOpts(),value:(r&&r.category_id)||"",placeholder:"Category\u2026",addLabel:"Add category\u2026",onAdd:function(){openAddModal("cat",{catSel:_rcCat,subSel:_rcSub});},onChange:function(){if(_rcSub&&_rcSub.setOptions)_rcSub.setOptions(rowSubOpts(_rcCat.value));}});_rcSub=document.createElement("div");$("rcSubCell").appendChild(_rcSub);buildSelect(_rcSub,{options:rowSubOpts((r&&r.category_id)||""),value:(r&&r.subcategory_id)||"",placeholder:"\u2014 none \u2014",addLabel:"Add sub-category\u2026",onAdd:function(){var cid=_rcCat&&_rcCat.value;if(!cid){banner("Pick a category first.");return;}openAddModal("sub",{catSel:_rcCat,subSel:_rcSub,cid:cid});}});_rcPaid=document.createElement("div");$("rcPaidCell").appendChild(_rcPaid);buildSelect(_rcPaid,{options:paidOpts(),value:(r&&r.paid_by)||window._me||"",placeholder:"Paid by"});_rcMethod=document.createElement("div");$("rcMethodCell").appendChild(_rcMethod);buildSelect(_rcMethod,{options:methodOpts(r?r.method:null),value:(r&&r.method)||"UPI",placeholder:"Method"});$("recurDelete").style.display=r?"":"none";$("recurModal").classList.remove("hide");}
+function openRecurModal(id){if(!requireOnline("You\u2019re offline \u2014 recurring needs a connection"))return;EDIT_RECUR=id||null;var r=id?RECUR.find(function(x){return x.id===id;}):null;$("recurModalTitle").textContent=r?"Edit recurring":"Add recurring";var f=$("recurForm");f.innerHTML='<div class="ef f-amt"><label>Description</label><input id="rcNote" type="text" placeholder="e.g. Rent, Netflix, SIP" value="'+(r&&r.note?esc(r.note):"")+'"></div><div class="ef f-amt"><label>Amount</label><div class="amt-wrap"><span class="cur">\u20b9</span><input id="rcAmt" type="text" inputmode="decimal" placeholder="0.00" value="'+(r?r.amount:"")+'"></div></div><div class="ef"><label>Category</label><div id="rcCatCell"></div></div><div class="ef"><label>Sub-category</label><div id="rcSubCell"></div></div><div class="ef"><label>Paid by</label><div id="rcPaidCell"></div></div><div class="ef"><label>Method</label><div id="rcMethodCell"></div></div><div class="ef f-amt"><label>Day of month (1\u201328)</label><input id="rcDay" type="number" min="1" max="28" value="'+((r&&r.day_of_month)||1)+'"></div><div class="ef f-amt"><label>Interest portion % <span class="muted" style="font-weight:400;font-size:var(--fs-xs)">(only for home/vehicle loan EMI)</span></label><input id="rcIntPct" type="number" min="0" max="100" step="1" placeholder="e.g. 80 for home loan EMI" value="'+((r&&r.interest_pct!=null)?r.interest_pct:"")+'"></div><div class="ef f-amt"><label class="rcactive"><input type="checkbox" id="rcActive" '+((!r||r.active!==false)?"checked":"")+'> Active \u2014 auto-add each month</label></div>';numFilter($("rcAmt"));_rcCat=document.createElement("div");$("rcCatCell").appendChild(_rcCat);buildSelect(_rcCat,{options:rowCatOpts(),value:(r&&r.category_id)||"",placeholder:"Category\u2026",addLabel:"Add category\u2026",onAdd:function(){openAddModal("cat",{catSel:_rcCat,subSel:_rcSub});},onChange:function(){if(_rcSub&&_rcSub.setOptions)_rcSub.setOptions(rowSubOpts(_rcCat.value));}});_rcSub=document.createElement("div");$("rcSubCell").appendChild(_rcSub);buildSelect(_rcSub,{options:rowSubOpts((r&&r.category_id)||""),value:(r&&r.subcategory_id)||"",placeholder:"\u2014 none \u2014",addLabel:"Add sub-category\u2026",onAdd:function(){var cid=_rcCat&&_rcCat.value;if(!cid){banner("Pick a category first.");return;}openAddModal("sub",{catSel:_rcCat,subSel:_rcSub,cid:cid});}});_rcPaid=document.createElement("div");$("rcPaidCell").appendChild(_rcPaid);buildSelect(_rcPaid,{options:paidOpts(),value:(r&&r.paid_by)||window._me||"",placeholder:"Paid by"});_rcMethod=document.createElement("div");$("rcMethodCell").appendChild(_rcMethod);buildSelect(_rcMethod,{options:methodOpts((r&&!r.card_id)?r.method:null),value:(r&&r.card_id)?("card:"+r.card_id):((r&&r.method)||"UPI"),placeholder:"Method"});$("recurDelete").style.display=r?"":"none";$("recurModal").classList.remove("hide");}
 function closeRecurModal(){$("recurModal").classList.add("hide");}
 $("addRecurBtn").onclick=function(){openRecurModal(null);};
 $("recurCancel").onclick=closeRecurModal;
 $("recurModal").addEventListener("click",function(e){if(e.target.id==="recurModal")closeRecurModal();});
-$("recurSave").onclick=async function(){var amt=parseFloat($("rcAmt").value);if(!amt||amt<=0){showToast("Enter a valid amount.","err");return;}if(!(_rcCat&&_rcCat.value)){showToast("Pick a category.","err");return;}var pm=parseMethod((_rcMethod&&_rcMethod.value)||"UPI");var payload={amount:amt,category_id:_rcCat.value,subcategory_id:(_rcSub&&_rcSub.value)||null,paid_by:(_rcPaid&&_rcPaid.value)||null,method:pm.method,note:($("rcNote").value||"").trim()||null,day_of_month:parseInt($("rcDay").value)||1,active:$("rcActive").checked,interest_pct:(function(){var v=parseFloat($("rcIntPct").value);return(isFinite(v)&&v>=0&&v<=100)?v:null;})()};$("recurSave").disabled=true;var res=EDIT_RECUR?await sb.from("recurring").update(payload).eq("id",EDIT_RECUR):await sb.from("recurring").insert(payload);$("recurSave").disabled=false;if(res.error){failSheet("Couldn\u2019t save",res.error);return;}closeRecurModal();await loadRecurring();renderRecurring();haptic(12);showToast("Saved");};
+$("recurSave").onclick=async function(){var amt=parseFloat($("rcAmt").value);if(!amt||amt<=0){showToast("Enter a valid amount.","err");return;}if(!(_rcCat&&_rcCat.value)){showToast("Pick a category.","err");return;}var pm=parseMethod((_rcMethod&&_rcMethod.value)||"UPI");var payload={amount:amt,category_id:_rcCat.value,subcategory_id:(_rcSub&&_rcSub.value)||null,paid_by:(_rcPaid&&_rcPaid.value)||null,method:pm.method,card_id:pm.card_id,note:($("rcNote").value||"").trim()||null,day_of_month:parseInt($("rcDay").value)||1,active:$("rcActive").checked,interest_pct:(function(){var v=parseFloat($("rcIntPct").value);return(isFinite(v)&&v>=0&&v<=100)?v:null;})()};$("recurSave").disabled=true;var _save=function(pl){return EDIT_RECUR?sb.from("recurring").update(pl).eq("id",EDIT_RECUR):sb.from("recurring").insert(pl);};
+var res=await _save(payload);
+/* Older databases have no card_id on `recurring`. Rather than failing the
+   save, drop the card and tell the user what was lost. */
+if(res.error&&/card_id/i.test(res.error.message||"")){
+  var p2=Object.assign({},payload);delete p2.card_id;
+  res=await _save(p2);
+  if(!res.error)showToast("Saved \u2014 card not stored (needs a card_id column)","err");
+}$("recurSave").disabled=false;if(res.error){failSheet("Couldn\u2019t save",res.error);return;}closeRecurModal();await loadRecurring();renderRecurring();haptic(12);showToast("Saved");};
 $("recurDelete").onclick=async function(){if(!EDIT_RECUR)return;if(!await askConfirm("Delete this recurring item?","It will stop posting automatically each month. Expenses already added stay.","Delete",true))return;var res=await sb.from("recurring").delete().eq("id",EDIT_RECUR);if(res.error){failSheet("Couldn\u2019t delete",res.error);return;}closeRecurModal();await loadRecurring();renderRecurring();showToast("Deleted");};
 var SPLIT_LINES=[],_spPaid=null,_spMethod=null;
 
@@ -5029,7 +5202,7 @@ function renderSub(F){const m={};F.forEach(e=>{if(!e.subcategory_id)return;m[e.s
 function renderDow(F){kill("cDow");if(typeof Chart==="undefined")return;const names=["Mon","Tue","Wed","Thu","Fri","Sat","Sun"],tot=[0,0,0,0,0,0,0];F.forEach(e=>{tot[(new Date(e.spent_on).getDay()+6)%7]+=Number(e.amount);});const max=Math.max(...tot,1);const t=CT.dow;let ds,type;if(t==='line'){type='line';const ctx=$("cDow").getContext("2d");const grad=ctx.createLinearGradient(0,0,0,240);grad.addColorStop(0,hexA(CINK,.25));grad.addColorStop(1,hexA(CINK,0));ds={data:tot,borderColor:CINK,backgroundColor:grad,fill:true,tension:.35,pointRadius:3,pointBackgroundColor:CINK,borderWidth:2};}else{type='bar';ds={data:tot,backgroundColor:tot.map(v=>v===max?CINK:hexA(CINK,.26)),borderRadius:5,maxBarThickness:34};}CHARTS.cDow=new Chart($("cDow"),{type,data:{labels:names,datasets:[ds]},options:{plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>` ${money2(c.raw)}`}}},scales:{x:{grid:{display:false},border:{display:false},ticks:{font:GFONT}},y:{grid:{color:GRID},border:{display:false},ticks:{font:GFONT,maxTicksLimit:5,callback:v=>money(v)}}}}});_dDow(names);}
 function renderWho(F){kill("cWho");if(typeof Chart==="undefined")return;const m={};F.forEach(e=>{const k=e.paid_by||"Unspecified";m[k]=(m[k]||0)+Number(e.amount);});const arr=Object.entries(m).sort((a,b)=>b[1]-a[1]);if(!arr.length)return;const total=arr.reduce((t,a)=>t+a[1],0);const cols=["#5E96C4","#CE8E5C","#9579C0","#DFC27E","#C56F77"];const t=CT.who;if(t==='bar'){CHARTS.cWho=new Chart($("cWho"),{type:'bar',data:{labels:arr.map(a=>a[0]),datasets:[{data:arr.map(a=>a[1]),backgroundColor:arr.map((_,i)=>cols[i%cols.length]),borderRadius:4,maxBarThickness:46}]},options:{plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>` ${money2(c.raw)}`}}},scales:{x:{grid:{display:false},border:{display:false},ticks:{font:GFONT}},y:{grid:{color:GRID},border:{display:false},ticks:{font:GFONT,callback:v=>money(v)}}}}});_dWho(arr);return;}const plugins=t==='doughnut'?[centerText(money(total),"total")]:[];CHARTS.cWho=new Chart($("cWho"),{type:t,data:{labels:arr.map(a=>a[0]),datasets:[{data:arr.map(a=>a[1]),backgroundColor:arr.map((_,i)=>cols[i%cols.length]),borderColor:SEG,borderWidth:0,hoverOffset:5}]},options:{cutout:t==='doughnut'?"68%":0,plugins:{legend:{position:"right",labels:{font:GFONT,boxWidth:9,boxHeight:9,padding:9,usePointStyle:true,pointStyle:"circle"}},tooltip:{callbacks:{label:c=>` ${c.label}: ${money2(c.raw)}`}}}},plugins});_dWho(arr);}
 let RECENT_MODE="grouped",RECENT_Q="",_leafGid=0;
-function renderRecentList(F){const rows=F.slice(0,40);const body=rows.map(r=>{const sn=subName(r.subcategory_id);return`<tr class="rec-row${r._pending?' pending':''}" data-exp="${r.id}" onclick="openEditModal('${r.id}')" style="cursor:pointer"><td class="muted num">${new Date(r.spent_on).toLocaleDateString(LOCALE,{day:"2-digit",month:"short"})}</td><td><span class="chip" style="background:${colorOf(r.category_id)}">${catIconHTML(r.category_id)}${esc(nameOf(r.category_id))}</span>${sn?`<span class="subtag"><span class="dot" style="background:${subColor(r.subcategory_id)}"></span>${esc(sn)}</span>`:""}</td><td class="muted">${esc(r.note||"")}</td><td class="muted">${esc(r.paid_by||"")}${r.method?` · <span class="muted2">${esc(r.card_id?cardName(r.card_id):r.method)}</span>`:""}</td><td class="amt">${money2(r.amount)}</td><td style="text-align:right"><button class="del" onclick="event.stopPropagation();delExpense('${r.id}')" title="Delete">✕</button></td></tr>`;}).join("");$("recent").innerHTML=`<table class="recent"><thead><tr><th>Date</th><th>Category</th><th>Note</th><th>Paid by</th><th style="text-align:right">Amount</th><th></th></tr></thead><tbody>${body}</tbody></table>`;}
+function renderRecentList(F){const rows=F.slice(0,40);const body=rows.map(r=>{const sn=subName(r.subcategory_id);return`<tr class="rec-row${r._pending?' pending':''}" data-exp="${r.id}" onclick="openEditModal('${r.id}')" style="cursor:pointer"><td class="muted num">${new Date(r.spent_on).toLocaleDateString(LOCALE,{day:"2-digit",month:"short"})}</td><td><span class="chip" style="background:${colorOf(r.category_id)}">${catIconHTML(r.category_id)}${esc(nameOf(r.category_id))}</span>${sn?`<span class="subtag"><span class="dot" style="background:${subColor(r.subcategory_id)}"></span>${esc(sn)}</span>`:""}</td><td class="muted">${esc(r.note||"")}</td><td class="muted">${esc(r.paid_by||"")}${r.method?` · <span class="muted2">${esc(methodLabel(r))}</span>`:""}</td><td class="amt">${money2(r.amount)}</td><td style="text-align:right"><button class="del" onclick="event.stopPropagation();delExpense('${r.id}')" title="Delete">✕</button></td></tr>`;}).join("");$("recent").innerHTML=`<table class="recent"><thead><tr><th>Date</th><th>Category</th><th>Note</th><th>Paid by</th><th style="text-align:right">Amount</th><th></th></tr></thead><tbody>${body}</tbody></table>`;}
 function renderRecentGrouped(F){
   const byDay={};F.forEach(e=>{(byDay[e.spent_on]=byDay[e.spent_on]||[]).push(e);});
   const allDays=Object.keys(byDay).sort((a,b)=>b.localeCompare(a));const days=allDays.slice(0,60);
@@ -5048,7 +5221,7 @@ function renderRecentGrouped(F){
            (previously a grouped leaf could not be tapped at all). */
         if(l2.length===1){
           const e0=l2[0];
-          return `<div class="leaf" onclick="openEditModal('${e0.id}')" style="cursor:pointer"><span class="tname">${label}</span><span class="tamt">${money2(e0.amount)}</span>${e0.note?`<span class="leaf-note">${esc(e0.note)}</span>`:""}</div>`;
+          return `<div class="leaf" onclick="openEditModal('${e0.id}')" style="cursor:pointer"><span class="tname">${label}</span><span class="tamt">${money2(e0.amount)}</span>${(e0.note||methodLabel(e0))?`<span class="leaf-note">${esc([e0.note,methodLabel(e0)].filter(Boolean).join(" \u00b7 "))}</span>`:""}</div>`;
         }
         /* Long runs stay readable: show the biggest few inline and tuck the
            rest behind one line. Below the threshold everything is shown,
@@ -5056,7 +5229,9 @@ function renderRecentGrouped(F){
         const SHOW=4, CAP=6;
         const sorted=l2.slice().sort((a,b)=>b.amount-a.amount);
         const row=e=>{
-          const meta=e.note?esc(e.note):`<span class="muted2">${esc(e.paid_by||"no note")}</span>`;
+          const ml=methodLabel(e);
+          const base=e.note?esc(e.note):`<span class="muted2">${esc(e.paid_by||"no note")}</span>`;
+          const meta=base+(ml?`<span class="leaf-pm">${esc(ml)}</span>`:"");
           return `<div class="leaf leaf-item" onclick="openEditModal('${e.id}')" style="cursor:pointer"><span class="tname">${meta}</span><span class="tamt">${money2(e.amount)}</span></div>`;
         };
         const head=`<div class="leaf leaf-head"><span class="tname">${label} <span class="tcount">×${l2.length}</span></span><span class="tamt">${money2(sum(l2))}</span></div>`;
@@ -5075,7 +5250,7 @@ function renderRecentGrouped(F){
   const cap=allDays.length>60?`<div class="empty" style="padding:14px 10px">Showing the most recent 60 days.</div>`:"";
   $("recent").innerHTML=`<div class="tree">${html}</div>${cap}`;
 }
-function renderRecent(F){let G=F;if(RECENT_Q){const q=RECENT_Q.toLowerCase();G=F.filter(r=>[nameOf(r.category_id),subName(r.subcategory_id),r.note,r.paid_by,r.method,String(r.amount)].filter(Boolean).join(" ").toLowerCase().includes(q));}if(!G.length){$("recent").innerHTML=`<div class="empty">${RECENT_Q?"No matches for “"+esc(RECENT_Q)+"”.":"No expenses in this period."}</div>`;return;}RECENT_MODE==="list"?renderRecentList(G):renderRecentGrouped(G);}
+function renderRecent(F){let G=F;if(RECENT_Q){const q=RECENT_Q.toLowerCase();G=F.filter(r=>[nameOf(r.category_id),subName(r.subcategory_id),r.note,r.paid_by,methodLabel(r),String(r.amount)].filter(Boolean).join(" ").toLowerCase().includes(q));}if(!G.length){$("recent").innerHTML=`<div class="empty">${RECENT_Q?"No matches for “"+esc(RECENT_Q)+"”.":"No expenses in this period."}</div>`;return;}RECENT_MODE==="list"?renderRecentList(G):renderRecentGrouped(G);}
 function _setLastAdd(p){
   if(!p||!p.category_id)return;
   var rec={category_id:p.category_id,subcategory_id:p.subcategory_id||"",amount:p.amount,method:p.method||"",card_id:p.card_id||"",ts:Date.now()};
@@ -5248,7 +5423,7 @@ function renderAllExpenses(){const host=$("allExp");if(!host)return;let list=EXP
   if((AEL_F.method&&AEL_F.method.length)||(AEL_F.card_id&&AEL_F.card_id.length))list=list.filter(function(r){if(r.card_id&&AEL_F.card_id.indexOf(r.card_id)>=0)return true;if(!r.card_id&&AEL_F.method.indexOf(r.method||"Other")>=0)return true;return false;});
   if(AEL_F.category_id&&AEL_F.category_id.length)list=list.filter(r=>AEL_F.category_id.indexOf(r.category_id)>=0);
   if(AEL_F.subcategory_id&&AEL_F.subcategory_id.length)list=list.filter(r=>AEL_F.subcategory_id.indexOf(r.subcategory_id||"__none__")>=0);
-  if(ALL_Q){const q=ALL_Q.toLowerCase();list=list.filter(r=>[nameOf(r.category_id),subName(r.subcategory_id),r.note,r.paid_by,r.method,String(r.amount)].filter(Boolean).join(" ").toLowerCase().includes(q));}if(!list.length){host.innerHTML=`<div class="empty" style="padding:22px">${ALL_Q?"No matches.":"No expenses yet — add one above."}</div>`;return;}const more=list.length>300;const shown=more?list.slice(0,300):list;const body=shown.map((r,i)=>{const sn=subName(r.subcategory_id);return`<tr class="${r._pending?'pending':''}" onclick="openEditModal('${r.id}')"><td class="ael-d">${new Date(r.spent_on).toLocaleDateString(LOCALE,{day:"2-digit",month:"short"})}</td><td class="ael-it"><span class="ael-cat">${esc(nameOf(r.category_id))}</span>${(sn||r.note)?`<span class="ael-sub">${esc([sn,r.note].filter(Boolean).join(" \u00b7 "))}</span>`:""}</td><td class="ael-a"><span class="ael-amt">${money2(r.amount)}</span>${(r.paid_by||r.method)?`<span class="ael-pm">${r.paid_by?`<span class="ini" title="${esc(r.paid_by)}">${esc(r.paid_by.trim().charAt(0).toUpperCase())}</span>`:""}${r.method?`${methodIcon(r.method)}${esc(r.card_id?cardName(r.card_id):r.method)}`:""}</span>`:""}</td></tr>`;}).join("");host.innerHTML=`<div class="allexp-scroll"><table class="ael"><thead><tr><th>Date</th><th>Item</th><th class="r">Amount</th></tr></thead><tbody>${body}</tbody></table></div>${more?`<div class="empty" style="padding:12px">Showing the latest 300 of ${list.length}. Use search for older.</div>`:""}`;}
+  if(ALL_Q){const q=ALL_Q.toLowerCase();list=list.filter(r=>[nameOf(r.category_id),subName(r.subcategory_id),r.note,r.paid_by,methodLabel(r),String(r.amount)].filter(Boolean).join(" ").toLowerCase().includes(q));}if(!list.length){host.innerHTML=`<div class="empty" style="padding:22px">${ALL_Q?"No matches.":"No expenses yet — add one above."}</div>`;return;}const more=list.length>300;const shown=more?list.slice(0,300):list;const body=shown.map((r,i)=>{const sn=subName(r.subcategory_id);return`<tr class="${r._pending?'pending':''}" onclick="openEditModal('${r.id}')"><td class="ael-d">${new Date(r.spent_on).toLocaleDateString(LOCALE,{day:"2-digit",month:"short"})}</td><td class="ael-it"><span class="ael-cat">${esc(nameOf(r.category_id))}</span>${(sn||r.note)?`<span class="ael-sub">${esc([sn,r.note].filter(Boolean).join(" \u00b7 "))}</span>`:""}</td><td class="ael-a"><span class="ael-amt">${money2(r.amount)}</span>${(r.paid_by||r.method)?`<span class="ael-pm">${r.paid_by?`<span class="ini" title="${esc(r.paid_by)}">${esc(r.paid_by.trim().charAt(0).toUpperCase())}</span>`:""}${r.method?`${methodIcon(r.method)}${esc(methodLabel(r))}`:""}</span>`:""}</td></tr>`;}).join("");host.innerHTML=`<div class="allexp-scroll"><table class="ael"><thead><tr><th>Date</th><th>Item</th><th class="r">Amount</th></tr></thead><tbody>${body}</tbody></table></div>${more?`<div class="empty" style="padding:12px">Showing the latest 300 of ${list.length}. Use search for older.</div>`:""}`;}
 function renderCompare(F,from,to){const host=$("compare");if(!host)return;
   if(!from||!to){host.innerHTML=`<div class="empty">Pick a specific period (not “All time”) to compare it with the one before.</div>`;return;}
   const d0=new Date(from),d1=new Date(to);const span=Math.round((d1-d0)/864e5)+1;
@@ -5503,22 +5678,18 @@ function _actualsFor(ym){
   });
   return{cat:cat,sub:sub};
 }
-function downloadBudgetActual(){
-  if(typeof XLSX==="undefined"){showToast("Export library still loading \u2014 try again");return;}
-  var from=(LASTR&&LASTR[0])||todayStr(),to=(LASTR&&LASTR[1])||todayStr();
-  var months=_monthsBetween(from,to);
-  if(!months.length){showToast("No months in the selected period");return;}
-
-  var data=months.map(function(mo){
+/* Month descriptors -> the per-month data the matrix needs. */
+function _baData(months){
+  return months.map(function(mo){
     var a=_actualsFor(mo.ym);
     return{ym:mo.ym,label:mo.label,bud:budgetsFor(mo.ym),cat:a.cat,sub:a.sub};
   });
+}
+/* Builds the budget-vs-actual worksheet. Extracted so the standalone
+   export and the multi-month workbook share one implementation and
+   cannot drift apart. Returns null when there is nothing to show. */
+function _baBuild(data){
   var N=data.length;
-
-  /* Build the row list: a category line, then its sub-category lines.
-     Sub-categories carry no budget - the Budget cells are left genuinely
-     empty (null) rather than zero, so they read as "not applicable" and
-     Excel will not fold them into a SUM. */
   var body=[],grand={b:new Array(N).fill(0),a:new Array(N).fill(0)};
   (CATS||[]).forEach(function(c){
     var bud=data.map(function(d){return Number(d.bud[c.id])||0;});
@@ -5526,11 +5697,8 @@ function downloadBudgetActual(){
     var tb=bud.reduce(function(x,y){return x+y;},0);
     var ta=act.reduce(function(x,y){return x+y;},0);
     if(tb<=0&&ta<=0)return;
-
     body.push({kind:"cat",cat:c.name,sub:"",bud:bud,act:act,tb:tb,ta:ta});
     for(var i=0;i<N;i++){grand.b[i]+=bud[i];grand.a[i]+=act[i];}
-
-    /* children, biggest first; only those with spend in the period */
     var kids=(SUBS||[]).filter(function(s){return s.category_id===c.id;})
       .map(function(s){
         var v=data.map(function(d){return Number(d.sub[c.id+"|"+s.id])||0;});
@@ -5539,19 +5707,14 @@ function downloadBudgetActual(){
     var noSub=data.map(function(d){return Number(d.sub[c.id+"|"])||0;});
     var noSubTot=noSub.reduce(function(x,y){return x+y;},0);
     if(noSubTot>0)kids.push({name:"(no sub-category)",vals:noSub,tot:noSubTot});
-
     kids=kids.filter(function(k){return k.tot>0;});
-    /* A lone "(no sub-category)" child just restates the category row, so
-       drop it. Categories that genuinely have no sub-categories then show
-       one clean line instead of two identical ones. */
     if(kids.length===1&&kids[0].name==="(no sub-category)")kids=[];
     kids.sort(function(x,y){return y.tot-x.tot;})
         .forEach(function(k){
           body.push({kind:"sub",cat:c.name,sub:k.name,bud:null,act:k.vals,tb:null,ta:k.tot});
         });
   });
-
-  if(!body.length){showToast("Nothing to export for this period");return;}
+  if(!body.length)return null;
 
   var h1=["Category","Sub-category"],h2=["",""];
   data.forEach(function(d){h1.push(d.label,"");h2.push("Budget","Actual");});
@@ -5569,33 +5732,37 @@ function downloadBudgetActual(){
     line.push(r.kind==="cat"?Math.round(r.ta-r.tb):null);
     aoa.push(line);
   });
-
   var tot=["TOTAL",""],gb=0,ga=0;
-  for(var i=0;i<N;i++){gb+=grand.b[i];ga+=grand.a[i];tot.push(Math.round(grand.b[i]),Math.round(grand.a[i]));}
+  for(var i2=0;i2<N;i2++){gb+=grand.b[i2];ga+=grand.a[i2];tot.push(Math.round(grand.b[i2]),Math.round(grand.a[i2]));}
   tot.push(Math.round(gb),Math.round(ga),Math.round(ga-gb));
   aoa.push(tot);
 
   var ws=XLSX.utils.aoa_to_sheet(aoa);
-
   var merges=[{s:{r:0,c:0},e:{r:1,c:0}},{s:{r:0,c:1},e:{r:1,c:1}}];
   for(var j=0;j<N;j++)merges.push({s:{r:0,c:2+j*2},e:{r:0,c:3+j*2}});
   merges.push({s:{r:0,c:2+N*2},e:{r:0,c:4+N*2}});
   ws["!merges"]=merges;
-
   var cols=[{wch:22},{wch:22}];
-  for(var k2=0;k2<N;k2++)cols.push({wch:11},{wch:11});
+  for(var k=0;k<N;k++)cols.push({wch:11},{wch:11});
   cols.push({wch:12},{wch:12},{wch:12});
   ws["!cols"]=cols;
-
+  return{ws:ws,nRows:body.length,nCat:body.filter(function(r){return r.kind==="cat";}).length};
+}
+function downloadBudgetActual(){
+  if(typeof XLSX==="undefined"){showToast("Export library still loading \u2014 try again");return;}
+  var from=(LASTR&&LASTR[0])||todayStr(),to=(LASTR&&LASTR[1])||todayStr();
+  var months=_monthsBetween(from,to);
+  if(!months.length){showToast("No months in the selected period");return;}
+  var data=_baData(months);
+  var built=_baBuild(data);
+  if(!built){showToast("Nothing to export for this period");return;}
   var wb=XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb,ws,"Budget vs Actual");
-
+  XLSX.utils.book_append_sheet(wb,built.ws,"Budget vs Actual");
   var partial=data.some(function(d){return d.ym===_ymOf();});
-  var nCat=body.filter(function(r){return r.kind==="cat";}).length;
   var guide=[
     ["SpendWise \u2014 budget vs actual"],[""],
     ["Period: "+from+" to "+to],
-    ["Months: "+N+"   Categories: "+nCat+"   Rows: "+body.length],
+    ["Months: "+data.length+"   Categories: "+built.nCat+"   Rows: "+built.nRows],
     ["Generated: "+new Date().toLocaleDateString(LOCALE,{day:"numeric",month:"long",year:"numeric"})],[""],
     ["ROW TYPES \u2014 READ THIS BEFORE SUMMING"],
     ["A row with a blank Sub-category is a CATEGORY TOTAL."],
@@ -5618,10 +5785,112 @@ function downloadBudgetActual(){
   ];
   var gs=XLSX.utils.aoa_to_sheet(guide);gs["!cols"]=[{wch:82}];
   XLSX.utils.book_append_sheet(wb,gs,"Read me");
-
   XLSX.writeFile(wb,"spendwise-budget-vs-actual-"+from+"-to-"+to+".xlsx");
   haptic(12);
-  showToast("Downloaded "+N+" month"+(N!==1?"s":"")+" \u00b7 "+body.length+" rows");
+  showToast("Downloaded "+data.length+" month"+(data.length!==1?"s":""));
+}
+
+/* ── PLANNING WORKBOOK ────────────────────────────────────────────
+   Sheets prepended to the multi-month download so the single file is
+   enough on its own: what came in and went out per month, budget vs
+   actual per category, the fixed commitments, and a Read me that tells
+   an assistant how to interpret all of it. The per-month transaction
+   tabs follow, so the detail is there when a number needs checking. */
+function _planningSheets(wb,months){
+  var cur=_ymOf();
+  var packs=months.map(function(mo){return _packMonth(mo.y,mo.m);});
+
+  /* Read me first, so it is the sheet that opens. */
+  var recTot=(RECUR||[]).filter(function(r){return r.active!==false;})
+    .reduce(function(s,r){return s+Number(r.amount||0);},0);
+  var full=packs.filter(function(p){return p.ym!==cur;});
+  var avgSaved=full.length?Math.round(full.reduce(function(s,p){return s+p.saved;},0)/full.length):0;
+  var guide=[
+    ["SpendWise \u2014 planning workbook"],[""],
+    ["Generated: "+new Date().toLocaleDateString(LOCALE,{day:"numeric",month:"long",year:"numeric"})],
+    ["Covers: "+months.length+" month"+(months.length!==1?"s":"")+
+      " ("+months[0].label+(months.length>1?" to "+months[months.length-1].label:"")+")"],
+    ["Currency: INR"],[""],
+    ["WHAT IS IN THIS FILE"],
+    ["Summary          - income, spending, investing and savings per month."],
+    ["Budget vs Actual - every category, budget beside actual, month by month."],
+    ["Recurring        - fixed monthly commitments."],
+    ["One tab per month - every individual transaction, if a figure needs checking."],[""],
+    ["HOW TO READ THE NUMBERS"],
+    ["Spent excludes investments; those have their own column."],
+    ["Loan EMIs are split: the interest portion counts as Spent, the principal"],
+    ["portion counts as Saved, because it builds equity rather than disappearing."],
+    ["Saved = Income - Spent - Invested - EMI principal."],
+    ["Income is net of deductions where a take-home figure was recorded."],[""],
+    ["ON BUDGET VS ACTUAL"],
+    ["A blank Sub-category means the row is a CATEGORY TOTAL; the rows under it"],
+    ["are its sub-categories and are already inside that total. Do not add both."],
+    ["Budget is the budget that was in force that month, not today's."],
+    ["Budget is blank on sub-category rows because budgets are set per category."],[""],
+    ["CAVEATS"],
+    [(packs.some(function(p){return p.ym===cur;}))
+      ? "The current month is partial, so treat its figures as incomplete."
+      : "All months shown are complete."],
+    [((BUDALL||[]).filter(function(r){return String(r.ym||"0000-00")!=="0000-00";}).length)
+      ? "Budget history is being tracked, so past budgets are accurate."
+      : "Budget history starts recently, so earlier months show the current budget."],[""],
+    ["A GOOD PROMPT TO PASTE ALONGSIDE THIS FILE"],
+    ["\"Here is my household spending. Typical monthly savings are about INR "+
+      avgSaved.toLocaleString("en-IN")+" and my fixed commitments are INR "+
+      recTot.toLocaleString("en-IN")+" a month."],
+    ["Which categories am I consistently overspending, and by how much?"],
+    ["Suggest a realistic budget per category for next month based on what I"],
+    ["actually spend rather than round numbers, and flag any budget that is"],
+    ["unrealistic in either direction. Where are the two or three biggest"],
+    ["realistic savings, and what is each worth per month?\""]
+  ];
+  var gs=XLSX.utils.aoa_to_sheet(guide);gs["!cols"]=[{wch:86}];
+  XLSX.utils.book_append_sheet(wb,gs,"Read me");
+
+  /* Summary */
+  var head=["Month","Income","Spent","Invested","EMI principal","Saved","Save %","Transactions"];
+  var aoa=[head];
+  packs.forEach(function(p){
+    aoa.push([p.label+(p.ym===cur?" (partial)":""),
+      Math.round(p.income),Math.round(p.spent),Math.round(p.invested),
+      Math.round(p.principal),Math.round(p.saved),
+      p.income>0?Math.round(p.saved/p.income*100)/100:null,p.n]);
+  });
+  if(full.length){
+    var avg=function(k){return Math.round(full.reduce(function(s,p){return s+p[k];},0)/full.length);};
+    aoa.push([]);
+    aoa.push(["AVERAGE (full months)",avg("income"),avg("spent"),avg("invested"),
+      avg("principal"),avg("saved"),
+      avg("income")>0?Math.round(avg("saved")/avg("income")*100)/100:null,""]);
+  }
+  var ws=XLSX.utils.aoa_to_sheet(aoa);
+  ws["!cols"]=[{wch:22},{wch:12},{wch:12},{wch:12},{wch:14},{wch:12},{wch:9},{wch:13}];
+  for(var r=1;r<aoa.length;r++){
+    var cell=ws[XLSX.utils.encode_cell({r:r,c:6})];
+    if(cell&&typeof cell.v==="number")cell.z="0%";
+  }
+  XLSX.utils.book_append_sheet(wb,ws,"Summary");
+
+  /* Budget vs Actual across exactly these months */
+  var built=_baBuild(_baData(months));
+  if(built)XLSX.utils.book_append_sheet(wb,built.ws,"Budget vs Actual");
+
+  /* Recurring commitments */
+  var rec=(RECUR||[]).filter(function(r){return r.active!==false;})
+    .sort(function(a,b){return Number(b.amount)-Number(a.amount);});
+  if(rec.length){
+    var raoa=[["Name","Category","Sub-category","Amount (INR)","Day of month","Method"]];
+    rec.forEach(function(r){
+      raoa.push([r.note||nameOf(r.category_id),nameOf(r.category_id),
+        subName(r.subcategory_id)||"",Math.round(Number(r.amount)||0),
+        r.day_of_month||"",methodLabel(r)]);
+    });
+    raoa.push([]);
+    raoa.push(["TOTAL","","",Math.round(recTot),"",""]);
+    var rws=XLSX.utils.aoa_to_sheet(raoa);
+    rws["!cols"]=[{wch:24},{wch:20},{wch:20},{wch:13},{wch:14},{wch:14}];
+    XLSX.utils.book_append_sheet(wb,rws,"Recurring");
+  }
 }
 
 /* ── PLANNING PACK ────────────────────────────────────────────────
@@ -5765,7 +6034,7 @@ $("planBtn").onclick=function(){
   }
 };
 $("copyBtn").onclick=async()=>{try{await navigator.clipboard.writeText($("summary").value);$("copyBtn").textContent="Copied ✓";setTimeout(()=>$("copyBtn").textContent="Copy summary",1500);}catch{$("summary").select();document.execCommand("copy");}};
-$("exportBtn").onclick=()=>{const[from,to]=rangeDates();const F=filtered();const rows=F.map(e=>({Date:e.spent_on,Amount:Number(e.amount),Category:nameOf(e.category_id),"Sub-category":subName(e.subcategory_id)||"","Paid by":e.paid_by||"",Method:e.method||"",Note:e.note||""}));const ws=XLSX.utils.json_to_sheet(rows.length?rows:[{Date:"",Amount:"",Category:""}]);const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,"Expenses");XLSX.writeFile(wb,`expenses_${from}_to_${to}.xlsx`);};
+$("exportBtn").onclick=()=>{const[from,to]=rangeDates();const F=filtered();const rows=F.map(e=>({Date:e.spent_on,Amount:Number(e.amount),Category:nameOf(e.category_id),"Sub-category":subName(e.subcategory_id)||"","Paid by":e.paid_by||"",Method:methodLabel(e),Note:e.note||""}));const ws=XLSX.utils.json_to_sheet(rows.length?rows:[{Date:"",Amount:"",Category:""}]);const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,"Expenses");XLSX.writeFile(wb,`expenses_${from}_to_${to}.xlsx`);};
 $("templateBtn").onclick=()=>{const ws=XLSX.utils.json_to_sheet([{Date:todayStr(),Amount:250,Category:"Food & Dining","Sub-category":"Swiggy","Paid by":"Me",Method:"UPI",Note:"dinner"}]);const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,"Template");XLSX.writeFile(wb,"expense_template.xlsx");};
 const rowCatOpts=()=>CATS.map(c=>({value:c.id,label:c.name}));
 const rowSubOpts=catId=>[{value:"",label:"— none —"}].concat(SUBS.filter(s=>s.category_id===catId).map(s=>({value:s.id,label:s.name})));
@@ -6001,8 +6270,13 @@ function openDrill(o){
         '<td class="ael-it"><span class="ael-cat">'+esc(o.cat?(sn||nameOf(e.category_id)):nameOf(e.category_id))+'</span>'+
         (second?'<span class="ael-sub">'+esc(second)+'</span>':'')+'</td>'+
         '<td class="ael-a"><span class="ael-amt">'+money2(r.amt)+'</span>'+
-        (r.split?'<span class="ael-pm">interest only</span>':
-          (e.paid_by?'<span class="ael-pm"><span class="ini">'+esc(e.paid_by.trim().charAt(0).toUpperCase())+'</span></span>':''))+
+        (function(){
+          var ml=methodLabel(e);
+          var bits=(e.paid_by?'<span class="ini" title="'+esc(e.paid_by)+'">'+esc(e.paid_by.trim().charAt(0).toUpperCase())+'</span>':'')+
+                   (ml?methodIcon(e.method)+'<span class="pm-lbl">'+esc(ml)+'</span>':'');
+          return (bits?'<span class="ael-pm">'+bits+'</span>':'')+
+                 (r.split?'<span class="ael-pm ael-int">interest only</span>':'');
+        })()+
         '</td></tr>';
     }).join("")+'</tbody></table>';
   }
