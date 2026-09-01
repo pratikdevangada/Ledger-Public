@@ -2287,6 +2287,63 @@ box-shadow:0 20px 60px -12px rgba(199,165,87,.7);opacity:0;transform:scale(.4)}
   .ael-pm .pm-lbl{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:92px}
   .ael-int{color:var(--ink-faint);font-weight:var(--fw-normal);text-transform:none;letter-spacing:0}
   .leaf-pm{margin-left:8px;font-size:var(--fs-xs);color:var(--ink-faint);white-space:nowrap}
+
+  /* Daily snapshot */
+  .snap-sheet{max-height:88vh;display:flex;flex-direction:column;padding-bottom:18px}
+  .snap-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px}
+  .snap-hi{font-family:var(--serif);font-variation-settings:"opsz" 40;font-style:italic;
+    font-weight:var(--fw-medium);font-size:var(--fs-2xl);color:var(--ink)}
+  .snap-x{width:32px;height:32px;border-radius:50%;flex:none;cursor:pointer;
+    background:rgba(231,207,147,.07);border:1px solid rgba(231,207,147,.18);color:var(--ink-soft);font-size:var(--fs-sm)}
+  [data-theme="light"] .snap-x{background:rgba(56,36,66,.04);border-color:rgba(56,36,66,.12)}
+  .snap-track{display:flex;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x mandatory;
+    gap:12px;scrollbar-width:none;touch-action:pan-x;overscroll-behavior-x:contain;min-height:0}
+  .snap-track::-webkit-scrollbar{display:none}
+  .snap-card{flex:0 0 100%;scroll-snap-align:center;min-width:0;box-sizing:border-box;
+    padding:18px 16px;border-radius:var(--radius-lg);
+    background:linear-gradient(160deg,rgba(231,207,147,.09),rgba(231,207,147,.025));
+    border:1px solid rgba(231,207,147,.16)}
+  [data-theme="light"] .snap-card{background:linear-gradient(160deg,rgba(154,126,52,.07),rgba(154,126,52,.02));
+    border-color:rgba(154,126,52,.18)}
+  .snap-eye{font-size:var(--fs-2xs);font-weight:var(--fw-bold);letter-spacing:.15em;color:var(--brass-2);margin-bottom:6px}
+  [data-theme="light"] .snap-eye{color:#8A701F}
+  .snap-title{font-family:var(--serif);font-variation-settings:"opsz" 40;font-weight:var(--fw-medium);
+    font-size:17px;color:var(--ink);line-height:1.25;margin-bottom:14px}
+  .snap-big{font-family:var(--serif);font-variation-settings:"opsz" 80;font-weight:var(--fw-medium);
+    font-size:36px;font-variant-numeric:tabular-nums;color:var(--ink);line-height:1.1;margin-bottom:10px}
+  .snap-good{color:var(--pos)}
+  .snap-bad{color:var(--red)}
+  .snap-bar{height:7px;border-radius:4px;background:rgba(231,207,147,.14);overflow:hidden;margin:4px 0 8px}
+  [data-theme="light"] .snap-bar{background:rgba(56,36,66,.10)}
+  .snap-bar-fill{display:block;height:100%;border-radius:4px;background:linear-gradient(90deg,#E7CF93,#C7A557)}
+  .snap-bar-fill.over{background:linear-gradient(90deg,#E5938A,#C96A5E)}
+  .snap-cap{display:flex;justify-content:space-between;font-size:var(--fs-sm);color:var(--ink-soft);
+    font-variant-numeric:tabular-nums;margin-bottom:10px}
+  .snap-note{font-size:var(--fs-base);color:var(--ink-soft);line-height:1.5}
+  .snap-note b{color:var(--ink)}
+  .snap-rows{display:flex;flex-direction:column;gap:9px;margin-bottom:10px}
+  .snap-row{display:flex;align-items:center;gap:9px;font-size:var(--fs-base)}
+  .snap-ic{display:inline-flex;color:var(--brass-2);flex:none}
+  [data-theme="light"] .snap-ic{color:#8A701F}
+  .snap-nm{color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:0 1 auto;min-width:0}
+  .snap-tr{flex:1 1 auto;height:6px;border-radius:3px;background:rgba(231,207,147,.12);overflow:hidden;min-width:20px}
+  [data-theme="light"] .snap-tr{background:rgba(56,36,66,.10)}
+  .snap-fl{display:block;height:100%;border-radius:3px;background:linear-gradient(90deg,#C7A557,#E7CF93)}
+  .snap-vl{font-weight:var(--fw-bold);font-variant-numeric:tabular-nums;white-space:nowrap;margin-left:auto}
+  .snap-when{font-size:var(--fs-xs);color:var(--ink-faint);white-space:nowrap}
+  .snap-tick{font-size:40px;color:var(--pos);line-height:1;margin-bottom:10px}
+  .snap-dots{display:flex;justify-content:center;gap:7px;margin:14px 0 4px}
+  .snap-dot{width:7px;height:7px;border-radius:50%;background:rgba(231,207,147,.25);transition:.18s}
+  .snap-dot.on{background:var(--brass);transform:scale(1.25)}
+  [data-theme="light"] .snap-dot{background:rgba(154,126,52,.25)}
+  .snap-done{width:100%;margin-top:8px}
+  @media(max-width:760px){
+    .snap-sheet{position:fixed;bottom:0;left:0;right:0;width:100%;
+      border-radius:var(--radius-xl) 20px 0 0;max-height:88vh;
+      padding-bottom:calc(16px + env(safe-area-inset-bottom,0px))}
+    .modal:not(.hide)>.snap-sheet{max-height:88vh;display:flex;flex-direction:column;overflow:hidden}
+    .snap-big{font-size:32px}
+  }
 </style>
 </head>
 <body>
@@ -2820,7 +2877,7 @@ box-shadow:0 20px 60px -12px rgba(199,165,87,.7);opacity:0;transform:scale(.4)}
   <button class="pm-item" type="button" onclick="var w=document.getElementById('whoName');if(w)w.click();"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>Edit name</button>
   <button class="pm-item" type="button" onclick="toggleTheme();closeProfile();"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg><span id="pmThemeLabel">Switch to light</span></button>
   <div class="pm-div"></div>
-  <button class="pm-item" type="button" onclick="openBackupModal();closeProfile();"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a7.5 7.5 0 0 0-7.4 6.3A4.5 4.5 0 0 0 6 18h12a4 4 0 0 0 .6-7.96A7.5 7.5 0 0 0 12 3Z"/><path d="M12 10v6M9.3 13.3 12 16l2.7-2.7"/></svg>Data &amp; backup</button>
+  <button class="pm-item" type="button" onclick="closeProfile();openDaySnap();"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="17" rx="2.5"/><path d="M3 9h18M8 2.5v3M16 2.5v3"/></svg>Today's snapshot</button><button class="pm-item" type="button" onclick="openBackupModal();closeProfile();"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a7.5 7.5 0 0 0-7.4 6.3A4.5 4.5 0 0 0 6 18h12a4 4 0 0 0 .6-7.96A7.5 7.5 0 0 0 12 3Z"/><path d="M12 10v6M9.3 13.3 12 16l2.7-2.7"/></svg>Data &amp; backup</button>
   <button class="pm-item" type="button" onclick="openPinSetup();closeProfile();"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg><span id="pmPinLabel">Set passcode</span></button><button class="pm-item" type="button" onclick="closeProfile();goScreen('cats');"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7.5A1.5 1.5 0 0 1 4.5 6H9l2 2.5h8.5A1.5 1.5 0 0 1 21 10v8.5a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 18.5v-11z"/></svg>Manage categories</button>
   <button class="pm-item pm-signout" id="signout" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>Sign out</button>
 </div>
@@ -6556,7 +6613,7 @@ async function showApp(session){if(window._appReady)return;
     else{initFilters();$("rows").innerHTML="";addRow();renderAddRecent();applyFilters();updateSync();if(navigator.onLine)flushQueue();renderReports();fetchUsdRate();}
     refreshPaidSelects();
   }catch(e){fatalLoad("Something went wrong while showing your dashboard. Please reload the app.", e&&e.message||e);return;}
-  window._appReady=true;_saveBootCache();const _le=$("loadErr");if(_le)_le.remove();
+  window._appReady=true;_saveBootCache();try{if(!DEMO&&shouldShowDaySnap())setTimeout(function(){if(!document.querySelector(".modal:not(.hide)"))openDaySnap();},900);}catch(_){}const _le=$("loadErr");if(_le)_le.remove();
   // Keep-alive: explicit ping now + every 6h while app stays open.
   (function(){
     function ping(){try{sb.from("expenses").select("id",{count:"exact",head:true}).limit(1).then(function(){},function(){});}catch(_){}}
@@ -6793,6 +6850,198 @@ else{try{sb=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);}catch(e){show
   }catch(e){}
   window._syncScrollLock=schedule;
 })();
+
+/* ── DAILY SNAPSHOT ───────────────────────────────────────────────
+   A short briefing on the first app open of each day: where the month
+   stands, what it is going on, what is coming, what is left. Shown once
+   per calendar day per account; reopenable by hand from the profile
+   menu so it is never lost if dismissed too quickly.
+
+   Cards are built only when the data supports them - a card that says
+   "no data" is worse than no card, so an account with no budgets simply
+   gets fewer of them. */
+function _snapKey(){return "kharcha-daysnap-"+(window._uid||"anon");}
+function shouldShowDaySnap(){
+  try{return localStorage.getItem(_snapKey())!==todayStr();}catch(e){return false;}
+}
+function markDaySnapShown(){try{localStorage.setItem(_snapKey(),todayStr());}catch(e){}}
+
+/* Recurring items and card bills falling due within a week. */
+function _dueSoonItems(){
+  var now=new Date(),ym=_ymOf(),today=now.getDate();
+  var dim=new Date(now.getFullYear(),now.getMonth()+1,0).getDate(),out=[];
+  (RECUR||[]).forEach(function(r){
+    if(r.active===false||r.last_added===ym)return;
+    var d=Math.min(Number(r.day_of_month)||1,28),delta=d-today;
+    if(delta<0)delta+=dim;
+    if(delta<=7)out.push({name:r.note||nameOf(r.category_id),amt:Number(r.amount)||0,days:delta});
+  });
+  (CARDS||[]).forEach(function(c){
+    if(c.kind==="prepaid"||!c.due_day)return;
+    try{
+      var di=nextDue(c);
+      if(di.days>7||isCardPaid(c.id,di.cycleYm))return;
+      var y=now.getFullYear(),m=now.getMonth();
+      var sp=(EXP||[]).filter(function(e){
+        if(e.card_id!==c.id)return false;
+        var d=new Date(e.spent_on);return d.getFullYear()===y&&d.getMonth()===m;
+      }).reduce(function(s,e){return s+Number(e.amount);},0);
+      if(sp>0)out.push({name:c.name+" bill",amt:sp,days:di.days});
+    }catch(_){}
+  });
+  return out.sort(function(a,b){return a.days-b.days;});
+}
+
+function _snapCards(){
+  var now=new Date(),y=now.getFullYear(),m=now.getMonth();
+  var day=now.getDate(),dim=new Date(y,m+1,0).getDate(),left=Math.max(0,dim-day);
+  var frac=day/dim;
+  var pack=_packMonth(y,m);
+  var cur=_monthExp(0);
+  if(!cur.length&&pack.income<=0)return [];
+
+  var act=monthActuals();
+  var totBud=(CATS||[]).reduce(function(s,c){return s+(Number(BUD[c.id])||0);},0);
+  var spent=pack.spent;
+  var cards=[];
+  var monthName=now.toLocaleDateString(LOCALE,{month:"long"});
+
+  /* 1 - the headline */
+  var pct=totBud>0?Math.min(100,spent/totBud*100):0;
+  var over=totBud>0&&spent>totBud;
+  var proj=frac>0?Math.round(spent/frac):spent;
+  var body='<div class="snap-big">'+money2(spent)+'</div>';
+  if(totBud>0){
+    body+='<div class="snap-bar"><span class="snap-bar-fill'+(over?" over":"")+'" style="width:'+pct+'%"></span></div>'+
+      '<div class="snap-cap"><span>'+Math.round(totBud>0?spent/totBud*100:0)+'% of '+money2(totBud)+'</span>'+
+      '<span>'+(over?money2(spent-totBud)+" over":money2(totBud-spent)+" left")+'</span></div>'+
+      '<div class="snap-note">On this pace you would finish around <b class="'+
+      (proj>totBud?"snap-bad":"snap-good")+'">'+money2(proj)+'</b>.</div>';
+  }else{
+    body+='<div class="snap-note">'+cur.length+' expense'+(cur.length!==1?"s":"")+
+      ' so far. Set budgets to see how this compares.</div>';
+  }
+  cards.push({eye:"MONTH SO FAR",title:monthName+" \u00b7 day "+day+" of "+dim,body:body});
+
+  /* 2 - where it is going */
+  var byCat={};
+  cur.forEach(function(e){
+    var a=(e.interest_pct!=null)?_emiSplit(e).expense:Number(e.amount);
+    byCat[e.category_id]=(byCat[e.category_id]||0)+a;
+  });
+  var top=Object.keys(byCat).map(function(id){return{id:id,v:byCat[id]};})
+    .sort(function(a,b){return b.v-a.v;}).slice(0,4);
+  if(top.length){
+    var max=top[0].v;
+    cards.push({eye:"WHERE IT IS GOING",title:"Top categories",
+      body:'<div class="snap-rows">'+top.map(function(r){
+        return '<div class="snap-row"><span class="snap-ic">'+catIcon(r.id)+'</span>'+
+          '<span class="snap-nm">'+esc(nameOf(r.id))+'</span>'+
+          '<span class="snap-tr"><span class="snap-fl" style="width:'+Math.max(4,r.v/max*100)+'%"></span></span>'+
+          '<span class="snap-vl">'+_moneyShort(r.v)+'</span></div>';
+      }).join("")+'</div>'+
+      '<div class="snap-note">'+esc(nameOf(top[0].id))+' is '+
+      Math.round(top[0].v/(spent||1)*100)+'% of everything you have spent.</div>'});
+  }
+
+  /* 3 - same point last month, which is the only fair comparison */
+  var pm=new Date(y,m-1,1),pdim=new Date(y,m,0).getDate();
+  var pcut=pm.getFullYear()+"-"+String(pm.getMonth()+1).padStart(2,"0")+"-"+
+           String(Math.min(day,pdim)).padStart(2,"0");
+  var pfrom=pm.getFullYear()+"-"+String(pm.getMonth()+1).padStart(2,"0")+"-01";
+  var prev=(EXP||[]).filter(function(e){
+    return e.spent_on>=pfrom&&e.spent_on<=pcut&&!spendExcluded(e);
+  }).reduce(function(s,e){return s+((e.interest_pct!=null)?_emiSplit(e).expense:Number(e.amount));},0);
+  if(prev>0){
+    var d=spent-prev,up=d>0,dp=Math.round(Math.abs(d)/prev*100);
+    cards.push({eye:"VERSUS LAST MONTH",title:"By day "+day+", "+
+      pm.toLocaleDateString(LOCALE,{month:"long"})+" was "+money2(prev),
+      body:'<div class="snap-big '+(up?"snap-bad":"snap-good")+'">'+(up?"+":"\u2212")+money2(Math.abs(d))+'</div>'+
+        '<div class="snap-note">You are <b>'+dp+'% '+(up?"ahead of":"behind")+'</b> where you were at this point last month.'+
+        (up?" Not necessarily bad - a one-off can explain it.":" Nicely done.")+'</div>'});
+  }
+
+  /* 4 - what needs attention, or reassurance that nothing does */
+  var warn=(CATS||[]).filter(function(c){return (Number(BUD[c.id])||0)>0;})
+    .map(function(c){var a=act[c.id]||0,b=Number(BUD[c.id]);
+      return{c:c,a:a,b:b,proj:frac>0?a/frac:a};})
+    .filter(function(x){return x.proj>x.b*1.05;})
+    .sort(function(a,b){return (b.proj-b.b)-(a.proj-a.b);}).slice(0,4);
+  if(totBud>0){
+    cards.push(warn.length
+      ? {eye:"WORTH WATCHING",title:warn.length+" categor"+(warn.length>1?"ies":"y")+" heading over",
+         body:'<div class="snap-rows">'+warn.map(function(x){
+           return '<div class="snap-row"><span class="snap-ic">'+catIcon(x.c.id)+'</span>'+
+             '<span class="snap-nm">'+esc(x.c.name)+'</span>'+
+             '<span class="snap-vl snap-bad">'+_moneyShort(x.a)+' / '+_moneyShort(x.b)+'</span></div>';
+         }).join("")+'</div><div class="snap-note">Projected at this pace, not final.</div>'}
+      : {eye:"ON TRACK",title:"Every category is on pace",
+         body:'<div class="snap-tick">\u2713</div><div class="snap-note">'+left+
+              ' day'+(left!==1?"s":"")+' left and nothing is heading over budget.</div>'});
+  }
+
+  /* 5 - what is about to land */
+  var due=_dueSoonItems();
+  if(due.length){
+    var dtot=due.reduce(function(s,x){return s+x.amt;},0);
+    cards.push({eye:"COMING UP",title:money2(dtot)+" due within 7 days",
+      body:'<div class="snap-rows">'+due.slice(0,5).map(function(x){
+        return '<div class="snap-row"><span class="snap-nm">'+esc(x.name)+'</span>'+
+          '<span class="snap-when">'+(x.days===0?"today":x.days===1?"tomorrow":"in "+x.days+"d")+'</span>'+
+          '<span class="snap-vl">'+_moneyShort(x.amt)+'</span></div>';
+      }).join("")+'</div>'});
+  }
+
+  /* 6 - the number that actually matters */
+  if(pack.income>0){
+    var pend=due.reduce(function(s,x){return s+x.amt;},0);
+    var avail=pack.saved-pend;
+    cards.push({eye:"MONEY LEFT",title:"After everything committed",
+      body:'<div class="snap-big '+(avail>=0?"snap-good":"snap-bad")+'">'+money2(avail)+'</div>'+
+        '<div class="snap-note">'+money2(pack.income)+' in, '+money2(pack.spent)+' spent'+
+        (pack.invested>0?', '+money2(pack.invested)+' invested':'')+
+        (pend>0?', '+money2(pend)+' still to go out':'')+'.</div>'});
+  }
+  return cards;
+}
+
+function openDaySnap(){
+  var cards=_snapCards();
+  if(!cards.length){markDaySnapShown();return;}
+  markDaySnapShown();
+  var m=document.getElementById("daySnap");
+  if(!m){
+    m=document.createElement("div");m.id="daySnap";m.className="modal hide";
+    m.innerHTML='<div class="modal-card snap-sheet">'+
+      '<div class="sheet-handle"></div>'+
+      '<div class="snap-head"><span class="snap-hi" id="snapHi"></span>'+
+        '<button class="snap-x" onclick="closeDaySnap()" aria-label="Close">\u2715</button></div>'+
+      '<div class="snap-track" id="snapTrack"></div>'+
+      '<div class="snap-dots" id="snapDots"></div>'+
+      '<button class="primary snap-done" onclick="closeDaySnap()">Done</button></div>';
+    m.onclick=function(e){if(e.target===m)closeDaySnap();};
+    document.body.appendChild(m);
+  }
+  var hr=new Date().getHours();
+  var greet=hr<5?"Still up":hr<12?"Good morning":hr<17?"Good afternoon":hr<21?"Good evening":"Good night";
+  var nm=(window._me||"").split(" ")[0];
+  document.getElementById("snapHi").textContent=greet+(nm?", "+nm:"");
+  var track=document.getElementById("snapTrack");
+  track.innerHTML=cards.map(function(c){
+    return '<section class="snap-card"><div class="snap-eye">'+esc(c.eye)+'</div>'+
+      '<div class="snap-title">'+esc(c.title)+'</div>'+c.body+'</section>';
+  }).join("");
+  var dots=document.getElementById("snapDots");
+  dots.innerHTML=cards.map(function(_,i){return '<span class="snap-dot'+(i?"":" on")+'"></span>';}).join("");
+  track.scrollLeft=0;
+  track.onscroll=function(){
+    var i=Math.round(track.scrollLeft/Math.max(1,track.clientWidth));
+    [].forEach.call(dots.children,function(d,k){d.classList.toggle("on",k===i);});
+  };
+  m.classList.remove("hide");
+  haptic(8);
+}
+function closeDaySnap(){var m=document.getElementById("daySnap");if(m)m.classList.add("hide");}
 
 function hasPinLock(){return !!localStorage.getItem("kharcha-pin");}
 function getPinHash(){return localStorage.getItem("kharcha-pin");}
